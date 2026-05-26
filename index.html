@@ -1274,13 +1274,13 @@ function sizeSticker() {
    ============================================================ */
 const $ = id => document.getElementById(id);
 const setText = (id, v) => { $(id).textContent = v || ''; };
-/* Shrink font-size until el's content fits inside its parent, down to minPt. */
+/* Shrink el's font-size until its parent container stops overflowing, down to minPt. */
 function fitText(el, minPt) {
   if (!el) return;
   el.style.fontSize = '';
   const par = el.parentElement;
   let size = parseFloat(window.getComputedStyle(el).fontSize);
-  while (size > minPt && (el.scrollHeight > par.clientHeight || el.scrollWidth > par.clientWidth)) {
+  while (size > minPt && (par.scrollHeight > par.clientHeight || par.scrollWidth > par.clientWidth)) {
     size = Math.max(minPt, size - 0.5);
     el.style.fontSize = size + 'pt';
   }
@@ -1402,6 +1402,7 @@ function update() {
   fitText($('s-lbl-product'), 6);
   fitText($('s-lbl-hazard'),  4);
   fitText($('lbl-hazard'),    5);
+  fitText($('lbl-firstaid'),  5);
 
   // GHS pictograms for sticker cluster
   document.querySelectorAll('#s-pic-cluster .pic-cell').forEach(cell => {
