@@ -539,7 +539,7 @@ body {
   border-bottom: 1px solid #000; padding-bottom: 2px;
 }
 .hp-info .htxt, .hp-info .ptxt, .fa-box .fatxt {
-  font-size: 8.5pt; line-height: 1.25; margin: 2px 0; white-space: pre-wrap;
+  font-size: 7.5pt; line-height: 1.25; margin: 2px 0; white-space: pre-wrap;
 }
 .hp-info .pl { font-weight: 800; }
 .supplier-info .srow { font-size: 8.5pt; line-height: 1.3; }
@@ -1273,6 +1273,12 @@ function sizeSticker() {
    ============================================================ */
 const $ = id => document.getElementById(id);
 const setText = (id, v) => { $(id).textContent = v || ''; };
+const setFirstAid = (id, v) => {
+  const el = $(id);
+  if (!v) { el.innerHTML = ''; return; }
+  const escaped = v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  el.innerHTML = escaped.replace(/^([^:\n]+:)/gm, '<strong>$1</strong>');
+};
 
 function update() {
   // Product
@@ -1295,7 +1301,7 @@ function update() {
 
   // Statements + first aid
   setText('lbl-hazard',   $('f-hazard').value);
-  setText('lbl-firstaid', $('f-firstaid').value);
+  setFirstAid('lbl-firstaid', $('f-firstaid').value);
 
   // GHS pictograms — toggle active class + inject SVG (or clear),
   // and collect the display names of every active hazard for the
