@@ -140,7 +140,7 @@ body {
 }
 .lib-del-btn:hover { background: #aa0000; }
 .lib-save-btn {
-  width: 100%; margin-top: 6px; padding: 7px; font-size: 11px; font-weight: 700; 
+  width: 100%; margin-top: 6px; padding: 7px; font-size: 11px; font-weight: 700;
   cursor: pointer; border-radius: 3px; border: 0;
   background: #2a6b3f; color: #fff; letter-spacing: 0.5px; text-transform: uppercase;
 }
@@ -665,7 +665,7 @@ body[data-mode="sticker"] .label-outer   { display: none; }
 .s-hmis-row.s-flame  { background: #cc0000; color: #fff; }
 .s-hmis-row.s-react  { background: #ffcc00; color: #000; }
 .s-ppe-bar {
-  display: flex; align-items: baseline; padding: 0 0.1in;
+  display: flex; align-items: center; padding: 0 0.1in;
   font-size: 6pt; gap: 4px; overflow: hidden;
 }
 .s-ppe-bar .s-ppe-label { font-weight: 900; letter-spacing: 0.5px; white-space: nowrap; font-size: 6pt; }
@@ -1274,6 +1274,17 @@ function sizeSticker() {
    ============================================================ */
 const $ = id => document.getElementById(id);
 const setText = (id, v) => { $(id).textContent = v || ''; };
+/* Shrink font-size until el's content fits inside its parent, down to minPt. */
+function fitText(el, minPt) {
+  if (!el) return;
+  el.style.fontSize = '';
+  const par = el.parentElement;
+  let size = parseFloat(window.getComputedStyle(el).fontSize);
+  while (size > minPt && (el.scrollHeight > par.clientHeight || el.scrollWidth > par.clientWidth)) {
+    size = Math.max(minPt, size - 0.5);
+    el.style.fontSize = size + 'pt';
+  }
+}
 const setFirstAid = (id, v) => {
   const el = $(id);
   if (!v) { el.innerHTML = ''; return; }
@@ -1386,6 +1397,11 @@ function update() {
 
   // Hazard + precautionary text (combined in compact space)
   setText('s-lbl-hazard', $('f-hazard').value);
+
+  // Auto-fit text in space-constrained boxes
+  fitText($('s-lbl-product'), 6);
+  fitText($('s-lbl-hazard'),  4);
+  fitText($('lbl-hazard'),    5);
 
   // GHS pictograms for sticker cluster
   document.querySelectorAll('#s-pic-cluster .pic-cell').forEach(cell => {
