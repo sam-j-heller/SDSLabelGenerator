@@ -542,6 +542,7 @@ body {
   font-size: 7.5pt; line-height: 1.25; margin: 2px 0; white-space: pre-wrap;
   flex: 1; min-height: 0; overflow: hidden;
 }
+.hp-info .htxt { column-count: 2; column-gap: 0.18in; }
 .hp-info .pl { font-weight: 800; }
 .supplier-info .srow { font-size: 8.5pt; line-height: 1.3; }
 .supplier-info .srow b { font-weight: 800; }
@@ -787,8 +788,10 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
       <div class="export-wrap" id="export-wrap">
         <button class="export-btn" onclick="toggleExportMenu()">Export / Import <span>▾</span></button>
         <div class="export-menu" id="export-menu">
-          <button onclick="exportJSON()">⬇&nbsp; Export as JSON</button>
-          <button onclick="importJSON()">⬆&nbsp; Import from JSON</button>
+          <button onclick="exportJSON()">⬇&nbsp; Export label as JSON</button>
+          <button onclick="importJSON()">⬆&nbsp; Import label from JSON</button>
+          <button onclick="exportLibraryJSON()" style="border-top:2px solid #ddd">⬇&nbsp; Export full library</button>
+          <button onclick="importLibraryJSON()">⬆&nbsp; Import into library</button>
           <button onclick="saveHTMLWithLibrary()" style="border-top:2px solid #ddd">💾&nbsp; Save HTML with Library</button>
         </div>
       </div>
@@ -1731,6 +1734,55 @@ function exportJSON() {
   URL.revokeObjectURL(url);
 }
 
+function exportLibraryJSON() {
+  closeExportMenu();
+  const lib = getLibrary();
+  if (!lib.length) { alert('Library is empty — save some chemicals first.'); return; }
+  const blob = new Blob([JSON.stringify(lib, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'chem_label_library.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importLibraryJSON() {
+  closeExportMenu();
+  const input = document.createElement('input');
+  input.type   = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const imported = JSON.parse(evt.target.result);
+        if (!Array.isArray(imported)) throw new Error('Not a library file');
+        const lib = getLibrary();
+        let added = 0, skipped = 0;
+        imported.forEach(c => {
+          if (!c.product) return;
+          if (lib.some(e => e.product.trim().toLowerCase() === c.product.trim().toLowerCase())) {
+            skipped++;
+          } else {
+            lib.push(c);
+            added++;
+          }
+        });
+        lib.sort((a, b) => a.product.localeCompare(b.product));
+        saveLibrary(lib);
+        populateLibrarySelect();
+        writeDriveFile();
+        alert(`Import complete: ${added} added, ${skipped} already in library.`);
+      } catch {
+        alert('Invalid file. Please select a library JSON exported from this tool.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
 function saveHTMLWithLibrary() {
   closeExportMenu();
   const lib = getLibrary();
@@ -1799,8 +1851,16 @@ const saveLibrary = lib => localStorage.setItem(LIB_KEY, JSON.stringify(lib));
 function populateLibrarySelect() {
   const sel = $('lib-select');
   const lib = getLibrary();
+  // Sort: recently used first, then alphabetical for never-used entries.
+  // Preserve real storage index as option value so load/delete stay correct.
+  const sorted = lib.map((item, i) => ({ item, i })).sort((a, b) => {
+    if (a.item.lastUsed && b.item.lastUsed) return b.item.lastUsed - a.item.lastUsed;
+    if (a.item.lastUsed) return -1;
+    if (b.item.lastUsed) return 1;
+    return (a.item.product || '').localeCompare(b.item.product || '');
+  });
   sel.innerHTML = '<option value="">— Select a saved chemical —</option>';
-  lib.forEach((item, i) => {
+  sorted.forEach(({ item, i }) => {
     const opt = document.createElement('option');
     opt.value = i;
     opt.textContent = item.product || `Chemical ${i + 1}`;
@@ -1941,8 +2001,13 @@ function saveToLibrary() {
 function loadFromLibrary() {
   const sel = $('lib-select');
   if (!sel.value && sel.value !== 0) return;
-  const data = getLibrary()[parseInt(sel.value)];
-  if (data) loadFormData(data);
+  const lib = getLibrary();
+  const idx = parseInt(sel.value);
+  if (!lib[idx]) return;
+  lib[idx].lastUsed = Date.now();
+  saveLibrary(lib);
+  populateLibrarySelect();
+  loadFormData(lib[idx]);
 }
 
 function deleteFromLibrary() {
