@@ -61,7 +61,7 @@ body {
 .print-btn {
   width: 100%;
   background: #c92828;
-  color: #fff; 
+  color: #fff;
   border: 0;
   padding: 12px 14px;
   font-size: 14px;
@@ -540,6 +540,7 @@ body {
 }
 .hp-info .htxt, .hp-info .ptxt, .fa-box .fatxt {
   font-size: 7.5pt; line-height: 1.25; margin: 2px 0; white-space: pre-wrap;
+  flex: 1; min-height: 0; overflow: hidden;
 }
 .hp-info .pl { font-weight: 800; }
 .supplier-info .srow { font-size: 8.5pt; line-height: 1.3; }
@@ -642,7 +643,7 @@ body[data-mode="sticker"] .label-outer   { display: none; }
   text-transform: uppercase; font-weight: 800;
   border-bottom: 1px solid #000; padding-bottom: 1px;
 }
-.s-hazard-text { font-size: 6pt; line-height: 1.3; white-space: pre-wrap; overflow: hidden; }
+.s-hazard-text { font-size: 6pt; line-height: 1.3; white-space: pre-wrap; overflow: hidden; flex: 1; min-height: 0; }
 .s-hmis-zone { display: flex; flex-direction: column; overflow: hidden; }
 .s-hmis-zone .s-hd {
   background: #000; color: #fff; font-weight: 800;
@@ -1274,13 +1275,15 @@ function sizeSticker() {
    ============================================================ */
 const $ = id => document.getElementById(id);
 const setText = (id, v) => { $(id).textContent = v || ''; };
-/* Shrink el's font-size until its parent container stops overflowing, down to minPt. */
+/* Shrink el's font-size until content fits, down to minPt.
+   Uses the smaller of el.clientHeight / par.clientHeight so it works for
+   both flex:1 constrained children and unconstrained flex-row children. */
 function fitText(el, minPt) {
   if (!el) return;
   el.style.fontSize = '';
-  const par = el.parentElement;
+  const limit = Math.min(el.clientHeight, el.parentElement.clientHeight);
   let size = parseFloat(window.getComputedStyle(el).fontSize);
-  while (size > minPt && (par.scrollHeight > par.clientHeight || par.scrollWidth > par.clientWidth)) {
+  while (size > minPt && el.scrollHeight > limit) {
     size = Math.max(minPt, size - 0.5);
     el.style.fontSize = size + 'pt';
   }
@@ -1290,6 +1293,12 @@ const setFirstAid = (id, v) => {
   if (!v) { el.innerHTML = ''; return; }
   const escaped = v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   el.innerHTML = escaped.replace(/^([^:\n]+:)/gm, '<strong>$1</strong>');
+};
+const setHazard = (id, v) => {
+  const el = $(id);
+  if (!v) { el.innerHTML = ''; return; }
+  const escaped = v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  el.innerHTML = escaped.replace(/^([^–\-\n]*[–-])/gm, '<strong>$1</strong>');
 };
 
 function update() {
@@ -1312,7 +1321,7 @@ function update() {
   }
 
   // Statements + first aid
-  setText('lbl-hazard',   $('f-hazard').value);
+  setHazard('lbl-hazard',   $('f-hazard').value);
   setFirstAid('lbl-firstaid', $('f-firstaid').value);
 
   // GHS pictograms — toggle active class + inject SVG (or clear),
@@ -1396,7 +1405,7 @@ function update() {
   setText('s-ppe-display', ppeText);
 
   // Hazard + precautionary text (combined in compact space)
-  setText('s-lbl-hazard', $('f-hazard').value);
+  setHazard('s-lbl-hazard', $('f-hazard').value);
 
   // Auto-fit text in space-constrained boxes
   fitText($('s-lbl-product'), 6);
@@ -1468,6 +1477,7 @@ function setMode(mode) {
     ? '@media print { @page { size: 3in 4in; margin: 0; } }'
     : '@media print { @page { size: letter landscape; margin: 0.5in; } }';
   scheduleFit();
+  update();
 }
 function scheduleFit() {
   if (fitScheduled) return;
