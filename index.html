@@ -559,6 +559,18 @@ body {
   text-transform: uppercase;
 }
 .mode-btn.active { background: #e6a000; border-color: #e6a000; color: #000; }
+/* Sheet sub-options — shown under Sticker button in sticker & sheet modes */
+.sheet-subopts { display: none; gap: 4px; margin-top: 4px; }
+body[data-mode="sticker"] .sheet-subopts,
+body[data-mode="sheet"]   .sheet-subopts { display: flex; }
+body[data-mode="sheet"] .mode-btn[data-mode="sticker"] { background: #e6a000; border-color: #e6a000; color: #000; }
+.sheet-sub-btn {
+  flex: 1; padding: 4px; font-size: 10px; font-weight: 700;
+  cursor: pointer; border-radius: 3px;
+  border: 1.5px solid #666; background: #444; color: #999;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.sheet-sub-btn.active { background: #e6a000; border-color: #e6a000; color: #000; }
 
 /* ============================================================
    STICKER LABEL (3 × 4 in, portrait)
@@ -694,10 +706,13 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
 .sheet-grid {
   width: 8.5in; height: 11in;
   display: grid;
-  grid-template-columns: 3in 3in;
-  grid-template-rows: 4in 4in;
-  justify-content: center;
-  align-content: center;
+  grid-template-columns: 4.25in 4.25in;
+  grid-template-rows: 5.5in 5.5in;
+}
+.sheet-slot {
+  width: 4.25in; height: 5.5in;
+  position: relative;
+  overflow: hidden;
 }
 
 /* ============================================================
@@ -762,9 +777,12 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
     <div class="print-bar">
       <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
       <div class="mode-toggle-bar">
-        <button class="mode-btn active" data-mode="full"    onclick="setMode('full')">Full Label</button>
-        <button class="mode-btn"        data-mode="sticker" onclick="setMode('sticker')">Sticker</button>
-        <button class="mode-btn"        data-mode="sheet"   onclick="setMode('sheet')">Sheet 4×</button>
+        <button class="mode-btn active" data-mode="full"    onclick="setMode('full')">Full (10×7.5in)</button>
+        <button class="mode-btn"        data-mode="sticker" onclick="setMode('sticker')">Sticker (3×4in)</button>
+      </div>
+      <div class="sheet-subopts">
+        <button class="sheet-sub-btn active" id="sub-single" onclick="setMode('sticker')">Single</button>
+        <button class="sheet-sub-btn"        id="sub-sheet"  onclick="setMode('sheet')">Sheet 4×</button>
       </div>
       <div class="export-wrap" id="export-wrap">
         <button class="export-btn" onclick="toggleExportMenu()">Export / Import <span>▾</span></button>
@@ -1523,8 +1541,13 @@ function setMode(mode) {
   currentMode = mode;
   document.body.dataset.mode = mode;
   document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.mode === mode);
+    const isActive = btn.dataset.mode === mode || (btn.dataset.mode === 'sticker' && mode === 'sheet');
+    btn.classList.toggle('active', isActive);
   });
+  const subSingle = $('sub-single');
+  const subSheet  = $('sub-sheet');
+  if (subSingle) subSingle.classList.toggle('active', mode === 'sticker');
+  if (subSheet)  subSheet.classList.toggle('active',  mode === 'sheet');
   // Inject per-mode @page rule so print dialog uses the right paper size
   let ps = document.getElementById('dynamic-print-style');
   if (!ps) {
@@ -1546,18 +1569,27 @@ function scheduleFit() {
   requestAnimationFrame(fitLabel);
 }
 
-/* Clone the fully-rendered canonical sticker 4 times into the sheet grid */
+/* Clone the fully-rendered canonical sticker 4 times into the sheet grid,
+   scaling each copy to fill its 4.25×5.5in slot while keeping 3:4 aspect ratio. */
 function updateSheetGrid() {
   const grid = $('sheet-grid');
   if (!grid) return;
   const src = document.querySelector('#sticker-outer .sticker');
   if (!src) return;
+  // Sticker native: 3×4in → slot: 4.25×5.5in. Uniform scale, limited by height.
+  const scale   = Math.min(4.25 / 3, 5.5 / 4); // 1.375
+  const offsetX = ((4.25 - 3 * scale) / 2) * 96; // ~6px — center horizontally
   grid.innerHTML = '';
   for (let i = 0; i < 4; i++) {
+    const slot  = document.createElement('div');
+    slot.className = 'sheet-slot';
     const clone = src.cloneNode(true);
-    clone.style.boxShadow = 'none';
+    clone.style.boxShadow      = 'none';
+    clone.style.transformOrigin = 'top left';
+    clone.style.transform      = `translate(${offsetX}px, 0) scale(${scale})`;
     clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-    grid.appendChild(clone);
+    slot.appendChild(clone);
+    grid.appendChild(slot);
   }
 }
 
