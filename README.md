@@ -2,7 +2,7 @@
 
 A free, browser-based tool for generating GHS-compliant chemical safety labels with live preview. No installation, no account, no downloads required.
 
-**→ [Open the Tool](https://your-github-pages-url-here)**
+**→ [Open the Tool](https://sam-j-heller.github.io/SDSLabelGenerator/)**
 
 ---
 
