@@ -592,7 +592,7 @@ body[data-mode="sticker"] .label-outer   { display: none; }
 }
 .sticker {
   width: 3in; height: 4in; background: #fff; border: 3px solid #000;
-  display: grid; grid-template-rows: 0.5in 1fr 1.3in 0.2in;
+  display: grid; grid-template-rows: 0.5in 1fr 1.3in 0.32in;
   font-family: Arial, Helvetica, sans-serif; color: #000;
   box-shadow: 0 6px 24px rgba(0,0,0,0.35); overflow: hidden;
 }
@@ -680,11 +680,11 @@ body[data-mode="sticker"] .label-outer   { display: none; }
 .s-hmis-row.s-flame  { background: #cc0000; color: #fff; }
 .s-hmis-row.s-react  { background: #ffcc00; color: #000; }
 .s-ppe-bar {
-  display: flex; align-items: center; padding: 0 0.1in;
+  display: flex; align-items: flex-start; padding: 2px 0.1in 0;
   font-size: 6pt; gap: 4px; overflow: hidden;
 }
-.s-ppe-bar .s-ppe-label { font-weight: 900; letter-spacing: 0.5px; white-space: nowrap; font-size: 6pt; }
-.s-ppe-bar .s-ppe-value { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 6pt; }
+.s-ppe-bar .s-ppe-label { font-weight: 900; letter-spacing: 0.5px; white-space: nowrap; font-size: 6pt; flex-shrink: 0; }
+.s-ppe-bar .s-ppe-value { font-weight: 400; overflow: hidden; font-size: 6pt; white-space: normal; line-height: 1.25; }
 
 /* ============================================================
    SHEET MODE — 4-up (2×2) sticker sheet on letter portrait
