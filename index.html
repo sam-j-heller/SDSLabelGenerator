@@ -809,7 +809,6 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
           <button onclick="importJSON()">⬆&nbsp; Import label from JSON</button>
           <button onclick="exportLibraryJSON()" style="border-top:2px solid #ddd">⬇&nbsp; Export full library</button>
           <button onclick="importLibraryJSON()">⬆&nbsp; Import into library</button>
-          <button onclick="saveHTMLWithLibrary()" style="border-top:2px solid #ddd">💾&nbsp; Save HTML with Library</button>
         </div>
       </div>
     </div>
@@ -1309,16 +1308,16 @@ const PICTOS = {
 const PPE_CODES = {
   NONE: 'No PPE required for normal handling',
   A: 'Safety glasses',
-  B: 'Safety glasses + Gloves',
-  C: 'Safety glasses + Gloves + Apron',
-  D: 'Face Shield + Gloves + Apron',
-  E: 'Safety Glasses + Gloves + Dust Respirator',
-  F: 'Safety Glasses + Gloves + Apron + Dust Respirator',
-  G: 'Safety Glasses + Gloves + Vapor Respirator',
-  H: 'Splash Goggles + Gloves + Apron + Vapor Respirator',
-  I: 'Safety Glasses + Gloves + Dust & Vapor Respirator',
-  J: 'Splash Goggles + Gloves + Apron + Dust & Vapor Respirator',
-  K: 'Air-line Hood/Mask + Gloves + Full Suit + Boots'
+  B: 'Safety glasses + gloves',
+  C: 'Safety glasses + gloves + apron',
+  D: 'Face shield + gloves + apron',
+  E: 'Safety glasses + gloves + dust respirator',
+  F: 'Safety glasses + gloves + apron + dust respirator',
+  G: 'Safety glasses + gloves + vapor respirator',
+  H: 'Splash goggles + gloves + apron + vapor respirator',
+  I: 'Safety glasses + gloves + dust & vapor respirator',
+  J: 'Splash goggles + gloves + apron + dust & vapor respirator',
+  K: 'Air-line hood/mask + gloves + full suit + boots'
 };
 
 /* Items every Rhenus employee already wears — strip these from
@@ -1794,10 +1793,21 @@ function exportLibraryJSON() {
   closeExportMenu();
   const lib = getLibrary();
   if (!lib.length) { alert('Library is empty — save some chemicals first.'); return; }
-  const blob = new Blob([JSON.stringify(lib, null, 2)], { type: 'application/json' });
+  const exportedBy = (prompt('Your name (for export record):') || '').trim();
+  const today = new Date().toISOString().slice(0, 10);
+  const payload = {
+    _meta: {
+      exported:   today,
+      exportedBy: exportedBy || 'Unknown',
+      tool:       'Chemical Safety Label Generator'
+    },
+    chemicals: lib
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href = url; a.download = 'chem_label_library.json'; a.click();
+  const namePart = exportedBy ? `_${exportedBy.replace(/[^a-z0-9]/gi, '_')}` : '';
+  a.href = url; a.download = `chem_label_library${namePart}_${today}.json`; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -1812,8 +1822,9 @@ function importLibraryJSON() {
     const reader = new FileReader();
     reader.onload = evt => {
       try {
-        const imported = JSON.parse(evt.target.result);
-        if (!Array.isArray(imported)) throw new Error('Not a library file');
+        const parsed   = JSON.parse(evt.target.result);
+        const imported = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.chemicals) ? parsed.chemicals : null);
+        if (!imported) throw new Error('Not a library file');
         const lib = getLibrary();
         let added = 0, skipped = 0;
         imported.forEach(c => {
@@ -1839,44 +1850,6 @@ function importLibraryJSON() {
   input.click();
 }
 
-function saveHTMLWithLibrary() {
-  closeExportMenu();
-  const lib = getLibrary();
-  if (!lib.length) {
-    alert('No chemicals in the library yet.\nSave some chemicals first, then use this option.');
-    return;
-  }
-
-  // Seed script: merges baked chemicals into localStorage on first open.
-  // Skips any chemical whose product name already exists so it never
-  // overwrites edits the recipient has made to their own library.
-  const seed = `<script id="__lib_seed__">
-(function(){
-  var KEY='${LIB_KEY}',baked=${JSON.stringify(lib)};
-  try{
-    var ex=JSON.parse(localStorage.getItem(KEY)||'[]');
-    baked.forEach(function(c){
-      if(!ex.some(function(e){return e.product===c.product;}))ex.push(c);
-    });
-    ex.sort(function(a,b){return a.product.localeCompare(b.product);});
-    localStorage.setItem(KEY,JSON.stringify(ex));
-  }catch(e){}
-})();
-\x3c/script>`;
-
-  // Grab live DOM, strip any previous seed to avoid duplicates on re-save
-  let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-  html = html.replace(/<script id="__lib_seed__">[\s\S]*?<\/script>\n?/g, '');
-  html = html.replace('</head>', seed + '\n</head>');
-
-  const blob = new Blob([html], { type: 'text/html' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url;
-  a.download = 'quick_label_generator_with_library.html';
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 function importJSON() {
   closeExportMenu();
