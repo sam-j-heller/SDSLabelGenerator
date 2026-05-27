@@ -888,7 +888,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
         <label>Saved Chemicals</label>
         <div class="lib-combo" id="lib-combo">
           <input type="text" id="lib-search" placeholder="Type to search or browse..." autocomplete="off"
-            oninput="filterCombo()" onfocus="openCombo()" onblur="closeComboDelayed()" onkeydown="handleComboKey(event)">
+            oninput="filterCombo()" onfocus="openCombo(); this.select()" onblur="closeComboDelayed()" onkeydown="handleComboKey(event)">
           <div class="lib-combo-list" id="lib-combo-list"></div>
         </div>
         <button class="lib-del-btn" id="lib-del-btn" onclick="deleteFromLibrary()" style="width:100%;margin-top:4px;display:none">✕ Remove Selected</button>
