@@ -2004,27 +2004,21 @@ function selectFromCombo(idx) {
 function openCombo() { comboFocusIdx = -1; filterCombo(); }
 
 function handleComboKey(e) {
-  const el    = $('lib-combo-list');
-  const items = el ? [...el.querySelectorAll('.lib-combo-item[data-idx]')] : [];
-  if (el && el.style.display === 'none' && e.key === 'ArrowDown') { openCombo(); return; }
-  if (!items.length) return;
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    comboFocusIdx = Math.min(comboFocusIdx + 1, items.length - 1);
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    comboFocusIdx = Math.max(comboFocusIdx - 1, 0);
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (comboFocusIdx >= 0 && items[comboFocusIdx]) {
-      selectFromCombo(parseInt(items[comboFocusIdx].dataset.idx));
-    }
-    return;
-  } else if (e.key === 'Escape') {
+  const el = $('lib-combo-list');
+  if (e.key === 'Escape') {
     if (el) el.style.display = 'none';
     comboFocusIdx = -1;
     return;
-  } else { return; }
+  }
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return;
+  e.preventDefault();
+  // Open list if not visible — respects current search text
+  if (!el || el.style.display === 'none') openCombo();
+  const items = el ? [...el.querySelectorAll('.lib-combo-item[data-idx]')] : [];
+  if (!items.length) return;
+  if (e.key === 'ArrowDown')  comboFocusIdx = Math.min(comboFocusIdx + 1, items.length - 1);
+  else if (e.key === 'ArrowUp') comboFocusIdx = Math.max(comboFocusIdx - 1, 0);
+  else if (e.key === 'Enter') { selectFromCombo(parseInt(items[comboFocusIdx]?.dataset.idx)); return; }
   items.forEach((item, pos) => item.classList.toggle('focused', pos === comboFocusIdx));
   if (comboFocusIdx >= 0) items[comboFocusIdx].scrollIntoView({ block: 'nearest' });
 }
