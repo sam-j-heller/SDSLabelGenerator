@@ -430,17 +430,18 @@ body {
   background: #f4f4f4;
   border-bottom: 1px solid #000;
   display: flex;
-  align-items: stretch;
+  align-items: center;
   line-height: 1.2;
+  min-height: 0.2in;
 }
 .ghs-shown-line .ghs-left {
-  flex: 3; display: flex; gap: 6px; align-items: center;
-  padding: 2px 0.12in; overflow: hidden;
+  flex: 3; display: flex; gap: 6px; align-items: baseline;
+  padding: 0 0.12in; overflow: hidden;
 }
 .ghs-shown-line .ghs-right {
   flex: 0 0 33.333%; border-left: 1px solid #ccc;
-  display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
-  padding: 2px 0.1in;
+  display: flex; gap: 5px; align-items: baseline; flex-wrap: wrap;
+  padding: 0 0.1in;
 }
 .ghs-shown-line .klabel {
   font-weight: 900;
