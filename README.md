@@ -1,3 +1,91 @@
+# Quick Label — Chemical Safety Label Generator
+
+A free, browser-based tool for generating GHS-compliant chemical safety labels with live preview. No installation, no account, no downloads required.
+
+**→ [Open the Tool](https://sam-j-heller.github.io/SDSLabelGenerator/)**
+
+---
+
+## What It Does
+
+Quick Label generates print-ready chemical safety labels in three formats:
+
+- **Full Label** — 10 × 7.5 in (letter landscape, fits a full sheet)
+- **Sticker Label** — 3 × 4 in (small container / secondary label)
+- **Sticker Sheet** — four 3×4 stickers scaled to fill a single 8.5×11 sheet for bulk printing
+
+Both label formats include all six GHS label elements required under OSHA's HazCom 2012 standard, plus NFPA 704 and HMIS rating systems for workplace use.
+
+---
+
+## Getting Started
+
+1. Open the tool in your browser
+2. Fill in the left-hand form — the label preview on the right updates in real time
+3. When ready, click **Print / Save as PDF** to print or export
+
+That's it. No sign-in required.
+
+---
+
+## The Form — Field by Field
+
+### Chemical Database (Library)
+Save and reload chemicals you use regularly. The library is stored in your browser's local storage, so it persists between sessions on the same device.
+
+**Search box** — Type any part of a chemical name to filter the list. Click the box (or press ↓) to browse the full library. Recently used chemicals float to the top.
+
+- **Click a result** — loads the chemical immediately, no extra button needed
+- **Arrow keys ↑ ↓** — navigate the list; Enter to select, Escape to close
+- **✓ checkmark** — indicates the currently loaded chemical
+- **Remove Selected** — appears after a chemical is loaded; deletes it from the library
+- **+ Save Current to Library** — saves the current form as a new entry (or overwrites if the product name matches)
+
+> **Google Drive Sync** — Click **Connect Google Drive** to sync your library across devices. Your library is stored as `chem_label_library.json` in your Drive. Local and remote libraries are merged on sign-in — no data is overwritten.
+
+---
+
+### Product
+**Product Identifier** — The full name of the chemical or mixture as it appears on the SDS (e.g., `Acetone, 99% ACS`). This populates the large banner at the top of the label. The text automatically shrinks to fit on a single line.
+
+> The browser will suggest the product name as the filename when saving as PDF.
+
+---
+
+### Signal Word
+Select the appropriate GHS signal word:
+
+| Option | When to use |
+|---|---|
+| **DANGER** | More severe hazard category |
+| **WARNING** | Less severe hazard category |
+| **None** | Chemical is not classified as hazardous — displays "NOT HAZARDOUS" |
+
+---
+
+### Hazard Information
+Enter **Hazard Statements** and **Precautionary Statements** from the SDS, one per line. On the full label, statements are automatically split into two columns to make better use of space.
+
+**Example:**
+H225 Highly flammable liquid and vapour.
+H319 Causes serious eye irritation.
+P210 Keep away from heat and open flames.
+P233 Keep container tightly closed.
+
+
+
+---
+
+### First Aid
+Enter first aid measures from the SDS Section 4. Lines beginning with a phrase followed by a colon (e.g., `If inhaled:`) are automatically bolded on the label for quick readability.
+
+**Example:**
+If inhaled: Remove to fresh air. Call a doctor if symptoms persist.
+If on skin: Wash thoroughly with soap and water.
+If in eyes: Rinse with water for 15 minutes. Seek medical attention.
+If swallowed: Call Poison Control Center (1-800-222-1222).
+
+
 
 ---
 
