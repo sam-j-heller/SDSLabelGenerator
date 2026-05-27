@@ -130,20 +130,24 @@ body {
 .lib-combo { position: relative; margin-top: 4px; }
 .lib-combo input {
   width: 100%; padding: 5px 6px; font-size: 12px; box-sizing: border-box;
-  border: 1px solid #b0b0b0; border-radius: 3px; background: #2a2a2a; color: #fff;
+  border: 1px solid #b0b0b0; border-radius: 3px; background: #fff; color: #333;
+  font-family: inherit;
 }
 .lib-combo input:focus { outline: none; border-color: #0066cc; }
 .lib-combo-list {
   display: none; position: fixed; z-index: 9999;
-  background: #2a2a2a; border: 1px solid #0066cc; border-top: none;
-  border-radius: 0 0 3px 3px; max-height: 200px; overflow-y: auto;
+  background: #fff; border: 1px solid #0066cc; border-top: none;
+  border-radius: 0 0 3px 3px; max-height: 210px; overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 .lib-combo-item {
-  padding: 6px 8px; font-size: 12px; color: #ddd; cursor: pointer; border-bottom: 1px solid #3a3a3a;
+  padding: 6px 10px; font-size: 12px; color: #333; cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
 }
 .lib-combo-item:last-child { border-bottom: none; }
-.lib-combo-item:hover { background: #0066cc; color: #fff; }
-.lib-combo-item.selected { background: #004499; color: #fff; }
+.lib-combo-item.focused { background: #e8f0ff; color: #0055cc; }
+.lib-combo-item.selected { font-weight: 700; color: #0055cc; }
+.lib-combo-item.selected::before { content: '✓  '; }
 .lib-load-btn {
   padding: 5px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;
   cursor: pointer; border-radius: 3px; border: 0;
@@ -843,7 +847,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
         <label>Saved Chemicals</label>
         <div class="lib-combo" id="lib-combo">
           <input type="text" id="lib-search" placeholder="Type to search or browse..." autocomplete="off"
-            oninput="filterCombo()" onfocus="openCombo()" onblur="closeComboDelayed()">
+            oninput="filterCombo()" onfocus="openCombo()" onblur="closeComboDelayed()" onkeydown="handleComboKey(event)">
           <div class="lib-combo-list" id="lib-combo-list"></div>
         </div>
         <button class="lib-del-btn" id="lib-del-btn" onclick="deleteFromLibrary()" style="width:100%;margin-top:4px;display:none">✕ Remove Selected</button>
@@ -1938,7 +1942,8 @@ const LIB_KEY = 'chemLabelLibrary';
 const getLibrary  = () => { try { return JSON.parse(localStorage.getItem(LIB_KEY) || '[]'); } catch { return []; } };
 const saveLibrary = lib => localStorage.setItem(LIB_KEY, JSON.stringify(lib));
 
-let selectedLibIdx = null;
+let selectedLibIdx  = null;
+let comboFocusIdx   = -1;
 
 function libSorted() {
   const lib = getLibrary();
@@ -1952,6 +1957,7 @@ function libSorted() {
 
 function filterCombo() {
   if (document.activeElement !== $('lib-search')) return;
+  comboFocusIdx = -1;
   const q       = ($('lib-search')?.value || '').trim().toLowerCase();
   const visible = q ? libSorted().filter(({ item }) => (item.product || '').toLowerCase().includes(q)) : libSorted();
   renderComboList(visible);
@@ -1969,9 +1975,11 @@ function renderComboList(items) {
   if (!items.length) {
     el.innerHTML = '<div class="lib-combo-item" style="color:#888;cursor:default">No matches</div>';
   } else {
-    items.forEach(({ item, i }) => {
+    items.forEach(({ item, i }, listPos) => {
       const div = document.createElement('div');
       div.className = 'lib-combo-item' + (i === selectedLibIdx ? ' selected' : '');
+      div.dataset.idx      = i;
+      div.dataset.listPos  = listPos;
       div.textContent = item.product || `Chemical ${i + 1}`;
       div.addEventListener('mousedown', e => { e.preventDefault(); selectFromCombo(i); });
       el.appendChild(div);
@@ -1993,7 +2001,33 @@ function selectFromCombo(idx) {
   loadFormData(lib[idx]);
 }
 
-function openCombo() { filterCombo(); }
+function openCombo() { comboFocusIdx = -1; filterCombo(); }
+
+function handleComboKey(e) {
+  const el    = $('lib-combo-list');
+  const items = el ? [...el.querySelectorAll('.lib-combo-item[data-idx]')] : [];
+  if (el && el.style.display === 'none' && e.key === 'ArrowDown') { openCombo(); return; }
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    comboFocusIdx = Math.min(comboFocusIdx + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    comboFocusIdx = Math.max(comboFocusIdx - 1, 0);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (comboFocusIdx >= 0 && items[comboFocusIdx]) {
+      selectFromCombo(parseInt(items[comboFocusIdx].dataset.idx));
+    }
+    return;
+  } else if (e.key === 'Escape') {
+    if (el) el.style.display = 'none';
+    comboFocusIdx = -1;
+    return;
+  } else { return; }
+  items.forEach((item, pos) => item.classList.toggle('focused', pos === comboFocusIdx));
+  if (comboFocusIdx >= 0) items[comboFocusIdx].scrollIntoView({ block: 'nearest' });
+}
 
 function closeComboDelayed() {
   setTimeout(() => { const el = $('lib-combo-list'); if (el) el.style.display = 'none'; }, 200);
