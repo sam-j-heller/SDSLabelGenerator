@@ -546,7 +546,8 @@ body {
   font-size: 7.5pt; line-height: 1.25; margin: 2px 0; white-space: pre-wrap;
   flex: 1; min-height: 0; overflow: hidden;
 }
-.hp-info .htxt { column-count: 2; column-gap: 0.18in; }
+.hp-info .htxt { display: flex; gap: 0.18in; }
+.hp-info .htxt .htxt-col { flex: 1; overflow: hidden; }
 .hp-info .pl { font-weight: 800; }
 .supplier-info .srow { font-size: 8.5pt; line-height: 1.3; }
 .supplier-info .srow b { font-weight: 800; }
@@ -1413,9 +1414,21 @@ const setFirstAid = (id, v) => {
   const escaped = v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   el.innerHTML = escaped.replace(/^([^:\n]+:)/gm, '<strong>$1</strong>');
 };
-const setHazard = (id, v) => {
+const setHazard = (id, v, twoCol = false) => {
   const el = $(id);
   if (!v) { el.innerHTML = ''; return; }
+  const fmt = line => {
+    const esc = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return esc.replace(/^([^–\-\n]*[–-])/, '<strong>$1</strong>');
+  };
+  if (twoCol) {
+    const lines = v.split('\n');
+    const mid   = Math.ceil(lines.length / 2);
+    const h1    = lines.slice(0, mid).map(fmt).join('\n');
+    const h2    = lines.slice(mid).map(fmt).join('\n');
+    el.innerHTML = `<span class="htxt-col">${h1}</span><span class="htxt-col">${h2}</span>`;
+    return;
+  }
   const escaped = v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   el.innerHTML = escaped.replace(/^([^–\-\n]*[–-])/gm, '<strong>$1</strong>');
 };
@@ -1443,7 +1456,7 @@ function update() {
   }
 
   // Statements + first aid
-  setHazard('lbl-hazard',   $('f-hazard').value);
+  setHazard('lbl-hazard',   $('f-hazard').value, true);
   setFirstAid('lbl-firstaid', $('f-firstaid').value);
 
   // GHS pictograms — toggle active class + inject SVG (or clear),
