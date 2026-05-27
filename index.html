@@ -72,25 +72,6 @@ body {
   text-transform: uppercase;
 }
 .print-btn:hover { background: #e23838; }
-.drive-btn {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  background: #0066cc;
-  color: #fff;
-  border: 0;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  cursor: pointer;
-  border-radius: 3px;
-  text-transform: uppercase;
-  text-align: center;
-  text-decoration: none;
-  box-sizing: border-box;
-}
-.drive-btn:hover { background: #0055aa; }
 .clear-btn {
   width: 100%; background: #555; color: #fff; border: 0;
   padding: 9px 14px; font-size: 12px; font-weight: 700;
@@ -769,7 +750,6 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
   html, body { background: #fff; height: auto; overflow: visible; }
   .app { display: block; height: auto; }
   .form-panel { display: none !important; }
-  .drive-btn { display: none !important; }
   .mode-toggle-bar { display: none !important; }
   .preview-panel {
     width: 100% !important; height: auto; padding: 0;
@@ -857,7 +837,6 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
 #facility-bar button:hover { background: rgba(255,255,255,0.28); }
 </style>
 <script type="module" src="firebase.js"></script>
-<script src="https://accounts.google.com/gsi/client" onload="initGIS()" async defer></script>
 </head>
 <body>
 
@@ -914,10 +893,6 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
         </div>
         <button class="lib-del-btn" id="lib-del-btn" onclick="deleteFromLibrary()" style="width:100%;margin-top:4px;display:none">✕ Remove Selected</button>
         <button class="lib-save-btn" onclick="saveToLibrary()">+ Save Current to Library</button>
-        <div id="drive-section" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid #ddd">
-          <button id="drive-btn" class="lib-save-btn" onclick="driveSignIn()" style="background:#0066cc;margin-top:0">Connect Google Drive</button>
-          <div id="drive-status" style="font-size:10px;color:#666;margin-top:4px;text-align:center;line-height:1.4">Not connected — library saved locally</div>
-        </div>
       </div>
 
       <div class="fg">
@@ -1973,7 +1948,7 @@ function importLibraryJSON() {
         lib.sort((a, b) => a.product.localeCompare(b.product));
         saveLibrary(lib);
         populateLibrarySelect();
-        writeDriveFile();
+        if (window.FB && window.FB.facilityCode) window.FB.push();
         alert(`Import complete: ${added} added, ${skipped} already in library.`);
       } catch {
         alert('Invalid file. Please select a library JSON exported from this tool.');
@@ -2098,116 +2073,6 @@ function closeComboDelayed() {
 
 function populateLibrarySelect() { /* no-op: combo reads live from library on open */ }
 
-/* ── Google Drive sync ──────────────────────────────────────── */
-const GOOGLE_CLIENT_ID  = '165093491592-se8p80t7j7tl4j939fb2a7jl6tfhul75.apps.googleusercontent.com';
-const DRIVE_SCOPE       = 'https://www.googleapis.com/auth/drive.file';
-const DRIVE_FILE_NAME   = 'chem_label_library.json';
-
-let tokenClient  = null;
-let gAccessToken = null;
-let gFileId      = null;
-
-function initGIS() {
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CLIENT_ID,
-    scope: DRIVE_SCOPE,
-    callback: async resp => {
-      if (resp.error) { setDriveStatus('error', 'Auth error — using local library'); return; }
-      gAccessToken = resp.access_token;
-      setDriveStatus('loading', 'Loading library from Drive…');
-      try {
-        gFileId = await findOrCreateDriveFile();
-        const remote = await readDriveFile();
-        if (remote && remote.length) {
-          const local  = getLibrary();
-          const merged = [...remote];
-          local.forEach(c => { if (!merged.some(d => d.product === c.product)) merged.push(c); });
-          merged.sort((a, b) => a.product.localeCompare(b.product));
-          saveLibrary(merged);
-          populateLibrarySelect();
-        }
-        setDriveStatus('ok', '✓ Synced with Google Drive');
-      } catch (e) {
-        console.error('Drive error:', e);
-        setDriveStatus('error', '⚠ Drive error — using local library');
-      }
-    }
-  });
-  $('drive-section').style.display = 'block';
-}
-
-function driveSignIn() {
-  if (!tokenClient) return;
-  if (gAccessToken) {
-    google.accounts.oauth2.revoke(gAccessToken, () => {});
-    gAccessToken = null; gFileId = null;
-    setDriveStatus('off', 'Not connected — library saved locally');
-    return;
-  }
-  tokenClient.requestAccessToken({ prompt: '' });
-}
-
-function setDriveStatus(state, msg) {
-  const btn = $('drive-btn'), stat = $('drive-status');
-  if (!btn) return;
-  stat.textContent = msg;
-  if (state === 'ok') {
-    btn.textContent = 'Disconnect Drive'; btn.style.background = '#cc3300';
-  } else if (state === 'loading') {
-    btn.textContent = 'Connecting…'; btn.style.background = '#888';
-  } else {
-    btn.textContent = 'Connect Google Drive'; btn.style.background = '#0066cc';
-  }
-}
-
-async function driveAPI(url, opts = {}) {
-  const resp = await fetch(url, {
-    ...opts,
-    headers: { Authorization: 'Bearer ' + gAccessToken, ...(opts.headers || {}) }
-  });
-  if (!resp.ok) throw new Error('Drive ' + resp.status);
-  return resp;
-}
-
-async function findOrCreateDriveFile() {
-  const q   = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
-  const res = await driveAPI(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&pageSize=1`);
-  const { files } = await res.json();
-  if (files && files.length) return files[0].id;
-
-  // Create new empty file via multipart upload
-  const boundary = 'cll_boundary';
-  const body = [
-    `--${boundary}`,
-    'Content-Type: application/json\r\n',
-    JSON.stringify({ name: DRIVE_FILE_NAME, mimeType: 'application/json' }),
-    `--${boundary}`,
-    'Content-Type: application/json\r\n',
-    '[]',
-    `--${boundary}--`
-  ].join('\r\n');
-
-  const cr = await driveAPI(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
-    { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body }
-  );
-  return (await cr.json()).id;
-}
-
-async function readDriveFile() {
-  const res  = await driveAPI(`https://www.googleapis.com/drive/v3/files/${gFileId}?alt=media`);
-  const text = await res.text();
-  if (!text || text.trim() === '[]') return [];
-  return JSON.parse(text);
-}
-
-async function writeDriveFile() {
-  if (!gAccessToken || !gFileId) return;
-  await driveAPI(
-    `https://www.googleapis.com/upload/drive/v3/files/${gFileId}?uploadType=media`,
-    { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(getLibrary(), null, 2) }
-  );
-}
 
 async function saveToLibrary() {
   const data = getCurrentFormData();
@@ -2235,7 +2100,6 @@ async function saveToLibrary() {
   const delBtn = $('lib-del-btn');
   if (delBtn) delBtn.style.display = selectedLibIdx !== null ? 'block' : 'none';
   filterCombo();
-  writeDriveFile();
   if (window.FB && window.FB.facilityCode) window.FB.push();
 }
 
@@ -2263,7 +2127,6 @@ function deleteFromLibrary() {
   if (delBtn) delBtn.style.display = 'none';
   saveLibrary(lib);
   filterCombo();
-  writeDriveFile();
   if (window.FB && window.FB.facilityCode) window.FB.push();
 }
 
