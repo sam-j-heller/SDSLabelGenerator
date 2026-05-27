@@ -422,21 +422,9 @@ body {
 .key-note b { font-weight: 900; color: #fff; }
 .key-arrow {
   flex: 1;
-  position: relative;
-  align-self: center;
-  height: 1px;
-  background: #555;
-  margin: 0 0.08in;
-}
-.key-arrow::after {
-  content: '▶';
-  position: absolute;
-  right: -7px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 6pt;
+  text-align: center;
+  font-size: 9pt;
   color: #666;
-  line-height: 1;
 }
 .ghs-shown-line {
   background: #f4f4f4;
@@ -446,13 +434,13 @@ body {
   line-height: 1.2;
 }
 .ghs-shown-line .ghs-left {
-  flex: 3; display: flex; gap: 6px; align-items: baseline;
+  flex: 3; display: flex; gap: 6px; align-items: center;
   padding: 2px 0.12in; overflow: hidden;
 }
 .ghs-shown-line .ghs-right {
   flex: 0 0 33.333%; border-left: 1px solid #ccc;
-  display: flex; gap: 5px; align-items: baseline;
-  padding: 2px 0.1in; overflow: hidden;
+  display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
+  padding: 2px 0.1in;
 }
 .ghs-shown-line .klabel {
   font-weight: 900;
@@ -463,11 +451,9 @@ body {
   white-space: nowrap;
 }
 .ghs-shown-line .ktext {
-  font-size: 8pt;
+  font-size: 7pt;
   color: #000;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
 }
 .nfpa-guide {
   display: grid;
@@ -1027,7 +1013,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
           <div class="zone-key">
             <div class="key-title-bar">
               <span class="key-note"><b>Always take appropriate care when handling chemicals</b></span>
-              <span class="key-arrow"></span>
+              <span class="key-arrow">→</span>
               <span class="key-note">
                 <b>EMERGENCIES:</b> Call 911
                 &nbsp;&middot;&nbsp;
@@ -1360,7 +1346,11 @@ function computeAdditionalPPE(code) {
   const extras = desc.split(' + ').filter(item =>
     !BASELINE_PPE.includes(item.trim().toLowerCase())
   );
-  return extras.join(', ');
+  return extras.map(item =>
+    item.trim().split(' ').map(word =>
+      word.toLowerCase() === 'and' ? 'and' : word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ')
+  ).join(', ');
 }
 
 /* Form checklist order (matches the spec). */
