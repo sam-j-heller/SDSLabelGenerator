@@ -687,7 +687,7 @@ body[data-mode="sticker"] .label-outer   { display: none; }
   display: flex; border-top: 2px solid #000; overflow: hidden;
 }
 .s-foot-logo {
-  width: 50%; border-right: 2px solid #000;
+  width: 50%;
   display: flex; align-items: center; justify-content: center;
   padding: 0.04in; overflow: hidden;
 }
@@ -899,8 +899,8 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
             </select></div>
         </div>
         <div class="fg" style="margin-top:4px">
-          <label>Additional PPE (sticker footer)</label>
-          <input type="text" id="f-addppe" placeholder="e.g. Face shield, chemical apron" oninput="update()">
+          <label>Additional PPE <span style="font-weight:400;font-size:10px;color:#aaa">(auto from HMIS — override if needed)</span></label>
+          <input type="text" id="f-addppe" placeholder="None" oninput="update()">
         </div>
       </div>
 
@@ -1321,6 +1321,20 @@ const PPE_CODES = {
   K: 'Air-line hood/mask + gloves + full suit + boots'
 };
 
+/* Items every Rhenus employee already wears — strip these from
+   the HMIS description to show only what is truly additional. */
+const BASELINE_PPE = ['safety glasses', 'gloves'];
+
+function computeAdditionalPPE(code) {
+  if (!code || code === 'NONE') return '';
+  const desc = PPE_CODES[code];
+  if (!desc) return '';
+  const extras = desc.split(' + ').filter(item =>
+    !BASELINE_PPE.includes(item.trim().toLowerCase())
+  );
+  return extras.join(', ');
+}
+
 /* Form checklist order (matches the spec). */
 const PIC_ORDER = [
   ['flammable',     'Flammable'],
@@ -1509,9 +1523,11 @@ function update() {
   setText('s-h-val-flame',  sX('h-flame'));
   setText('s-h-val-react',  sX('h-react'));
 
-  // Additional PPE footer
-  const addlPPE = $('f-addppe').value.trim();
-  setText('s-lbl-addppe', addlPPE || 'None specified');
+  // Additional PPE footer — manual override or auto-computed from HMIS code
+  const autoAddl = computeAdditionalPPE(ppeCode);
+  const addlPPE  = $('f-addppe').value.trim() || autoAddl;
+  setText('s-lbl-addppe', addlPPE || 'None');
+  $('f-addppe').placeholder = autoAddl || 'None';
 
   // Hazard + precautionary text (combined in compact space)
   setHazard('s-lbl-hazard', $('f-hazard').value);
