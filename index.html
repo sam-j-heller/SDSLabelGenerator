@@ -1991,12 +1991,9 @@ let comboFocusIdx   = -1;
 
 function libSorted() {
   const lib = getLibrary();
-  return lib.map((item, i) => ({ item, i })).sort((a, b) => {
-    if (a.item.lastUsed && b.item.lastUsed) return b.item.lastUsed - a.item.lastUsed;
-    if (a.item.lastUsed) return -1;
-    if (b.item.lastUsed) return 1;
-    return (a.item.product || '').localeCompare(b.item.product || '');
-  });
+  return lib.map((item, i) => ({ item, i })).sort((a, b) =>
+    (a.item.product || '').localeCompare(b.item.product || '')
+  );
 }
 
 function filterCombo() {
