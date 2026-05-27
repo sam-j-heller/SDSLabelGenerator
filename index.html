@@ -812,14 +812,76 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
   }
   body[data-mode="sheet"] .sheet-grid .sticker { box-shadow: none !important; }
 }
+
+/* ── Facility Gate ──────────────────────────────────────────── */
+#facility-gate {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10,20,40,0.82); backdrop-filter: blur(4px);
+}
+.gate-card {
+  background: #fff; border-radius: 10px; padding: 40px 44px;
+  width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.gate-title  { font-size: 22px; font-weight: 900; color: #b40000; letter-spacing: -0.5px; }
+.gate-sub    { font-size: 11px; color: #888; margin-bottom: 20px; }
+.gate-label  { font-size: 11px; font-weight: 700; color: #555; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+.gate-input  {
+  width: 100%; padding: 10px 12px; font-size: 16px; box-sizing: border-box;
+  border: 1.5px solid #ccc; border-radius: 5px; margin-bottom: 4px;
+  font-family: monospace; color: #222; letter-spacing: 2px; text-transform: uppercase;
+}
+.gate-input:focus { outline: none; border-color: #b40000; }
+.gate-error  { font-size: 11px; color: #c00; min-height: 18px; margin-bottom: 4px; }
+.gate-btn {
+  width: 100%; padding: 11px; background: #b40000; color: #fff;
+  border: none; border-radius: 5px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit; margin-top: 4px;
+}
+.gate-btn:hover    { background: #900; }
+.gate-btn:disabled { background: #bbb; cursor: default; }
+
+/* ── Facility Bar (top of sidebar when logged in) ───────────── */
+#facility-bar {
+  display: none; align-items: center; justify-content: space-between;
+  background: #1a3a5c; color: #fff; padding: 5px 12px; font-size: 11px; font-weight: 600;
+  flex-shrink: 0;
+}
+#facility-bar .fac-name { opacity: 0.9; }
+#facility-bar button {
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 3px;
+  cursor: pointer; font-family: inherit;
+}
+#facility-bar button:hover { background: rgba(255,255,255,0.28); }
 </style>
+<script type="module" src="firebase.js"></script>
 <script src="https://accounts.google.com/gsi/client" onload="initGIS()" async defer></script>
 </head>
 <body>
+
+<!-- Facility Gate Overlay -->
+<div id="facility-gate" style="display:none">
+  <div class="gate-card">
+    <div class="gate-title">Quick Label</div>
+    <div class="gate-sub">Chemical Safety Label Generator</div>
+    <div class="gate-label">Facility Code</div>
+    <input type="text" id="gate-code" class="gate-input" placeholder="e.g. RVA001"
+           autocomplete="off" onkeydown="if(event.key==='Enter')facilityLogin()">
+    <div id="gate-error" class="gate-error"></div>
+    <button id="gate-btn" class="gate-btn" onclick="facilityLogin()">Access Library →</button>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- ===================== LEFT: input form ===================== -->
   <aside class="form-panel">
+    <div id="facility-bar">
+      <span class="fac-name" id="facility-name-display"></span>
+      <button onclick="switchFacility()">Switch Facility</button>
+    </div>
     <div class="print-bar">
       <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
       <div class="mode-toggle-bar">
@@ -1760,6 +1822,13 @@ function init() {
     const wrap = $('export-wrap');
     if (wrap && !wrap.contains(e.target)) closeExportMenu();
   });
+
+  // Facility gate: check for saved session, otherwise show login
+  if (window.FB) {
+    const savedCode = sessionStorage.getItem('facilityCode');
+    if (savedCode) facilityAutoLogin(savedCode);
+    else showFacilityGate();
+  }
 }
 
 function syncHMIS() {
@@ -2140,9 +2209,16 @@ async function writeDriveFile() {
   );
 }
 
-function saveToLibrary() {
+async function saveToLibrary() {
   const data = getCurrentFormData();
   if (!data.product.trim()) { alert('Enter a Product Identifier before saving to the library.'); return; }
+  if (window.FB && window.FB.facilityCode) {
+    const blocked = await window.FB.isBlacklisted(data.product);
+    if (blocked) {
+      alert(`"${data.product}" is on the company restricted substances list and cannot be added to the library.`);
+      return;
+    }
+  }
   const lib = getLibrary();
   const idx = lib.findIndex(c => c.product.trim().toLowerCase() === data.product.trim().toLowerCase());
   if (idx >= 0) {
@@ -2160,6 +2236,7 @@ function saveToLibrary() {
   if (delBtn) delBtn.style.display = selectedLibIdx !== null ? 'block' : 'none';
   filterCombo();
   writeDriveFile();
+  if (window.FB && window.FB.facilityCode) window.FB.push();
 }
 
 function loadFromLibrary() {
@@ -2187,6 +2264,7 @@ function deleteFromLibrary() {
   saveLibrary(lib);
   filterCombo();
   writeDriveFile();
+  if (window.FB && window.FB.facilityCode) window.FB.push();
 }
 
 /* ── Company Logo ───────────────────────────────────────────── */
@@ -2246,6 +2324,75 @@ function clearForm() {
   $('s-date').value    = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   document.querySelectorAll('.pic-toggle').forEach(cb => cb.checked = false);
   update();
+}
+
+/* ── Facility Gate ──────────────────────────────────────────── */
+function showFacilityGate(msg) {
+  const gate = $('facility-gate');
+  if (gate) gate.style.display = 'flex';
+  if (msg) { const e = $('gate-error'); if (e) e.textContent = msg; }
+  setTimeout(() => { const c = $('gate-code'); if (c) c.focus(); }, 50);
+}
+
+function hideFacilityGate() {
+  const gate = $('facility-gate');
+  if (gate) gate.style.display = 'none';
+}
+
+function updateFacilityBar() {
+  const bar  = $('facility-bar');
+  const name = $('facility-name-display');
+  if (!bar || !name) return;
+  if (window.FB && window.FB.facilityCode) {
+    name.textContent = window.FB.facilityName || window.FB.facilityCode;
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function facilityLogin() {
+  const input = $('gate-code');
+  const btn   = $('gate-btn');
+  const err   = $('gate-error');
+  if (!input || !window.FB) return;
+  const code = input.value.trim();
+  if (!code) { if (err) err.textContent = 'Please enter your facility code.'; return; }
+  btn.disabled = true; btn.textContent = 'Connecting…';
+  if (err) err.textContent = '';
+  const name = await window.FB.login(code);
+  btn.disabled = false; btn.textContent = 'Access Library →';
+  if (!name) {
+    if (err) err.textContent = 'Facility code not found. Contact your administrator.';
+    return;
+  }
+  hideFacilityGate();
+  updateFacilityBar();
+  selectedLibIdx = null;
+  filterCombo();
+}
+
+async function facilityAutoLogin(code) {
+  if (!window.FB) return;
+  const name = await window.FB.login(code);
+  if (name) {
+    hideFacilityGate();
+    updateFacilityBar();
+    selectedLibIdx = null;
+  } else {
+    sessionStorage.removeItem('facilityCode');
+    showFacilityGate('Your previous session has expired. Please re-enter your facility code.');
+  }
+}
+
+function switchFacility() {
+  if (!confirm('Switch facility? Your current library view will be replaced.')) return;
+  sessionStorage.removeItem('facilityCode');
+  if (window.FB) { window.FB.facilityCode = null; window.FB.facilityName = null; }
+  const code = $('gate-code'); if (code) code.value = '';
+  const err  = $('gate-error'); if (err)  err.textContent = '';
+  updateFacilityBar();
+  showFacilityGate();
 }
 
 document.addEventListener('DOMContentLoaded', init);
