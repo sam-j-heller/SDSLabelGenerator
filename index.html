@@ -134,7 +134,7 @@ body {
 }
 .lib-combo input:focus { outline: none; border-color: #0066cc; }
 .lib-combo-list {
-  display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+  display: none; position: fixed; z-index: 9999;
   background: #2a2a2a; border: 1px solid #0066cc; border-top: none;
   border-radius: 0 0 3px 3px; max-height: 200px; overflow-y: auto;
 }
@@ -1951,14 +1951,20 @@ function libSorted() {
 }
 
 function filterCombo() {
-  const q    = ($('lib-search')?.value || '').trim().toLowerCase();
-  const list = libSorted();
-  const visible = q ? list.filter(({ item }) => (item.product || '').toLowerCase().includes(q)) : list;
+  if (document.activeElement !== $('lib-search')) return;
+  const q       = ($('lib-search')?.value || '').trim().toLowerCase();
+  const visible = q ? libSorted().filter(({ item }) => (item.product || '').toLowerCase().includes(q)) : libSorted();
   renderComboList(visible);
 }
 
 function renderComboList(items) {
-  const el = $('lib-combo-list');
+  const input = $('lib-search');
+  const el    = $('lib-combo-list');
+  // Position fixed, anchored below the input
+  const rect  = input.getBoundingClientRect();
+  el.style.top   = rect.bottom + 'px';
+  el.style.left  = rect.left   + 'px';
+  el.style.width = rect.width  + 'px';
   el.innerHTML = '';
   if (!items.length) {
     el.innerHTML = '<div class="lib-combo-item" style="color:#888;cursor:default">No matches</div>';
@@ -1990,10 +1996,10 @@ function selectFromCombo(idx) {
 function openCombo() { filterCombo(); }
 
 function closeComboDelayed() {
-  setTimeout(() => { const el = $('lib-combo-list'); if (el) el.style.display = 'none'; }, 150);
+  setTimeout(() => { const el = $('lib-combo-list'); if (el) el.style.display = 'none'; }, 200);
 }
 
-function populateLibrarySelect() { filterCombo(); }
+function populateLibrarySelect() { /* no-op: combo reads live from library on open */ }
 
 /* ── Google Drive sync ──────────────────────────────────────── */
 const GOOGLE_CLIENT_ID  = '165093491592-se8p80t7j7tl4j939fb2a7jl6tfhul75.apps.googleusercontent.com';
