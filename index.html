@@ -284,9 +284,15 @@ body {
   position: relative;
   border-right: 2px solid #000;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.36in 0.1in 0.08in 0.1in;
+  gap: 0.1in;
+  padding: 0.36in 0.1in 0.12in 0.1in;
+}
+.pic-logo {
+  max-height: 0.46in; max-width: 2.3in;
+  object-fit: contain; flex-shrink: 0;
 }
 .pic-edge-label {
   position: absolute;
@@ -592,7 +598,7 @@ body[data-mode="sticker"] .label-outer   { display: none; }
 }
 .sticker {
   width: 3in; height: 4in; background: #fff; border: 3px solid #000;
-  display: grid; grid-template-rows: 0.5in 1fr 1.3in 0.32in;
+  display: grid; grid-template-rows: 0.5in 1fr 1.18in 0.32in;
   font-family: Arial, Helvetica, sans-serif; color: #000;
   box-shadow: 0 6px 24px rgba(0,0,0,0.35); overflow: hidden;
 }
@@ -680,7 +686,7 @@ body[data-mode="sticker"] .label-outer   { display: none; }
 .s-hmis-row.s-flame  { background: #cc0000; color: #fff; }
 .s-hmis-row.s-react  { background: #ffcc00; color: #000; }
 .s-ppe-bar {
-  display: flex; align-items: flex-start; padding: 2px 0.1in 0;
+  display: flex; align-items: center; padding: 0 0.1in;
   font-size: 6pt; gap: 4px; overflow: hidden;
 }
 .s-ppe-bar .s-ppe-label { font-weight: 900; letter-spacing: 0.5px; white-space: nowrap; font-size: 6pt; flex-shrink: 0; }
@@ -885,6 +891,15 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
 
       <div class="fg">
         <h3>Supplier Info</h3>
+        <label>Company Logo</label>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px">
+          <button type="button" class="lib-load-btn" onclick="uploadLogo()" style="flex:1;font-size:11px">Upload Image</button>
+          <button type="button" class="lib-del-btn" id="logo-clear-btn" onclick="clearLogo()" title="Remove logo" style="display:none">✕</button>
+        </div>
+        <div id="logo-thumb-row" style="display:none;align-items:center;gap:6px;margin-bottom:4px">
+          <img id="logo-thumb" style="height:18px;object-fit:contain;border:1px solid #ccc;padding:1px;background:#fff">
+          <span style="font-size:10px;color:#666">Logo active on label</span>
+        </div>
         <label>Company Name</label><input type="text" id="s-company">
         <label>Address</label><textarea id="s-address" rows="2"></textarea>
         <label>Emergency Phone</label><input type="text" id="s-phone">
@@ -951,6 +966,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
                   <div class="pic-cell" data-key="irritant"><div class="inner"></div></div>
                 </div>
               </div>
+              <img id="lbl-logo" class="pic-logo" src="" alt="" style="display:none">
             </div>
 
             <!-- Zone 4: Signal word + HMIS -->
@@ -1304,8 +1320,8 @@ const PIC_ORDER = [
    Sized to fit within the 40% GHS column minus the diagonal-
    label gutter on the left.
    ------------------------------------------------------------ */
-const SIDE      = 215;                       // un-rotated grid side, px
-const FOOTPRINT = Math.round(SIDE * Math.SQRT2);  // rotated bounding box ≈ 304px
+const SIDE      = 195;                       // un-rotated grid side, px
+const FOOTPRINT = Math.round(SIDE * Math.SQRT2);  // rotated bounding box ≈ 276px
 const S_SIDE      = 95;
 const S_FOOTPRINT = Math.round(S_SIDE * Math.SQRT2);
 
@@ -1622,6 +1638,8 @@ function init() {
   });
 
   preRotateAll();
+  const savedLogo = localStorage.getItem(LOGO_KEY);
+  if (savedLogo) applyLogo(savedLogo);
   update();
 
   // Initial fit + react to any size change on the preview panel.
@@ -2020,6 +2038,45 @@ function deleteFromLibrary() {
   saveLibrary(lib);
   populateLibrarySelect();
   writeDriveFile();
+}
+
+/* ── Company Logo ───────────────────────────────────────────── */
+const LOGO_KEY = 'companyLogo';
+
+function uploadLogo() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      localStorage.setItem(LOGO_KEY, evt.target.result);
+      applyLogo(evt.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function clearLogo() {
+  localStorage.removeItem(LOGO_KEY);
+  applyLogo(null);
+}
+
+function applyLogo(dataUrl) {
+  const img = $('lbl-logo');
+  if (img) {
+    if (dataUrl) { img.src = dataUrl; img.style.display = ''; }
+    else         { img.src = '';      img.style.display = 'none'; }
+  }
+  const clearBtn  = $('logo-clear-btn');
+  const thumbRow  = $('logo-thumb-row');
+  const thumb     = $('logo-thumb');
+  if (clearBtn) clearBtn.style.display = dataUrl ? '' : 'none';
+  if (thumbRow) thumbRow.style.display = dataUrl ? 'flex' : 'none';
+  if (thumb && dataUrl) thumb.src = dataUrl;
 }
 
 function clearForm() {
