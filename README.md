@@ -1,87 +1,3 @@
-# Quick Label — Chemical Safety Label Generator
-
-A free, browser-based tool for generating GHS-compliant chemical safety labels with live preview. No installation, no account, no downloads required.
-
-**→ [Open the Tool](https://sam-j-heller.github.io/SDSLabelGenerator/)**
-
----
-
-## What It Does
-
-Quick Label generates print-ready chemical safety labels in two sizes:
-
-- **Full Label** — 10 × 7.5 in (letter landscape, fits a full sheet)
-- **Sticker Label** — 3 × 4 in (small container / secondary label)
-
-Both formats include all six GHS label elements required under OSHA's HazCom 2012 standard, plus NFPA 704 and HMIS rating systems for workplace use.
-
----
-
-## Getting Started
-
-1. Open the tool in your browser
-2. Fill in the left-hand form — the label preview on the right updates in real time
-3. When ready, click **Print / Save as PDF** to print or export
-
-That's it. No sign-in required.
-
----
-
-## The Form — Field by Field
-
-### Chemical Database (Library)
-Save and reload chemicals you use regularly. The library is stored in your browser's local storage, so it persists between sessions on the same device.
-
-| Control | What it does |
-|---|---|
-| **Saved Chemicals** dropdown | Select a previously saved chemical |
-| **Load** | Fills the form with the selected chemical's data |
-| **✕** | Deletes the selected chemical from the library |
-| **+ Save Current to Library** | Saves the current form as a new entry (or overwrites if the product name matches) |
-
-> **Google Drive Sync** — Click **Connect Google Drive** to sync your library across devices. Your library is stored as `chem_label_library.json` in your Drive. Local and remote libraries are merged automatically — no data is overwritten.
-
----
-
-### Product
-**Product Identifier** — The full name of the chemical or mixture as it appears on the SDS (e.g., `Acetone, 99% ACS`). This populates the large banner at the top of the label.
-
----
-
-### Signal Word
-Select the appropriate GHS signal word:
-
-| Option | When to use |
-|---|---|
-| **DANGER** | More severe hazard category |
-| **WARNING** | Less severe hazard category |
-| **None** | Chemical is not classified as hazardous — displays "NOT HAZARDOUS" |
-
----
-
-### Hazard Information
-Enter **Hazard Statements** and **Precautionary Statements** from the SDS, one per line.
-
-**Example:**
-```
-H225 Highly flammable liquid and vapour.
-H319 Causes serious eye irritation.
-P210 Keep away from heat and open flames.
-P233 Keep container tightly closed.
-```
-
----
-
-### First Aid
-Enter first aid measures from the SDS Section 4. Lines beginning with a phrase followed by a colon (e.g., `If inhaled:`) are automatically bolded on the label for quick readability.
-
-**Example:**
-```
-If inhaled: Remove to fresh air. Call a doctor if symptoms persist.
-If on skin: Wash thoroughly with soap and water.
-If in eyes: Rinse with water for 15 minutes. Seek medical attention.
-If swallowed: Call Poison Control Center (1-800-222-1222).
-```
 
 ---
 
@@ -125,32 +41,38 @@ The color-coded bar system used for daily worker safety. HMIS uses the same 0–
 
 | Code | PPE Required |
 |---|---|
-| A | Safety glasses |
-| B | Safety glasses + gloves |
-| C | Safety glasses + gloves + apron |
-| D | Face shield + gloves + apron |
-| E | Safety glasses + gloves + dust respirator |
-| F | Safety glasses + gloves + apron + dust respirator |
-| G | Safety glasses + gloves + vapor respirator |
-| H | Splash goggles + gloves + apron + vapor respirator |
-| I | Safety glasses + gloves + dust & vapor respirator |
-| J | Splash goggles + gloves + apron + dust & vapor respirator |
-| K | Air-line hood/mask + gloves + full suit + boots |
+| A | Safety Glasses |
+| B | Safety Glasses + Gloves |
+| C | Safety Glasses + Gloves + Apron |
+| D | Face Shield + Gloves + Apron |
+| E | Safety Glasses + Gloves + Dust Respirator |
+| F | Safety Glasses + Gloves + Apron + Dust Respirator |
+| G | Safety Glasses + Gloves + Vapor Respirator |
+| H | Splash Goggles + Gloves + Apron + Vapor Respirator |
+| I | Safety Glasses + Gloves + Dust & Vapor Respirator |
+| J | Splash Goggles + Gloves + Apron + Dust & Vapor Respirator |
+| K | Air-Line Hood/Mask + Gloves + Full Suit + Boots |
 
-> Note: Baseline facility PPE requirements always apply regardless of HMIS code.
+**Additional PPE** — Automatically computed from the selected HMIS code by removing baseline facility PPE (safety glasses, gloves) that all employees already wear. This appears in the sticker footer and the GHS Hazards Present bar on the full label. Can be manually overridden if needed.
+
+> Baseline facility PPE requirements always apply regardless of HMIS code.
 
 ---
 
 ### Supplier Info
+
 Fills the bottom-right section of the label. All fields are optional but **Company Name**, **Address**, and **Emergency Phone** are required for a fully GHS-compliant label.
 
 | Field | Example |
 |---|---|
+| **Company Logo** | Upload an image (PNG, JPG, SVG) — appears top-right on the full label and bottom-left on the sticker |
 | Company Name | Rhenus Logistics |
 | Address | 123 Warehouse Blvd, Richmond, VA 23220 |
 | Emergency Phone | 1-800-424-9300 (CHEMTREC) |
 | Prepared By | J. Smith |
 | Date | Auto-filled with today's date |
+
+The logo is stored in your browser's local storage and persists between sessions.
 
 ---
 
@@ -163,25 +85,34 @@ Fills the bottom-right section of the label. All fields are optional but **Compa
    - Enable **Background graphics** so colors print correctly
 3. Print, or choose **Save as PDF** to get a file
 
-> The sticker (3×4 in) mode prints portrait on a standard sheet — trim to size or print on a compatible label sheet.
+> The sticker (3×4 in) mode prints portrait. The Sheet mode arranges four stickers on a single letter-size sheet for cutting.
 
 ---
 
 ## Label Size Toggle
 
-Use the **Full (10×7.5in)** / **Sticker (3×4in)** buttons below the print button to switch between label formats. The preview and print output switch together.
+Use the buttons below the print button to switch between formats:
+
+| Button | Format |
+|---|---|
+| **Full (10×7.5in)** | Full-size landscape label |
+| **Sticker (3×4in)** | Single sticker, portrait |
+| **Sheet 4×** | Sub-option under Sticker — four stickers on one letter sheet, scaled for cutting |
+
+The preview and print output switch together.
 
 ---
 
 ## Export / Import
 
-The **Export / Import** dropdown (green button) offers three options:
+The **Export / Import** dropdown (green button) offers four options:
 
 | Option | What it does |
 |---|---|
-| **Export as JSON** | Saves the current form as a `.json` file you can re-import later |
-| **Import from JSON** | Loads a previously exported `.json` file back into the form |
-| **Save HTML with Library** | Downloads a self-contained copy of the tool with your entire chemical library baked in — useful for sharing with colleagues who don't have access to the hosted version |
+| **Export label as JSON** | Saves the current form as a `.json` file you can re-import later |
+| **Import label from JSON** | Loads a previously exported label `.json` back into the form |
+| **Export full library** | Saves your entire chemical library as a `.json` file. Prompts for your name and auto-includes the export date in the filename. |
+| **Import into library** | Merges a library `.json` into your current library — skips any chemical whose name already exists |
 
 ---
 
@@ -189,27 +120,28 @@ The **Export / Import** dropdown (green button) offers three options:
 
 The printed label includes all six GHS-required elements:
 
-1. **Product Identifier** — chemical name (top banner)
+1. **Product Identifier** — chemical name (top banner, auto-sizing)
 2. **Signal Word** — DANGER or WARNING
 3. **GHS Pictograms** — rotating diamond cluster
-4. **Hazard & Precautionary Statements** — bottom left
+4. **Hazard & Precautionary Statements** — bottom left, two-column layout
 5. **First Aid** — bottom center
-6. **Supplier Information** — bottom right
+6. **Supplier Information** — bottom right (including company logo if uploaded)
 
 Additionally, the label includes:
-- **NFPA 704 diamond** with color-coded quadrants and a built-in rating guide
+- **NFPA 704 diamond** with color-coded quadrants and a built-in 0–4 rating guide
 - **HMIS bars** with PPE code and plain-English equipment requirements
-- **GHS Hazards Present** summary line listing all active pictogram names
-- **Rating comparison note** explaining NFPA (emergency responders) vs. HMIS (daily workers)
+- **GHS Hazards Present** bar listing all active pictogram names, with Additional PPE Required on the right
+- **Emergency reference bar** — Call 911 · Poison Control 1-800-222-1222 · CHEMTREC 1-800-424-9300
 
 ---
 
 ## Tips
 
 - **Work from the SDS** — all values (signal word, H/P statements, NFPA/HMIS ratings, pictograms) are found in the SDS for the chemical.
-- **Save frequently used chemicals** to the library so you can reload them without re-entering data.
+- **Save frequently used chemicals** to the library so you can reload them without re-entering data. Type in the search box to filter quickly.
 - **Use Google Drive sync** if multiple people need access to the same chemical library.
 - **First Aid formatting** — start each line with `Scenario:` (e.g., `If inhaled:`) and it will bold automatically on the label.
+- **Additional PPE** — leave the field blank to auto-compute from the HMIS code, or type your own value to override.
 - **Clear Form** resets all fields and sets the date to today.
 
 ---
@@ -220,6 +152,7 @@ Additionally, the label includes:
 - All data stays in your browser (localStorage) unless you connect Google Drive
 - Works in Chrome, Edge, Firefox, and Safari
 - Pictograms are rendered as inline SVG — no external image files needed
+- The browser uses the product name as the suggested filename when saving as PDF
 
 ---
 
