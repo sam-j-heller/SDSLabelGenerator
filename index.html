@@ -127,6 +127,23 @@ body {
 }
 .sync-btn:hover { background: #0055aa; }
 .lib-row { display: flex; gap: 6px; margin-top: 4px; }
+.lib-combo { position: relative; margin-top: 4px; }
+.lib-combo input {
+  width: 100%; padding: 5px 6px; font-size: 12px; box-sizing: border-box;
+  border: 1px solid #b0b0b0; border-radius: 3px; background: #2a2a2a; color: #fff;
+}
+.lib-combo input:focus { outline: none; border-color: #0066cc; }
+.lib-combo-list {
+  display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+  background: #2a2a2a; border: 1px solid #0066cc; border-top: none;
+  border-radius: 0 0 3px 3px; max-height: 200px; overflow-y: auto;
+}
+.lib-combo-item {
+  padding: 6px 8px; font-size: 12px; color: #ddd; cursor: pointer; border-bottom: 1px solid #3a3a3a;
+}
+.lib-combo-item:last-child { border-bottom: none; }
+.lib-combo-item:hover { background: #0066cc; color: #fff; }
+.lib-combo-item.selected { background: #004499; color: #fff; }
 .lib-load-btn {
   padding: 5px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;
   cursor: pointer; border-radius: 3px; border: 0;
@@ -824,14 +841,12 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
       <div class="fg">
         <h3>Chemical Database</h3>
         <label>Saved Chemicals</label>
-        <input type="text" id="lib-search" placeholder="Search chemicals..." oninput="populateLibrarySelect()" style="width:100%;padding:5px 6px;font-size:12px;border:1px solid #b0b0b0;border-radius:3px;box-sizing:border-box;margin-bottom:4px;background:#2a2a2a;color:#fff;">
-        <div class="lib-row">
-          <select id="lib-select" style="flex:1;padding:5px 6px;font-size:12px;border:1px solid #b0b0b0;border-radius:3px">
-            <option value="">— Select a saved chemical —</option>
-          </select>
-          <button class="lib-load-btn" onclick="loadFromLibrary()">Load</button>
-          <button class="lib-del-btn"  onclick="deleteFromLibrary()" title="Remove from library">✕</button>
+        <div class="lib-combo" id="lib-combo">
+          <input type="text" id="lib-search" placeholder="Type to search or browse..." autocomplete="off"
+            oninput="filterCombo()" onfocus="openCombo()" onblur="closeComboDelayed()">
+          <div class="lib-combo-list" id="lib-combo-list"></div>
         </div>
+        <button class="lib-del-btn" id="lib-del-btn" onclick="deleteFromLibrary()" style="width:100%;margin-top:4px;display:none">✕ Remove Selected</button>
         <button class="lib-save-btn" onclick="saveToLibrary()">+ Save Current to Library</button>
         <div id="drive-section" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid #ddd">
           <button id="drive-btn" class="lib-save-btn" onclick="driveSignIn()" style="background:#0066cc;margin-top:0">Connect Google Drive</button>
@@ -1923,29 +1938,62 @@ const LIB_KEY = 'chemLabelLibrary';
 const getLibrary  = () => { try { return JSON.parse(localStorage.getItem(LIB_KEY) || '[]'); } catch { return []; } };
 const saveLibrary = lib => localStorage.setItem(LIB_KEY, JSON.stringify(lib));
 
-function populateLibrarySelect() {
-  const sel = $('lib-select');
+let selectedLibIdx = null;
+
+function libSorted() {
   const lib = getLibrary();
-  const q   = ($('lib-search')?.value || '').trim().toLowerCase();
-  // Sort: recently used first, then alphabetical for never-used entries.
-  // Preserve real storage index as option value so load/delete stay correct.
-  const sorted = lib.map((item, i) => ({ item, i })).sort((a, b) => {
+  return lib.map((item, i) => ({ item, i })).sort((a, b) => {
     if (a.item.lastUsed && b.item.lastUsed) return b.item.lastUsed - a.item.lastUsed;
     if (a.item.lastUsed) return -1;
     if (b.item.lastUsed) return 1;
     return (a.item.product || '').localeCompare(b.item.product || '');
   });
-  const visible = q ? sorted.filter(({ item }) => (item.product || '').toLowerCase().includes(q)) : sorted;
-  sel.innerHTML = q && !visible.length
-    ? '<option value="">No matches</option>'
-    : '<option value="">— Select a saved chemical —</option>';
-  visible.forEach(({ item, i }) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = item.product || `Chemical ${i + 1}`;
-    sel.appendChild(opt);
-  });
 }
+
+function filterCombo() {
+  const q    = ($('lib-search')?.value || '').trim().toLowerCase();
+  const list = libSorted();
+  const visible = q ? list.filter(({ item }) => (item.product || '').toLowerCase().includes(q)) : list;
+  renderComboList(visible);
+}
+
+function renderComboList(items) {
+  const el = $('lib-combo-list');
+  el.innerHTML = '';
+  if (!items.length) {
+    el.innerHTML = '<div class="lib-combo-item" style="color:#888;cursor:default">No matches</div>';
+  } else {
+    items.forEach(({ item, i }) => {
+      const div = document.createElement('div');
+      div.className = 'lib-combo-item' + (i === selectedLibIdx ? ' selected' : '');
+      div.textContent = item.product || `Chemical ${i + 1}`;
+      div.addEventListener('mousedown', e => { e.preventDefault(); selectFromCombo(i); });
+      el.appendChild(div);
+    });
+  }
+  el.style.display = 'block';
+}
+
+function selectFromCombo(idx) {
+  const lib = getLibrary();
+  if (!lib[idx]) return;
+  selectedLibIdx = idx;
+  lib[idx].lastUsed = Date.now();
+  saveLibrary(lib);
+  $('lib-search').value = lib[idx].product || '';
+  $('lib-combo-list').style.display = 'none';
+  const delBtn = $('lib-del-btn');
+  if (delBtn) delBtn.style.display = 'block';
+  loadFormData(lib[idx]);
+}
+
+function openCombo() { filterCombo(); }
+
+function closeComboDelayed() {
+  setTimeout(() => { const el = $('lib-combo-list'); if (el) el.style.display = 'none'; }, 150);
+}
+
+function populateLibrarySelect() { filterCombo(); }
 
 /* ── Google Drive sync ──────────────────────────────────────── */
 const GOOGLE_CLIENT_ID  = '165093491592-se8p80t7j7tl4j939fb2a7jl6tfhul75.apps.googleusercontent.com';
@@ -2071,15 +2119,18 @@ function saveToLibrary() {
     lib.sort((a, b) => a.product.localeCompare(b.product));
   }
   saveLibrary(lib);
-  populateLibrarySelect();
   const newIdx = getLibrary().findIndex(c => c.product === data.product);
-  if (newIdx >= 0) $('lib-select').value = newIdx;
+  selectedLibIdx = newIdx >= 0 ? newIdx : null;
+  $('lib-search').value = data.product;
+  const delBtn = $('lib-del-btn');
+  if (delBtn) delBtn.style.display = selectedLibIdx !== null ? 'block' : 'none';
+  filterCombo();
   writeDriveFile();
 }
 
 function loadFromLibrary() {
   const sel = $('lib-select');
-  if (!sel.value && sel.value !== 0) return;
+  if (!sel || (!sel.value && sel.value !== 0)) return;
   const lib = getLibrary();
   const idx = parseInt(sel.value);
   if (!lib[idx]) return;
@@ -2090,14 +2141,17 @@ function loadFromLibrary() {
 }
 
 function deleteFromLibrary() {
-  const sel = $('lib-select');
-  if (!sel.value && sel.value !== 0) return;
+  if (selectedLibIdx === null) return;
   const lib  = getLibrary();
-  const name = lib[parseInt(sel.value)]?.product || 'this chemical';
+  const name = lib[selectedLibIdx]?.product || 'this chemical';
   if (!confirm(`Remove "${name}" from the library?`)) return;
-  lib.splice(parseInt(sel.value), 1);
+  lib.splice(selectedLibIdx, 1);
+  selectedLibIdx = null;
+  $('lib-search').value = '';
+  const delBtn = $('lib-del-btn');
+  if (delBtn) delBtn.style.display = 'none';
   saveLibrary(lib);
-  populateLibrarySelect();
+  filterCombo();
   writeDriveFile();
 }
 
