@@ -241,7 +241,8 @@ body {
   font-size: 11pt; font-weight: 700; letter-spacing: 1px; white-space: nowrap;
 }
 .zone-product .pvalue {
-  font-size: 18pt; font-weight: 900; flex: 1; line-height: 1.1; letter-spacing: -0.5px; word-break: break-word;
+  font-size: 18pt; font-weight: 900; flex: 1; line-height: 1.1; letter-spacing: -0.5px;
+  white-space: nowrap; overflow: hidden;
 }
 
 /* ---------- Middle row: NFPA | GHS | Signal+HMIS ----------
@@ -411,32 +412,47 @@ body {
   border-bottom: 1px solid #000;
   line-height: 1.15;
 }
-.key-title {
-  font-size: 9pt;
-  font-weight: 900;
-  letter-spacing: 1.5px;
-  white-space: nowrap;
-}
-.key-explain {
+.key-note {
   font-size: 6.5pt;
   font-weight: 400;
   letter-spacing: 0.2px;
   color: #f0f0f0;
-  flex: 1;
-  text-align: right;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.key-explain b { font-weight: 900; color: #fff; }
+.key-note b { font-weight: 900; color: #fff; }
+.key-arrow {
+  flex: 1;
+  position: relative;
+  align-self: center;
+  height: 1px;
+  background: #555;
+  margin: 0 0.08in;
+}
+.key-arrow::after {
+  content: '▶';
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 6pt;
+  color: #666;
+  line-height: 1;
+}
 .ghs-shown-line {
   background: #f4f4f4;
-  padding: 2px 0.12in;
   border-bottom: 1px solid #000;
   display: flex;
-  gap: 6px;
-  align-items: baseline;
+  align-items: stretch;
   line-height: 1.2;
+}
+.ghs-shown-line .ghs-left {
+  flex: 3; display: flex; gap: 6px; align-items: baseline;
+  padding: 2px 0.12in; overflow: hidden;
+}
+.ghs-shown-line .ghs-right {
+  flex: 0 0 33.333%; border-left: 1px solid #ccc;
+  display: flex; gap: 5px; align-items: baseline;
+  padding: 2px 0.1in; overflow: hidden;
 }
 .ghs-shown-line .klabel {
   font-weight: 900;
@@ -449,6 +465,9 @@ body {
 .ghs-shown-line .ktext {
   font-size: 8pt;
   color: #000;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .nfpa-guide {
   display: grid;
@@ -1007,18 +1026,27 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
                NFPA vs HMIS so floor operators know which is which. -->
           <div class="zone-key">
             <div class="key-title-bar">
-              <div class="key-title">RATING GUIDE</div>
-              <div class="key-explain">
-                <b>NFPA</b> (the diamond) &rarr; for emergency responders / firefighters
-                &nbsp;·&nbsp;
-                <b>HMIS</b> (the colored bars) &rarr; for daily workers + See PPE Below
-                &nbsp;·&nbsp;
-                Baseline Rhenus PPE requirements still apply
-              </div>
+              <span class="key-note"><b>Always take appropriate care when handling chemicals</b></span>
+              <span class="key-arrow"></span>
+              <span class="key-note">
+                <b>EMERGENCIES:</b> Call 911
+                &nbsp;&middot;&nbsp;
+                Poison Control 1-800-222-1222
+                &nbsp;&middot;&nbsp;
+                CHEMTREC 1-800-424-9300
+                &nbsp;&middot;&nbsp;
+                Plant PPE requirements always apply
+              </span>
             </div>
             <div class="ghs-shown-line">
-              <span class="klabel">GHS Hazards Present:</span>
-              <span class="ktext" id="lbl-active-pictos">None marked</span>
+              <div class="ghs-left">
+                <span class="klabel">GHS Hazards Present:</span>
+                <span class="ktext" id="lbl-active-pictos">None marked</span>
+              </div>
+              <div class="ghs-right">
+                <span class="klabel">Additional PPE:</span>
+                <span class="ktext" id="lbl-key-addppe">None</span>
+              </div>
             </div>
             <div class="nfpa-guide">
               <div class="nfpa-col health">
@@ -1408,6 +1436,17 @@ function fitText(el, minPt) {
     el.style.fontSize = size + 'pt';
   }
 }
+function fitTextLine(el, minPt) {
+  if (!el) return;
+  el.style.fontSize = '';
+  let size = parseFloat(window.getComputedStyle(el).fontSize) * 0.75; // px → pt
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  while (size > minPt && range.getBoundingClientRect().width > el.clientWidth) {
+    size = Math.max(minPt, size - 0.5);
+    el.style.fontSize = size + 'pt';
+  }
+}
 const setFirstAid = (id, v) => {
   const el = $(id);
   if (!v) { el.innerHTML = ''; return; }
@@ -1538,13 +1577,15 @@ function update() {
   // Additional PPE footer — manual override or auto-computed from HMIS code
   const autoAddl = computeAdditionalPPE(ppeCode);
   const addlPPE  = $('f-addppe').value.trim() || autoAddl;
-  setText('s-lbl-addppe', addlPPE || 'None');
+  setText('s-lbl-addppe',   addlPPE || 'None');
+  setText('lbl-key-addppe', addlPPE || 'None');
   $('f-addppe').placeholder = autoAddl || 'None';
 
   // Hazard + precautionary text (combined in compact space)
   setHazard('s-lbl-hazard', $('f-hazard').value);
 
   // Auto-fit text in space-constrained boxes
+  fitTextLine($('lbl-product'),   11);
   fitText($('s-lbl-product'), 6);
   fitText($('s-lbl-hazard'),  4);
   fitText($('lbl-hazard'),    5);
