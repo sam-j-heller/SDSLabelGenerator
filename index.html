@@ -284,15 +284,13 @@ body {
   position: relative;
   border-right: 2px solid #000;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.1in;
-  padding: 0.36in 0.1in 0.12in 0.1in;
+  padding: 0.36in 0.1in 0.08in 0.1in;
 }
-.pic-logo {
-  max-height: 0.46in; max-width: 2.3in;
-  object-fit: contain; flex-shrink: 0;
+.product-logo {
+  height: 0.38in; max-width: 1.6in;
+  object-fit: contain; margin-left: auto; flex-shrink: 0;
 }
 .pic-edge-label {
   position: absolute;
@@ -615,8 +613,12 @@ body[data-mode="sticker"] .label-outer   { display: none; }
 }
 .s-ghs-zone {
   border-right: 2px solid #000; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 0.22in 0.04in 0.04in; position: relative; overflow: hidden;
+  align-items: center; justify-content: center; gap: 0.06in;
+  padding: 0.22in 0.04in 0.06in; position: relative; overflow: hidden;
+}
+.s-pic-logo {
+  max-height: 0.2in; max-width: 0.95in;
+  object-fit: contain; flex-shrink: 0;
 }
 .s-ghs-label {
   position: absolute; top: 0; left: 0; right: 0; height: 0.2in;
@@ -924,6 +926,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
           <div class="zone-product">
             <div class="plabel">PRODUCT IDENTIFIER:</div>
             <div class="pvalue" id="lbl-product">—</div>
+            <img id="lbl-logo" class="product-logo" src="" alt="" style="display:none">
           </div>
 
           <!-- Zones 2–4: middle row -->
@@ -966,7 +969,6 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
                   <div class="pic-cell" data-key="irritant"><div class="inner"></div></div>
                 </div>
               </div>
-              <img id="lbl-logo" class="pic-logo" src="" alt="" style="display:none">
             </div>
 
             <!-- Zone 4: Signal word + HMIS -->
@@ -1093,6 +1095,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
                     <div class="pic-cell" data-key="irritant"     ><div class="inner"></div></div>
                   </div>
                 </div>
+                <img id="s-lbl-logo" class="s-pic-logo" src="" alt="" style="display:none">
               </div>
               <div class="s-right-zone">
                 <div class="s-nfpa">
@@ -1320,9 +1323,9 @@ const PIC_ORDER = [
    Sized to fit within the 40% GHS column minus the diagonal-
    label gutter on the left.
    ------------------------------------------------------------ */
-const SIDE      = 195;                       // un-rotated grid side, px
-const FOOTPRINT = Math.round(SIDE * Math.SQRT2);  // rotated bounding box ≈ 276px
-const S_SIDE      = 95;
+const SIDE      = 215;                       // un-rotated grid side, px
+const FOOTPRINT = Math.round(SIDE * Math.SQRT2);  // rotated bounding box ≈ 304px
+const S_SIDE      = 80;
 const S_FOOTPRINT = Math.round(S_SIDE * Math.SQRT2);
 
 /* ============================================================
@@ -2066,11 +2069,12 @@ function clearLogo() {
 }
 
 function applyLogo(dataUrl) {
-  const img = $('lbl-logo');
-  if (img) {
+  ['lbl-logo', 's-lbl-logo'].forEach(id => {
+    const img = $(id);
+    if (!img) return;
     if (dataUrl) { img.src = dataUrl; img.style.display = ''; }
     else         { img.src = '';      img.style.display = 'none'; }
-  }
+  });
   const clearBtn  = $('logo-clear-btn');
   const thumbRow  = $('logo-thumb-row');
   const thumb     = $('logo-thumb');
