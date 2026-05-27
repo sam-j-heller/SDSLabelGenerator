@@ -824,6 +824,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
       <div class="fg">
         <h3>Chemical Database</h3>
         <label>Saved Chemicals</label>
+        <input type="text" id="lib-search" placeholder="Search chemicals..." oninput="populateLibrarySelect()" style="width:100%;padding:5px 6px;font-size:12px;border:1px solid #b0b0b0;border-radius:3px;box-sizing:border-box;margin-bottom:4px;background:#2a2a2a;color:#fff;">
         <div class="lib-row">
           <select id="lib-select" style="flex:1;padding:5px 6px;font-size:12px;border:1px solid #b0b0b0;border-radius:3px">
             <option value="">— Select a saved chemical —</option>
@@ -1925,6 +1926,7 @@ const saveLibrary = lib => localStorage.setItem(LIB_KEY, JSON.stringify(lib));
 function populateLibrarySelect() {
   const sel = $('lib-select');
   const lib = getLibrary();
+  const q   = ($('lib-search')?.value || '').trim().toLowerCase();
   // Sort: recently used first, then alphabetical for never-used entries.
   // Preserve real storage index as option value so load/delete stay correct.
   const sorted = lib.map((item, i) => ({ item, i })).sort((a, b) => {
@@ -1933,8 +1935,11 @@ function populateLibrarySelect() {
     if (b.item.lastUsed) return 1;
     return (a.item.product || '').localeCompare(b.item.product || '');
   });
-  sel.innerHTML = '<option value="">— Select a saved chemical —</option>';
-  sorted.forEach(({ item, i }) => {
+  const visible = q ? sorted.filter(({ item }) => (item.product || '').toLowerCase().includes(q)) : sorted;
+  sel.innerHTML = q && !visible.length
+    ? '<option value="">No matches</option>'
+    : '<option value="">— Select a saved chemical —</option>';
+  visible.forEach(({ item, i }) => {
     const opt = document.createElement('option');
     opt.value = i;
     opt.textContent = item.product || `Chemical ${i + 1}`;
