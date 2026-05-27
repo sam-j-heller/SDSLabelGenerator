@@ -596,7 +596,7 @@ body[data-mode="sticker"] .label-outer   { display: none; }
 }
 .sticker {
   width: 3in; height: 4in; background: #fff; border: 3px solid #000;
-  display: grid; grid-template-rows: 0.5in 1fr 1.18in 0.32in;
+  display: grid; grid-template-rows: 0.5in 1fr 1.1in 0.4in;
   font-family: Arial, Helvetica, sans-serif; color: #000;
   box-shadow: 0 6px 24px rgba(0,0,0,0.35); overflow: hidden;
 }
@@ -613,12 +613,8 @@ body[data-mode="sticker"] .label-outer   { display: none; }
 }
 .s-ghs-zone {
   border-right: 2px solid #000; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 0.06in;
-  padding: 0.22in 0.04in 0.06in; position: relative; overflow: hidden;
-}
-.s-pic-logo {
-  max-height: 0.2in; max-width: 0.95in;
-  object-fit: contain; flex-shrink: 0;
+  align-items: center; justify-content: center;
+  padding: 0.22in 0.04in 0.04in; position: relative; overflow: hidden;
 }
 .s-ghs-label {
   position: absolute; top: 0; left: 0; right: 0; height: 0.2in;
@@ -687,12 +683,25 @@ body[data-mode="sticker"] .label-outer   { display: none; }
 .s-hmis-row.s-health { background: #0066cc; color: #fff; }
 .s-hmis-row.s-flame  { background: #cc0000; color: #fff; }
 .s-hmis-row.s-react  { background: #ffcc00; color: #000; }
-.s-ppe-bar {
-  display: flex; align-items: center; padding: 0 0.1in;
-  font-size: 6pt; gap: 4px; overflow: hidden;
+.s-footer {
+  display: flex; border-top: 2px solid #000; overflow: hidden;
 }
-.s-ppe-bar .s-ppe-label { font-weight: 900; letter-spacing: 0.5px; white-space: nowrap; font-size: 6pt; flex-shrink: 0; }
-.s-ppe-bar .s-ppe-value { font-weight: 400; overflow: hidden; font-size: 6pt; white-space: normal; line-height: 1.25; }
+.s-foot-logo {
+  width: 50%; border-right: 2px solid #000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0.04in; overflow: hidden;
+}
+.s-foot-logo-img {
+  max-height: 0.28in; max-width: 1.3in;
+  object-fit: contain;
+}
+.s-foot-ppe {
+  width: 50%; display: flex; flex-direction: column;
+  justify-content: center; padding: 0.03in 0.06in;
+  overflow: hidden; gap: 1px;
+}
+.s-foot-ppe-label { font-size: 5pt; font-weight: 900; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.2; }
+.s-foot-ppe-value { font-size: 5.5pt; font-weight: 400; line-height: 1.25; word-break: break-word; }
 
 /* ============================================================
    SHEET MODE — 4-up (2×2) sticker sheet on letter portrait
@@ -888,6 +897,10 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
               <option>E</option><option>F</option><option>G</option><option>H</option>
               <option>I</option><option>J</option><option>K</option>
             </select></div>
+        </div>
+        <div class="fg" style="margin-top:4px">
+          <label>Additional PPE (sticker footer)</label>
+          <input type="text" id="f-addppe" placeholder="e.g. Face shield, chemical apron" oninput="update()">
         </div>
       </div>
 
@@ -1095,7 +1108,6 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
                     <div class="pic-cell" data-key="irritant"     ><div class="inner"></div></div>
                   </div>
                 </div>
-                <img id="s-lbl-logo" class="s-pic-logo" src="" alt="" style="display:none">
               </div>
               <div class="s-right-zone">
                 <div class="s-nfpa">
@@ -1133,10 +1145,15 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
               </div>
             </div>
 
-            <!-- S4: PPE Required -->
-            <div class="s-ppe-bar">
-              <span class="s-ppe-label">PPE REQUIRED:</span>
-              <span class="s-ppe-value" id="s-ppe-display">—</span>
+            <!-- S4: Footer — logo left | additional PPE right -->
+            <div class="s-footer">
+              <div class="s-foot-logo">
+                <img id="s-lbl-logo" class="s-foot-logo-img" src="" alt="" style="display:none">
+              </div>
+              <div class="s-foot-ppe">
+                <span class="s-foot-ppe-label">ADDL. PPE REQUIRED:</span>
+                <span class="s-foot-ppe-value" id="s-lbl-addppe">None specified</span>
+              </div>
             </div>
 
           </div>
@@ -1325,7 +1342,7 @@ const PIC_ORDER = [
    ------------------------------------------------------------ */
 const SIDE      = 215;                       // un-rotated grid side, px
 const FOOTPRINT = Math.round(SIDE * Math.SQRT2);  // rotated bounding box ≈ 304px
-const S_SIDE      = 80;
+const S_SIDE      = 95;
 const S_FOOTPRINT = Math.round(S_SIDE * Math.SQRT2);
 
 /* ============================================================
@@ -1492,9 +1509,9 @@ function update() {
   setText('s-h-val-flame',  sX('h-flame'));
   setText('s-h-val-react',  sX('h-react'));
 
-  // PPE bar
-  const ppeText = ppeCode === 'NONE' ? 'None specified' : `${ppeCode} — ${PPE_CODES[ppeCode] || ''}`;
-  setText('s-ppe-display', ppeText);
+  // Additional PPE footer
+  const addlPPE = $('f-addppe').value.trim();
+  setText('s-lbl-addppe', addlPPE || 'None specified');
 
   // Hazard + precautionary text (combined in compact space)
   setHazard('s-lbl-hazard', $('f-hazard').value);
@@ -1700,6 +1717,7 @@ function getCurrentFormData() {
       reactivity:   $('h-react').value,
       ppe:          $('h-ppe').value
     },
+    addlPPE: $('f-addppe').value,
     supplier: {
       company:    $('s-company').value,
       address:    $('s-address').value,
@@ -1718,6 +1736,7 @@ function loadFormData(d) {
   }
   if (d.hazard        !== undefined) $('f-hazard').value   = d.hazard;
   if (d.firstAid      !== undefined) $('f-firstaid').value = d.firstAid;
+  if (d.addlPPE       !== undefined) $('f-addppe').value   = d.addlPPE;
   document.querySelectorAll('.pic-toggle').forEach(cb => {
     cb.checked = !!(d.ghs && d.ghs.includes(cb.dataset.key));
   });
@@ -2087,6 +2106,7 @@ function clearForm() {
   $('f-product').value  = '';
   $('f-hazard').value   = '';
   $('f-firstaid').value = '';
+  $('f-addppe').value   = '';
   document.querySelector('input[name="signal"][value="DANGER"]').checked = true;
   ['n-health','n-flame','n-inst'].forEach(id => $(id).value = '0');
   $('n-spec').value   = '';
