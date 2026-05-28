@@ -210,6 +210,29 @@ nav {
 }
 .bl-del:hover { opacity: 1; }
 #bl-empty { padding: 32px; text-align: center; font-size: 12px; color: #aaa; font-style: italic; }
+.bl-meta { display: flex; align-items: center; gap: 5px; margin-right: 8px; flex-shrink: 0; }
+.bl-source {
+  font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
+}
+.bl-src-manual     { background: #e8f5e9; color: #2a7a3f; }
+.bl-src-csv-upload { background: #e8f0fe; color: #1a4a9c; }
+.bl-src-migration  { background: #f0f0f0; color: #888; }
+.bl-date { font-size: 10px; color: #bbb; white-space: nowrap; }
+
+/* ---------- Migration notice ---------- */
+.migrate-notice {
+  background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px;
+  padding: 16px; margin-bottom: 16px;
+}
+.migrate-notice h2 { margin: 0 0 5px; font-size: 12px; color: #7a5700; }
+.migrate-notice p  { margin: 0 0 10px; font-size: 11px; color: #7a5700; line-height: 1.5; }
+.migrate-btn {
+  width: 100%; padding: 8px; background: #f5a623; color: #fff;
+  border: none; border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.migrate-btn:hover    { background: #d98f18; }
+.migrate-btn:disabled { background: #ccc; cursor: default; }
 
 /* ---------- Facilities ---------- */
 .fac-grid {
@@ -497,6 +520,14 @@ nav {
       <!-- LEFT COLUMN -->
       <div class="bl-left">
 
+        <!-- Migration Notice (hidden until legacy format detected) -->
+        <div class="migrate-notice" id="migrate-notice" style="display:none">
+          <h2>⚠ Migration Required</h2>
+          <p id="migrate-msg">Blacklist is stored in legacy format.</p>
+          <button class="migrate-btn" id="migrate-btn" onclick="doMigration()">Migrate to New Format →</button>
+          <div id="migrate-status" style="font-size:11px;margin-top:6px;min-height:14px"></div>
+        </div>
+
         <!-- CSV Upload -->
         <div class="card">
           <h2>Upload from CSV</h2>
@@ -678,7 +709,7 @@ nav {
 // -------------------------------------------------------
 let parsedRows    = [];
 let parsedHeaders = [];
-let blacklist     = [];      // [ { name } ] sorted alphabetically
+let blacklist     = [];      // [ { id, name, addedAt, source } ] sorted alphabetically
 let facilities    = [];      // [ { code, name, chemCount } ]
 let activityLog   = [];      // [ { ts, msg, type } ]
 
@@ -894,11 +925,8 @@ async function uploadBlacklist() {
   status.textContent = '';
 
   try {
-    const merged = [...blacklist, ...newNames.map(n => ({ name: n }))]
-      .sort((a, b) => a.name.localeCompare(b.name));
-    await window.FB.setBlacklist(merged);
-    blacklist = merged;
-    renderBlacklist();
+    await window.FB.addManyToBlacklist(newNames, 'csv-upload');
+    await loadBlacklist();  // reload to get IDs and timestamps
     status.innerHTML = '<span class="status-ok">✓ ' + newNames.length + ' added' +
       (skipCount ? ', ' + skipCount + ' skipped.' : '.') + '</span>';
     logActivity('CSV upload: +' + newNames.length + ' added, ' + skipCount + ' skipped (' + csvNames.length + ' total in file)', 'upload');
@@ -922,10 +950,10 @@ async function manualAdd() {
     alert('"' + name + '" is already on the blacklist.');
     return;
   }
-  const merged = [...blacklist, { name }].sort((a, b) => a.name.localeCompare(b.name));
   try {
-    await window.FB.setBlacklist(merged);
-    blacklist = merged;
+    const id = await window.FB.addToBlacklist(name, 'manual');
+    blacklist = [...blacklist, { id, name, addedAt: new Date(), source: 'manual' }]
+      .sort((a, b) => a.name.localeCompare(b.name));
     renderBlacklist();
     logActivity('Added: ' + name, 'add');
     input.value = '';
@@ -939,12 +967,13 @@ async function manualAdd() {
 // -------------------------------------------------------
 //  Delete from blacklist
 // -------------------------------------------------------
-async function deleteFromBlacklist(name) {
+async function deleteFromBlacklist(id) {
+  const item = blacklist.find(c => c.id === id);
+  const name = item ? item.name : id;
   if (!confirm('Remove "' + name + '" from the blacklist?')) return;
-  const updated = blacklist.filter(c => c.name.toLowerCase() !== name.toLowerCase());
   try {
-    await window.FB.setBlacklist(updated);
-    blacklist = updated;
+    await window.FB.removeFromBlacklist(id);
+    blacklist = blacklist.filter(c => c.id !== id);
     renderBlacklist();
     logActivity('Removed: ' + name, 'del');
   } catch (e) {
@@ -958,8 +987,19 @@ async function deleteFromBlacklist(name) {
 // -------------------------------------------------------
 async function loadBlacklist() {
   document.getElementById('bl-count').textContent = 'Loading…';
-  blacklist = await window.FB.getBlacklist();
+  const result = await window.FB.getBlacklist();
+  blacklist = result.chemicals;
   blacklist.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  const notice  = document.getElementById('migrate-notice');
+  const msgEl   = document.getElementById('migrate-msg');
+  if (result.needsMigration) {
+    msgEl.textContent = result.migrationCount + ' chemicals are in legacy format — migrate to enable per-chemical timestamps and faster lookups.';
+    notice.style.display = 'block';
+  } else {
+    notice.style.display = 'none';
+  }
+
   renderBlacklist();
   logActivity('Blacklist loaded — ' + blacklist.length + ' chemicals', 'upload');
 }
@@ -985,12 +1025,21 @@ function renderBlacklist() {
     return;
   }
 
-  list.innerHTML = visible.map(c =>
-    '<div class="bl-item">' +
-      '<span class="bl-name">' + esc(c.name) + '</span>' +
-      '<button class="bl-del" data-name="' + esc(c.name) + '" title="Remove from blacklist" onclick="deleteFromBlacklist(this.dataset.name)">✕</button>' +
-    '</div>'
-  ).join('');
+  list.innerHTML = visible.map(c => {
+    const srcKey  = (c.source || '').replace(/-/g, '_');  // css-safe
+    const srcLbl  = c.source === 'csv-upload' ? 'csv' : (c.source || '');
+    const dateStr = c.addedAt ? fmtDate(c.addedAt) : '';
+    return (
+      '<div class="bl-item">' +
+        '<span class="bl-name">' + esc(c.name) + '</span>' +
+        '<span class="bl-meta">' +
+          (srcLbl  ? '<span class="bl-source bl-src-' + esc(c.source) + '">' + srcLbl + '</span>' : '') +
+          (dateStr ? '<span class="bl-date">' + dateStr + '</span>' : '') +
+        '</span>' +
+        '<button class="bl-del" data-id="' + esc(c.id) + '" title="Remove from blacklist" onclick="deleteFromBlacklist(this.dataset.id)">✕</button>' +
+      '</div>'
+    );
+  }).join('');
 }
 
 // -------------------------------------------------------
@@ -1339,8 +1388,36 @@ async function doTransfer(move) {
 }
 
 // -------------------------------------------------------
+//  Migration
+// -------------------------------------------------------
+async function doMigration() {
+  const btn    = document.getElementById('migrate-btn');
+  const status = document.getElementById('migrate-status');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner" style="border-color:#fff;border-top-color:transparent"></span>Migrating…';
+  status.textContent = '';
+
+  try {
+    const result = await window.FB.migrateBlacklist();
+    logActivity('Migration: ' + result.count + ' chemicals converted to new format', 'upload');
+    await loadBlacklist();  // hides notice if successful, refreshes list
+    status.innerHTML = '<span class="status-ok">✓ Migrated ' + result.count + ' chemicals.</span>';
+  } catch (e) {
+    console.error(e);
+    status.innerHTML = '<span class="status-err">Migration failed — check console.</span>';
+    btn.disabled  = false;
+    btn.textContent = 'Migrate to New Format →';
+  }
+}
+
+// -------------------------------------------------------
 //  Util
 // -------------------------------------------------------
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function esc(s) {
   return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }

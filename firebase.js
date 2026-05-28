@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, addDoc, writeBatch, serverTimestamp, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut as fbSignOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -54,16 +54,23 @@ window.FB = {
     }
   },
 
-  // Check a chemical name against the company blacklist in Firestore.
-  // Returns true if the chemical is prohibited.
+  // Check a chemical name against the blacklist. Checks both new per-document
+  // format and the legacy single-document format during the migration window.
   async isBlacklisted(chemName) {
     try {
-      const snap = await getDoc(doc(db, 'blacklist', 'prohibited'));
-      if (!snap.exists()) return false;
-      const list = snap.data().chemicals || [];
-      return list.some(item =>
-        (item.name || '').trim().toLowerCase() === chemName.trim().toLowerCase()
-      );
+      const lc = chemName.trim().toLowerCase();
+      // New format: query by nameLower field
+      const q    = query(collection(db, 'blacklist'), where('nameLower', '==', lc));
+      const snap = await getDocs(q);
+      if (!snap.empty) return true;
+      // Legacy fallback: check prohibited doc if it still exists
+      const old = await getDoc(doc(db, 'blacklist', 'prohibited'));
+      if (old.exists()) {
+        return (old.data().chemicals || []).some(
+          item => (item.name || '').trim().toLowerCase() === lc
+        );
+      }
+      return false;
     } catch (e) {
       console.error('Firebase blacklist error:', e);
       return false;
@@ -93,24 +100,82 @@ window.FB = {
     }
   },
 
-  // Return the full blacklist array of { name } objects.
+  // Return all blacklist chemicals as { id, name, addedAt, source } objects,
+  // plus migration info if the legacy prohibited doc still exists.
   async getBlacklist() {
     try {
-      const snap = await getDoc(doc(db, 'blacklist', 'prohibited'));
-      if (!snap.exists()) return [];
-      return snap.data().chemicals || [];
+      const snap = await getDocs(collection(db, 'blacklist'));
+      const prohibitedDoc = snap.docs.find(d => d.id === 'prohibited');
+      const chemicals = snap.docs
+        .filter(d => d.id !== 'prohibited')
+        .map(d => ({
+          id:      d.id,
+          name:    d.data().name || '',
+          addedAt: d.data().addedAt ? d.data().addedAt.toDate() : null,
+          source:  d.data().source || null
+        }));
+      return {
+        chemicals,
+        needsMigration: !!prohibitedDoc,
+        migrationCount: prohibitedDoc ? (prohibitedDoc.data().chemicals || []).length : 0
+      };
     } catch (e) {
       console.error('Firebase getBlacklist error:', e);
-      return [];
+      return { chemicals: [], needsMigration: false, migrationCount: 0 };
     }
   },
 
-  // Overwrite the entire blacklist with an array of name strings or { name } objects.
-  async setBlacklist(chemicals) {
-    const normalized = chemicals.map(c =>
-      typeof c === 'string' ? { name: c.trim() } : { name: (c.name || '').trim() }
-    ).filter(c => c.name);
-    await setDoc(doc(db, 'blacklist', 'prohibited'), { chemicals: normalized });
+  // Add a single chemical to the blacklist. Returns the new document ID.
+  async addToBlacklist(name, source = 'manual') {
+    const ref = await addDoc(collection(db, 'blacklist'), {
+      name:      name.trim(),
+      nameLower: name.trim().toLowerCase(),
+      addedAt:   serverTimestamp(),
+      source
+    });
+    return ref.id;
+  },
+
+  // Remove a blacklist chemical by document ID.
+  async removeFromBlacklist(docId) {
+    await deleteDoc(doc(db, 'blacklist', docId));
+  },
+
+  // Batch-add many chemicals (CSV uploads). Splits into 500-op batches.
+  async addManyToBlacklist(names, source = 'csv-upload') {
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < names.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      names.slice(i, i + BATCH_SIZE).forEach(name => {
+        const ref = doc(collection(db, 'blacklist'));
+        batch.set(ref, {
+          name:      name.trim(),
+          nameLower: name.trim().toLowerCase(),
+          addedAt:   serverTimestamp(),
+          source
+        });
+      });
+      await batch.commit();
+    }
+  },
+
+  // One-time migration: converts the legacy /blacklist/prohibited array
+  // into individual documents, then deletes the old document.
+  async migrateBlacklist() {
+    const prohibited = await getDoc(doc(db, 'blacklist', 'prohibited'));
+    if (!prohibited.exists()) return { count: 0 };
+    const chemicals = prohibited.data().chemicals || [];
+    // Skip any names already migrated
+    const existing  = await getDocs(collection(db, 'blacklist'));
+    const doneNames = new Set(
+      existing.docs.filter(d => d.id !== 'prohibited').map(d => d.data().nameLower)
+    );
+    const toMigrate = chemicals.filter(c => !doneNames.has((c.name || '').toLowerCase()));
+    if (toMigrate.length) {
+      await window.FB.addManyToBlacklist(toMigrate.map(c => c.name), 'migration');
+    }
+    await deleteDoc(doc(db, 'blacklist', 'prohibited'));
+    return { count: toMigrate.length };
   },
 
   // Return array of { code, name, chemCount } for all facilities.
