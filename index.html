@@ -882,6 +882,15 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
           <div id="fav-list"></div>
         </div>
       </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #444;display:flex;gap:6px;align-items:center">
+        <span style="font-size:10px;color:#aaa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;white-space:nowrap;flex-shrink:0">Logo</span>
+        <button type="button" class="lib-load-btn" onclick="uploadLogo()" style="flex:1;font-size:10px;padding:4px 6px">Upload Image</button>
+        <button type="button" class="lib-del-btn" id="logo-clear-btn" onclick="clearLogo()" title="Remove logo" style="display:none;padding:4px 7px">✕</button>
+        <div id="logo-thumb-row" style="display:none;align-items:center;gap:4px">
+          <img id="logo-thumb" style="height:16px;max-width:60px;object-fit:contain;border:1px solid #555;padding:1px;background:#fff">
+          <span style="font-size:9px;color:#aaa;white-space:nowrap">active</span>
+        </div>
+      </div>
     </div>
     <div class="form-body">
 
@@ -971,19 +980,12 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
 
       <div class="fg">
         <h3>Supplier Info</h3>
-        <label>Company Logo</label>
-        <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px">
-          <button type="button" class="lib-load-btn" onclick="uploadLogo()" style="flex:1;font-size:11px">Upload Image</button>
-          <button type="button" class="lib-del-btn" id="logo-clear-btn" onclick="clearLogo()" title="Remove logo" style="display:none">✕</button>
-        </div>
-        <div id="logo-thumb-row" style="display:none;align-items:center;gap:6px;margin-bottom:4px">
-          <img id="logo-thumb" style="height:18px;object-fit:contain;border:1px solid #ccc;padding:1px;background:#fff">
-          <span style="font-size:10px;color:#666">Logo active on label</span>
-        </div>
         <label>Company Name</label><input type="text" id="s-company">
         <label>Address</label><textarea id="s-address" rows="2"></textarea>
         <label>Emergency Phone</label><input type="text" id="s-phone">
         <label>Prepared By</label><input type="text" id="s-prep">
+        <label style="margin-top:4px">Email <span style="font-weight:400;font-size:10px;color:#aaa">(for approval notifications — not printed)</span></label>
+        <input type="email" id="s-prep-email" placeholder="you@example.com" oninput="update()">
         <label>Date</label><input type="text" id="s-date">
       </div>
 
@@ -1842,6 +1844,7 @@ function getCurrentFormData() {
       address:    $('s-address').value,
       phone:      $('s-phone').value,
       preparedBy: $('s-prep').value,
+      email:      $('s-prep-email')?.value || '',
       date:       $('s-date').value
     }
   };
@@ -1875,8 +1878,9 @@ function loadFormData(d) {
     if (d.supplier.company    !== undefined) $('s-company').value = d.supplier.company;
     if (d.supplier.address    !== undefined) $('s-address').value = d.supplier.address;
     if (d.supplier.phone      !== undefined) $('s-phone').value   = d.supplier.phone;
-    if (d.supplier.preparedBy !== undefined) $('s-prep').value    = d.supplier.preparedBy;
-    if (d.supplier.date       !== undefined) $('s-date').value    = d.supplier.date;
+    if (d.supplier.preparedBy !== undefined) $('s-prep').value       = d.supplier.preparedBy;
+    if (d.supplier.email      !== undefined) { const e = $('s-prep-email'); if (e) e.value = d.supplier.email; }
+    if (d.supplier.date       !== undefined) $('s-date').value       = d.supplier.date;
   }
   update();
 }
@@ -2073,7 +2077,15 @@ async function saveToLibrary() {
     filterCombo();
     if (window.FB && window.FB.facilityCode) window.FB.push();
   } else if (window.FB && window.FB.facilityCode) {
-    // New chemical with Firebase — route through approval queue
+    // New chemical with Firebase — check for duplicate pending first
+    const pending = await window.FB.getFacilityPending(window.FB.facilityCode);
+    const alreadyPending = pending.some(p =>
+      (p.product || '').trim().toLowerCase() === data.product.trim().toLowerCase()
+    );
+    if (alreadyPending) {
+      alert(`"${data.product}" is already waiting for approval.\nAn engineer or safety officer will review it soon.`);
+      return;
+    }
     await window.FB.submitForApproval(window.FB.facilityCode, data);
     alert(`"${data.product}" has been submitted for approval.\nAn engineer or safety officer will review it before it appears in the library.`);
   } else {
@@ -2170,8 +2182,9 @@ function clearForm() {
   $('s-company').value = '';
   $('s-address').value = '';
   $('s-phone').value   = '';
-  $('s-prep').value    = '';
-  $('s-date').value    = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  $('s-prep').value       = '';
+  const emailEl = $('s-prep-email'); if (emailEl) emailEl.value = '';
+  $('s-date').value       = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   document.querySelectorAll('.pic-toggle').forEach(cb => cb.checked = false);
   update();
 }

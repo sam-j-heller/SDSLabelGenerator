@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Quick Label — Admin Console</title>
 <script type="module" src="firebase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; min-height: 100%; }
@@ -688,8 +689,13 @@ nav {
 
   <!-- ===== APPROVALS TAB ===== -->
   <div id="tab-approvals" class="tab-panel">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h2 style="margin:0">Pending Approvals</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <h2 style="margin:0">Pending Approvals</h2>
+        <select id="appr-fac-filter" class="col-select" style="width:auto;min-width:180px;padding:6px 10px;font-size:12px" onchange="renderApprovals()">
+          <option value="">All Facilities</option>
+        </select>
+      </div>
       <button class="cc-reload" onclick="loadApprovals()">↻ Refresh</button>
     </div>
     <div id="appr-list">
@@ -786,6 +792,22 @@ nav {
 </div><!-- #app -->
 
 <script>
+// -------------------------------------------------------
+//  EmailJS — approval notification emails
+//  Sign up free at https://emailjs.com (200 emails/month)
+//  1. Create an Email Service (Gmail / Outlook / etc.)
+//  2. Create a Template — available variables:
+//     {{to_email}}, {{to_name}}, {{product_name}},
+//     {{facility_name}}, {{facility_code}}
+//  3. Paste your IDs below and the system will auto-email
+//     workers when their submission is approved.
+// -------------------------------------------------------
+const EMAILJS_CONFIG = {
+  publicKey:  '',   // Your EmailJS Public Key
+  serviceId:  '',   // e.g. 'service_abc123'
+  templateId: '',   // e.g. 'template_abc123'
+};
+
 // -------------------------------------------------------
 //  State
 // -------------------------------------------------------
@@ -1652,30 +1674,55 @@ async function loadApprovals() {
   const list = document.getElementById('appr-list');
   if (list) list.innerHTML = '<div style="padding:16px;color:#888;font-size:13px">Loading…</div>';
   pendingApprovals = await window.FB.getAllPending();
+  populateApprovalsFacilityFilter();
   renderApprovals();
   updateApprovalsBadge();
 }
 
+function populateApprovalsFacilityFilter() {
+  const sel = document.getElementById('appr-fac-filter');
+  if (!sel) return;
+  const current = sel.value;
+  const codes = [...new Set(pendingApprovals.map(p => p.facilityCode))].sort();
+  sel.innerHTML = '<option value="">All Facilities</option>' +
+    codes.map(code => {
+      const fac = pendingApprovals.find(p => p.facilityCode === code);
+      return `<option value="${esc(code)}">${esc(code)} — ${esc(fac?.facilityName || code)}</option>`;
+    }).join('');
+  if (codes.includes(current)) sel.value = current;
+}
+
 function renderApprovals() {
+  const filterCode = document.getElementById('appr-fac-filter')?.value || '';
+  const filtered = filterCode
+    ? pendingApprovals.filter(p => p.facilityCode === filterCode)
+    : pendingApprovals;
   const list = document.getElementById('appr-list');
   if (!list) return;
-  if (!pendingApprovals.length) {
-    list.innerHTML = '<div class="appr-empty">No pending approvals. All caught up!</div>';
+  if (!filtered.length) {
+    list.innerHTML = '<div class="appr-empty">' +
+      (filterCode ? 'No pending approvals for this facility.' : 'No pending approvals. All caught up!') +
+      '</div>';
     return;
   }
-  list.innerHTML = pendingApprovals.map((p, i) => {
-    const when = p.submittedAt?.toDate ? p.submittedAt.toDate().toLocaleString() : '—';
+  list.innerHTML = filtered.map((p, i) => {
+    const realIdx  = pendingApprovals.indexOf(p);
+    const when     = p.submittedAt?.toDate ? p.submittedAt.toDate().toLocaleString() : '—';
+    const hasEmail = !!(p.supplier?.email);
     return `
-    <div class="appr-row" id="appr-row-${i}">
+    <div class="appr-row" id="appr-row-${realIdx}">
       <div class="appr-info">
         <div class="appr-product">${esc(p.product || '(unnamed)')}</div>
         <div class="appr-meta">
-          <span class="appr-fac">${esc(p.facilityCode)}</span>${esc(p.facilityName)} · Submitted ${esc(when)}
+          <span class="appr-fac">${esc(p.facilityCode)}</span>${esc(p.facilityName)}
+          · Submitted ${esc(when)}
+          ${p.supplier?.preparedBy ? ' · <strong>' + esc(p.supplier.preparedBy) + '</strong>' : ''}
+          ${hasEmail ? ' · <span title="' + esc(p.supplier.email) + '" style="color:#1a3a5c">✉</span>' : ''}
         </div>
       </div>
       <div class="appr-actions">
-        <button class="appr-approve" onclick="doApprove(${i})">✓ Approve</button>
-        <button class="appr-reject"  onclick="doReject(${i})">✕ Reject</button>
+        <button class="appr-approve" onclick="doApprove(${realIdx})">✓ Approve</button>
+        <button class="appr-reject"  onclick="doReject(${realIdx})">✕ Reject</button>
       </div>
     </div>`;
   }).join('');
@@ -1692,7 +1739,25 @@ async function doApprove(idx) {
     const ok = await window.FB.approveChemical(p.facilityCode, p._id);
     if (ok) {
       logActivity(`Approved "${p.product}" for ${p.facilityCode}`, 'add');
+      // Email notification
+      const email = p.supplier?.email;
+      if (email && EMAILJS_CONFIG.publicKey && EMAILJS_CONFIG.serviceId && EMAILJS_CONFIG.templateId) {
+        try {
+          emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+          await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+            to_email:      email,
+            to_name:       p.supplier?.preparedBy || '',
+            product_name:  p.product  || '',
+            facility_name: p.facilityName || '',
+            facility_code: p.facilityCode || '',
+          });
+          logActivity(`Notified ${email} of approval`, 'upload');
+        } catch (emailErr) {
+          console.warn('Email notification failed:', emailErr);
+        }
+      }
       pendingApprovals.splice(idx, 1);
+      populateApprovalsFacilityFilter();
       renderApprovals();
       updateApprovalsBadge();
     }

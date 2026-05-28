@@ -345,6 +345,17 @@ window.FB = {
     await deleteDoc(doc(db, 'facilities', upper, 'favorites', docId));
   },
 
+  // Return all pending chemicals for a single facility.
+  async getFacilityPending(code) {
+    const upper = code.trim().toUpperCase();
+    try {
+      const snap = await getDocs(collection(db, 'facilities', upper, 'pending'));
+      return snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+    } catch (e) {
+      return [];
+    }
+  },
+
   // Submit a new chemical for approval. Writes to /facilities/{code}/pending/{id}.
   async submitForApproval(code, labelData) {
     const upper = code.trim().toUpperCase();
