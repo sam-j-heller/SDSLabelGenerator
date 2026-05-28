@@ -109,10 +109,9 @@ window.FB = {
       const chemicals = snap.docs
         .filter(d => d.id !== 'prohibited')
         .map(d => ({
+          ...d.data(),                // all stored fields (cas_no, hazard, etc.)
           id:      d.id,
-          name:    d.data().name || '',
-          addedAt: d.data().addedAt ? d.data().addedAt.toDate() : null,
-          source:  d.data().source || null
+          addedAt: d.data().addedAt ? d.data().addedAt.toDate() : null
         }));
       return {
         chemicals,
@@ -125,9 +124,11 @@ window.FB = {
     }
   },
 
-  // Add a single chemical to the blacklist. Returns the new document ID.
-  async addToBlacklist(name, source = 'manual') {
+  // Add a single chemical to the blacklist. extra = any additional fields to store.
+  // Returns the new document ID.
+  async addToBlacklist(name, source = 'manual', extra = {}) {
     const ref = await addDoc(collection(db, 'blacklist'), {
+      ...extra,
       name:      name.trim(),
       nameLower: name.trim().toLowerCase(),
       addedAt:   serverTimestamp(),
@@ -141,14 +142,17 @@ window.FB = {
     await deleteDoc(doc(db, 'blacklist', docId));
   },
 
-  // Batch-add many chemicals (CSV uploads). Splits into 500-op batches.
-  async addManyToBlacklist(names, source = 'csv-upload') {
+  // Batch-add many chemicals. Each item may be a plain string (name only)
+  // or an object { name, ...extraFields }. Splits into 500-op batches.
+  async addManyToBlacklist(chemicals, source = 'csv-upload') {
     const BATCH_SIZE = 500;
-    for (let i = 0; i < names.length; i += BATCH_SIZE) {
+    for (let i = 0; i < chemicals.length; i += BATCH_SIZE) {
       const batch = writeBatch(db);
-      names.slice(i, i + BATCH_SIZE).forEach(name => {
+      chemicals.slice(i, i + BATCH_SIZE).forEach(chem => {
+        const { name, ...extra } = typeof chem === 'string' ? { name: chem } : chem;
         const ref = doc(collection(db, 'blacklist'));
         batch.set(ref, {
+          ...extra,
           name:      name.trim(),
           nameLower: name.trim().toLowerCase(),
           addedAt:   serverTimestamp(),

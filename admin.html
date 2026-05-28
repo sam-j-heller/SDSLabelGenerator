@@ -202,7 +202,9 @@ nav {
 }
 .bl-item:last-child { border-bottom: none; }
 .bl-item:hover { background: #fafbff; }
-.bl-name { color: #222; flex: 1; }
+.bl-name-wrap { flex: 1; min-width: 0; }
+.bl-name { color: #222; display: block; }
+.bl-sub  { font-size: 10px; color: #aaa; display: block; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bl-del {
   background: none; border: none; color: #cc0000; cursor: pointer;
   font-size: 14px; font-weight: 900; padding: 0 4px; line-height: 1;
@@ -895,17 +897,40 @@ function updatePreview() {
 // -------------------------------------------------------
 //  Upload — MERGE (add new, skip existing)
 // -------------------------------------------------------
+
+// Convert a CSV column header into a safe Firestore field name.
+function sanitizeFieldName(header) {
+  return (header || '').trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'col';
+}
+
+// Build a chemical object from a CSV row, storing all columns as extra fields.
+function rowToChemical(row, nameIdx) {
+  const name = (row[nameIdx] || '').trim();
+  if (!name) return null;
+  const obj = { name };
+  parsedHeaders.forEach((h, i) => {
+    if (i === nameIdx) return;
+    const key = sanitizeFieldName(h);
+    const val = (row[i] || '').trim();
+    if (key && val) obj[key] = val;
+  });
+  return obj;
+}
+
 async function uploadBlacklist() {
-  const colIdx   = parseInt(document.getElementById('col-pick').value);
-  const csvNames = parsedRows.map(r => (r[colIdx] || '').trim()).filter(n => n);
+  const colIdx    = parseInt(document.getElementById('col-pick').value);
+  const chemicals = parsedRows.map(r => rowToChemical(r, colIdx)).filter(Boolean);
+  const csvNames  = chemicals.map(c => c.name);
   if (!csvNames.length) return;
 
   const btn    = document.getElementById('upload-bl-btn');
   const status = document.getElementById('upload-status');
 
   const existing  = new Set(blacklist.map(c => c.name.toLowerCase()));
-  const newNames  = csvNames.filter(n => !existing.has(n.toLowerCase()));
-  const skipCount = csvNames.length - newNames.length;
+  const newChems  = chemicals.filter(c => !existing.has(c.name.toLowerCase()));
+  const newNames  = newChems.map(c => c.name);
+  const skipCount = csvNames.length - newChems.length;
 
   if (!newNames.length) {
     status.innerHTML = '<span class="status-ok">All ' + csvNames.length + ' chemicals already listed — nothing to add.</span>';
@@ -925,7 +950,7 @@ async function uploadBlacklist() {
   status.textContent = '';
 
   try {
-    await window.FB.addManyToBlacklist(newNames, 'csv-upload');
+    await window.FB.addManyToBlacklist(newChems, 'csv-upload');
     await loadBlacklist();  // reload to get IDs and timestamps
     status.innerHTML = '<span class="status-ok">✓ ' + newNames.length + ' added' +
       (skipCount ? ', ' + skipCount + ' skipped.' : '.') + '</span>';
@@ -1026,12 +1051,16 @@ function renderBlacklist() {
   }
 
   list.innerHTML = visible.map(c => {
-    const srcKey  = (c.source || '').replace(/-/g, '_');  // css-safe
     const srcLbl  = c.source === 'csv-upload' ? 'csv' : (c.source || '');
     const dateStr = c.addedAt ? fmtDate(c.addedAt) : '';
+    const subParts = [c.cas_no, c.substance_group, c.examples_of_occurrence, c.hazard].filter(Boolean);
+    const subInfo  = subParts.join(' · ');
     return (
       '<div class="bl-item">' +
-        '<span class="bl-name">' + esc(c.name) + '</span>' +
+        '<div class="bl-name-wrap">' +
+          '<span class="bl-name">' + esc(c.name) + '</span>' +
+          (subInfo ? '<span class="bl-sub">' + esc(subInfo) + '</span>' : '') +
+        '</div>' +
         '<span class="bl-meta">' +
           (srcLbl  ? '<span class="bl-source bl-src-' + esc(c.source) + '">' + srcLbl + '</span>' : '') +
           (dateStr ? '<span class="bl-date">' + dateStr + '</span>' : '') +
