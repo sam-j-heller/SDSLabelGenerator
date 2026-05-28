@@ -626,7 +626,7 @@ function renderBlacklist() {
   list.innerHTML = visible.map(c =>
     '<div class="bl-item">' +
       '<span class="bl-name">' + esc(c.name) + '</span>' +
-      '<button class="bl-del" title="Remove from blacklist" onclick="deleteFromBlacklist(' + JSON.stringify(c.name) + ')">✕</button>' +
+      '<button class="bl-del" data-name="' + esc(c.name) + '" title="Remove from blacklist" onclick="deleteFromBlacklist(this.dataset.name)">✕</button>' +
     '</div>'
   ).join('');
 }
