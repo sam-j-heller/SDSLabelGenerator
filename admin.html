@@ -1707,7 +1707,7 @@ function showBanner(id, msg, type, duration) {
   if (!el) return;
   el.className = 'inline-banner banner-' + (type || 'info');
   el.textContent = msg;
-  el.style.display = '';
+  el.style.display = 'block';
   clearTimeout(el._bt);
   if (duration !== 0) el._bt = setTimeout(() => { el.style.display = 'none'; }, duration || 4500);
 }
