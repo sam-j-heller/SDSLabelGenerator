@@ -27,12 +27,18 @@ body {
 .gate-brand { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 2px; text-transform: uppercase; }
 .gate-title { font-size: 24px; font-weight: 900; color: #b40000; letter-spacing: -0.5px; margin-bottom: 4px; }
 .gate-label { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 12px; }
+.gate-pw-wrap { position: relative; margin-top: 2px; }
 .gate-input {
-  width: 100%; padding: 11px 12px; font-size: 14px;
+  width: 100%; padding: 11px 44px 11px 12px; font-size: 14px;
   border: 1.5px solid #ccc; border-radius: 5px; font-family: inherit;
-  margin-top: 2px;
 }
 .gate-input:focus { outline: none; border-color: #1a3a5c; }
+.pw-toggle {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: #888; font-size: 16px; line-height: 1;
+}
+.pw-toggle:hover { color: #444; }
 #gate-error { font-size: 12px; color: #cc0000; min-height: 16px; }
 .gate-btn {
   width: 100%; padding: 12px; background: #1a3a5c; color: #fff;
@@ -43,7 +49,7 @@ body {
 .gate-btn:disabled { background: #aaa; cursor: default; }
 
 /* ---------- App shell ---------- */
-#app { display: none; min-height: 100vh; }
+#app { display: none; min-height: 100vh; flex-direction: column; }
 
 header {
   background: linear-gradient(90deg, #0a1628 0%, #1a3a5c 100%);
@@ -62,121 +68,134 @@ header {
 /* ---------- Tabs ---------- */
 nav {
   background: #fff; border-bottom: 2px solid #ddd;
-  padding: 0 32px; display: flex; gap: 0;
+  padding: 0 32px; display: flex;
 }
 .tab-btn {
   background: none; border: none; border-bottom: 3px solid transparent;
   padding: 14px 20px; font-size: 13px; font-weight: 700; color: #666;
   cursor: pointer; letter-spacing: 0.3px; margin-bottom: -2px;
-  transition: color 0.15s;
 }
 .tab-btn.active { color: #1a3a5c; border-bottom-color: #1a3a5c; }
 .tab-btn:hover:not(.active) { color: #333; }
 
-/* ---------- Content ---------- */
-.tab-panel { display: none; padding: 28px 32px; max-width: 960px; }
+/* ---------- Tab panels ---------- */
+.tab-panel { display: none; padding: 24px 28px; }
 .tab-panel.active { display: block; }
 
+/* ---------- Two-column grid ---------- */
+.bl-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ---------- Cards ---------- */
 .card {
   background: #fff; border: 1px solid #dde; border-radius: 8px;
-  padding: 24px; margin-bottom: 20px;
+  padding: 20px; margin-bottom: 16px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
+.card:last-child { margin-bottom: 0; }
 .card h2 {
-  margin: 0 0 4px 0; font-size: 14px; font-weight: 800;
+  margin: 0 0 4px 0; font-size: 13px; font-weight: 800;
   color: #1a3a5c; text-transform: uppercase; letter-spacing: 1px;
 }
-.card p { margin: 0 0 16px 0; font-size: 12px; color: #666; }
+.card p { margin: 0 0 14px 0; font-size: 12px; color: #666; line-height: 1.5; }
 
 /* ---------- CSV Upload ---------- */
 #drop-zone {
-  border: 2px dashed #aab; border-radius: 6px; padding: 32px;
+  border: 2px dashed #aab; border-radius: 6px; padding: 24px 16px;
   text-align: center; cursor: pointer; background: #f8f9fc;
   transition: border-color 0.15s, background 0.15s;
 }
 #drop-zone.drag-over { border-color: #1a3a5c; background: #eef3ff; }
-#drop-zone .dz-icon { font-size: 32px; margin-bottom: 8px; }
-#drop-zone .dz-label { font-size: 13px; font-weight: 600; color: #444; }
-#drop-zone .dz-sub { font-size: 11px; color: #888; margin-top: 4px; }
+#drop-zone .dz-icon { font-size: 26px; margin-bottom: 6px; }
+#drop-zone .dz-label { font-size: 12px; font-weight: 600; color: #444; }
+#drop-zone .dz-sub { font-size: 11px; color: #888; margin-top: 3px; }
 #file-input { display: none; }
 
 /* ---------- Column Selector ---------- */
-#col-selector { display: none; margin-top: 16px; }
-.col-label { font-size: 12px; font-weight: 700; color: #333; margin-bottom: 6px; }
+#col-selector { display: none; margin-top: 14px; }
+.col-label { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 5px; }
 .col-select {
-  padding: 8px 10px; font-size: 13px; border: 1.5px solid #bbc;
+  width: 100%; padding: 7px 10px; font-size: 12px; border: 1.5px solid #bbc;
   border-radius: 5px; font-family: inherit; background: #fff; cursor: pointer;
 }
 .col-select:focus { outline: none; border-color: #1a3a5c; }
-#col-preview { margin-top: 12px; }
+#col-preview { margin-top: 10px; }
 .preview-tag {
   display: inline-block; background: #eef3ff; border: 1px solid #c0cff0;
-  border-radius: 3px; padding: 2px 8px; font-size: 11px; color: #1a3a5c;
-  margin: 2px;
+  border-radius: 3px; padding: 2px 7px; font-size: 10px; color: #1a3a5c; margin: 2px;
 }
-.preview-count { font-size: 12px; color: #555; margin: 8px 0 4px; }
+.preview-count { font-size: 11px; color: #666; margin: 6px 0 4px; }
 #upload-bl-btn {
-  display: none; margin-top: 14px; padding: 10px 24px;
+  display: none; width: 100%; margin-top: 12px; padding: 9px;
   background: #1a3a5c; color: #fff; border: none; border-radius: 5px;
-  font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
 }
 #upload-bl-btn:hover { background: #0f2540; }
 #upload-bl-btn:disabled { background: #aaa; cursor: default; }
-#upload-status { font-size: 12px; margin-top: 8px; min-height: 16px; }
+#upload-status { font-size: 11px; margin-top: 6px; min-height: 14px; }
 .status-ok  { color: #2a7a3f; font-weight: 700; }
 .status-err { color: #cc0000; font-weight: 700; }
 
 /* ---------- Manual Add ---------- */
-.manual-row { display: flex; gap: 8px; margin-top: 0; }
+.manual-row { display: flex; gap: 6px; }
 .manual-input {
-  flex: 1; padding: 8px 10px; font-size: 13px;
+  flex: 1; padding: 8px 10px; font-size: 12px;
   border: 1.5px solid #bbc; border-radius: 5px; font-family: inherit;
 }
 .manual-input:focus { outline: none; border-color: #1a3a5c; }
 .manual-add-btn {
-  padding: 8px 18px; background: #2a6b3f; color: #fff; border: none;
-  border-radius: 5px; font-size: 13px; font-weight: 700; cursor: pointer;
+  padding: 8px 14px; background: #2a6b3f; color: #fff; border: none;
+  border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .manual-add-btn:hover { background: #1f5230; }
 
-/* ---------- Show/hide password toggle ---------- */
-.gate-pw-wrap { position: relative; margin-top: 2px; }
-.gate-pw-wrap .gate-input { padding-right: 44px; margin-top: 0; }
-.pw-toggle {
-  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  background: none; border: none; cursor: pointer; padding: 4px;
-  color: #888; font-size: 16px; line-height: 1;
+/* ---------- Activity Log ---------- */
+#activity-log {
+  background: #0d1b2e; border-radius: 5px;
+  padding: 10px 12px; max-height: 180px; overflow-y: auto;
+  font-family: "Consolas", "Courier New", monospace; font-size: 11px;
 }
-.pw-toggle:hover { color: #444; }
+.log-entry { line-height: 1.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-time  { color: #4a7a9b; margin-right: 6px; }
+.log-add   { color: #5fba7d; }
+.log-del   { color: #e07070; }
+.log-upload { color: #7eb8e0; }
+.log-empty { color: #3a5a78; font-style: italic; }
 
-/* ---------- Current Blacklist ---------- */
-#bl-search-wrap { margin-bottom: 10px; }
+/* ---------- Blacklist right panel ---------- */
+.bl-right .card { margin-bottom: 0; height: 100%; }
 #bl-search {
   width: 100%; padding: 8px 10px; font-size: 13px;
-  border: 1.5px solid #bbc; border-radius: 5px; font-family: inherit;
-  background: #fff;
+  border: 1.5px solid #bbc; border-radius: 5px; font-family: inherit; margin-bottom: 10px;
 }
 #bl-search:focus { outline: none; border-color: #1a3a5c; }
-#bl-count { font-size: 12px; color: #666; margin-bottom: 10px; }
-#bl-list { max-height: 340px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; }
+#bl-count { font-size: 12px; color: #666; margin-bottom: 8px; }
+#bl-list {
+  max-height: calc(100vh - 340px); min-height: 200px;
+  overflow-y: auto; border: 1px solid #eee; border-radius: 5px;
+}
 .bl-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 7px 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px;
 }
 .bl-item:last-child { border-bottom: none; }
 .bl-item:hover { background: #fafbff; }
-.bl-name { color: #222; }
+.bl-name { color: #222; flex: 1; }
 .bl-del {
   background: none; border: none; color: #cc0000; cursor: pointer;
   font-size: 14px; font-weight: 900; padding: 0 4px; line-height: 1;
-  opacity: 0.6;
+  opacity: 0.5; flex-shrink: 0;
 }
 .bl-del:hover { opacity: 1; }
-#bl-empty { padding: 24px; text-align: center; font-size: 12px; color: #aaa; font-style: italic; }
+#bl-empty { padding: 32px; text-align: center; font-size: 12px; color: #aaa; font-style: italic; }
 
-/* ---------- Facilities (Block 2 stub) ---------- */
+/* ---------- Facilities stub ---------- */
 .coming-soon {
-  border: 2px dashed #dde; border-radius: 8px; padding: 48px;
+  border: 2px dashed #dde; border-radius: 8px; padding: 60px;
   text-align: center; color: #aaa;
 }
 .coming-soon h3 { margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #bbb; }
@@ -184,10 +203,10 @@ nav {
 
 /* ---------- Spinner ---------- */
 .spinner {
-  display: inline-block; width: 14px; height: 14px;
+  display: inline-block; width: 13px; height: 13px;
   border: 2px solid #fff; border-top-color: transparent;
   border-radius: 50%; animation: spin 0.7s linear infinite;
-  vertical-align: middle; margin-right: 6px;
+  vertical-align: middle; margin-right: 5px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
@@ -203,7 +222,7 @@ nav {
     <div class="gate-pw-wrap">
       <input type="password" id="gate-input" class="gate-input" placeholder="Enter passphrase"
              autocomplete="off" onkeydown="if(event.key==='Enter')doAdminLogin()">
-      <button type="button" class="pw-toggle" onclick="togglePw()" title="Show/hide passphrase">👁</button>
+      <button type="button" class="pw-toggle" onclick="togglePw()" title="Show / hide">👁</button>
     </div>
     <div id="gate-error"></div>
     <button id="gate-btn" class="gate-btn" onclick="doAdminLogin()">Sign In →</button>
@@ -229,52 +248,64 @@ nav {
 
   <!-- ===== BLACKLIST TAB ===== -->
   <div id="tab-blacklist" class="tab-panel active">
+    <div class="bl-grid">
 
-    <!-- CSV Upload card -->
-    <div class="card">
-      <h2>Upload Blacklist from CSV</h2>
-      <p>Export your Excel file as CSV (File → Save As → CSV UTF-8), then drop it here or click to browse.</p>
+      <!-- LEFT COLUMN -->
+      <div class="bl-left">
 
-      <div id="drop-zone"
-           onclick="document.getElementById('file-input').click()"
-           ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">
-        <div class="dz-icon">📄</div>
-        <div class="dz-label">Drop CSV file here or click to browse</div>
-        <div class="dz-sub">Accepts .csv — all columns will be detected automatically</div>
+        <!-- CSV Upload -->
+        <div class="card">
+          <h2>Upload from CSV</h2>
+          <p>Export your Excel file as CSV UTF-8, then drop it here or click to browse. New chemicals are merged in — existing ones are skipped.</p>
+          <div id="drop-zone"
+               onclick="document.getElementById('file-input').click()"
+               ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">
+            <div class="dz-icon">📄</div>
+            <div class="dz-label">Drop CSV here or click to browse</div>
+            <div class="dz-sub">All columns detected automatically</div>
+          </div>
+          <input type="file" id="file-input" accept=".csv,.txt" onchange="fileChosen(event)">
+
+          <div id="col-selector">
+            <div class="col-label">Chemical name column</div>
+            <select id="col-pick" class="col-select" onchange="updatePreview()"></select>
+            <div id="col-preview"></div>
+            <button id="upload-bl-btn" onclick="uploadBlacklist()">Upload to Firestore</button>
+            <div id="upload-status"></div>
+          </div>
+        </div>
+
+        <!-- Manual Add -->
+        <div class="card">
+          <h2>Add Manually</h2>
+          <div class="manual-row">
+            <input type="text" id="manual-chem" class="manual-input" placeholder="Chemical name"
+                   onkeydown="if(event.key==='Enter')manualAdd()">
+            <button class="manual-add-btn" onclick="manualAdd()">+ Add</button>
+          </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="card">
+          <h2>Activity Log</h2>
+          <div id="activity-log">
+            <div class="log-entry log-empty">No activity yet this session.</div>
+          </div>
+        </div>
+
+      </div><!-- .bl-left -->
+
+      <!-- RIGHT COLUMN -->
+      <div class="bl-right">
+        <div class="card">
+          <h2>Current Blacklist</h2>
+          <input type="text" id="bl-search" placeholder="Search chemicals…" oninput="renderBlacklist()">
+          <div id="bl-count">Loading…</div>
+          <div id="bl-list"><div id="bl-empty">Loading…</div></div>
+        </div>
       </div>
-      <input type="file" id="file-input" accept=".csv,.txt" onchange="fileChosen(event)">
 
-      <!-- Column selector — shown after file loads -->
-      <div id="col-selector">
-        <div class="col-label">Which column contains the chemical name?</div>
-        <select id="col-pick" class="col-select" onchange="updatePreview()">
-        </select>
-        <div id="col-preview"></div>
-        <button id="upload-bl-btn" onclick="uploadBlacklist()">Upload to Firestore</button>
-        <div id="upload-status"></div>
-      </div>
-    </div>
-
-    <!-- Manual add card -->
-    <div class="card">
-      <h2>Add Chemical Manually</h2>
-      <div class="manual-row">
-        <input type="text" id="manual-chem" class="manual-input" placeholder="Chemical name"
-               onkeydown="if(event.key==='Enter')manualAdd()">
-        <button class="manual-add-btn" onclick="manualAdd()">+ Add</button>
-      </div>
-    </div>
-
-    <!-- Current list card -->
-    <div class="card">
-      <h2>Current Blacklist</h2>
-      <div id="bl-search-wrap">
-        <input type="text" id="bl-search" placeholder="Search blacklist…" oninput="renderBlacklist()">
-      </div>
-      <div id="bl-count">Loading…</div>
-      <div id="bl-list"><div id="bl-empty">Loading blacklist…</div></div>
-    </div>
-
+    </div><!-- .bl-grid -->
   </div>
 
   <!-- ===== FACILITIES TAB ===== -->
@@ -291,9 +322,10 @@ nav {
 // -------------------------------------------------------
 //  State
 // -------------------------------------------------------
-let parsedRows    = [];   // all rows from uploaded CSV
-let parsedHeaders = [];   // header row values
-let blacklist     = [];   // current blacklist from Firestore [ { name } ]
+let parsedRows    = [];
+let parsedHeaders = [];
+let blacklist     = [];   // [ { name } ] sorted alphabetically
+let activityLog   = [];   // [ { ts, msg, type } ]
 
 // -------------------------------------------------------
 //  Gate
@@ -314,15 +346,12 @@ async function doAdminLogin() {
   btn.innerHTML = '<span class="spinner"></span>Checking…';
   err.textContent = '';
 
-  if (!window.FB) {
-    // Firebase module not loaded yet — retry once
-    await new Promise(r => setTimeout(r, 800));
-  }
+  if (!window.FB) await new Promise(r => setTimeout(r, 800));
 
   const ok = await window.FB.adminLogin(pass);
   if (ok) {
-    document.getElementById('gate').style.display   = 'none';
-    document.getElementById('app').style.display    = 'block';
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display  = 'flex';
     loadBlacklist();
   } else {
     err.textContent = 'Incorrect passphrase.';
@@ -334,9 +363,9 @@ async function doAdminLogin() {
 }
 
 function signOut() {
-  document.getElementById('gate').style.display   = 'flex';
-  document.getElementById('app').style.display    = 'none';
-  document.getElementById('gate-input').value     = '';
+  document.getElementById('gate').style.display = 'flex';
+  document.getElementById('app').style.display  = 'none';
+  document.getElementById('gate-input').value   = '';
   document.getElementById('gate-error').textContent = '';
 }
 
@@ -351,18 +380,42 @@ function switchTab(name, btn) {
 }
 
 // -------------------------------------------------------
+//  Activity log
+// -------------------------------------------------------
+function logActivity(msg, type) {
+  const now = new Date();
+  const ts  = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  activityLog.unshift({ ts, msg, type });
+  if (activityLog.length > 100) activityLog.length = 100;
+  renderLog();
+}
+
+function renderLog() {
+  const el = document.getElementById('activity-log');
+  if (!activityLog.length) {
+    el.innerHTML = '<div class="log-entry log-empty">No activity yet this session.</div>';
+    return;
+  }
+  el.innerHTML = activityLog.map(e =>
+    '<div class="log-entry">' +
+      '<span class="log-time">' + esc(e.ts) + '</span>' +
+      '<span class="log-' + e.type + '">' + esc(e.msg) + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+// -------------------------------------------------------
 //  Drag-and-drop zone
 // -------------------------------------------------------
 function dzOver(e) {
   e.preventDefault();
   document.getElementById('drop-zone').classList.add('drag-over');
 }
-function dzLeave(e) {
+function dzLeave() {
   document.getElementById('drop-zone').classList.remove('drag-over');
 }
 function dzDrop(e) {
-  e.preventDefault();
-  dzLeave();
+  e.preventDefault(); dzLeave();
   const file = e.dataTransfer.files[0];
   if (file) readCSVFile(file);
 }
@@ -378,16 +431,14 @@ function fileChosen(e) {
 function readCSVFile(file) {
   const reader = new FileReader();
   reader.onload = ev => {
-    const text = ev.target.result;
-    const rows = parseCSV(text);
+    const rows = parseCSV(ev.target.result);
     if (rows.length < 2) {
-      alert('CSV appears empty or has only one row — make sure you exported correctly.');
+      alert('CSV appears empty — make sure you exported correctly.');
       return;
     }
     parsedHeaders = rows[0];
     parsedRows    = rows.slice(1);
 
-    // Populate column picker, defaulting to "Substance" if present
     const pick = document.getElementById('col-pick');
     pick.innerHTML = '';
     parsedHeaders.forEach((h, i) => {
@@ -399,15 +450,13 @@ function readCSVFile(file) {
     });
 
     document.getElementById('drop-zone').querySelector('.dz-label').textContent =
-      '✓ ' + file.name + ' loaded (' + parsedRows.length + ' data rows)';
-
+      '✓ ' + file.name + ' (' + parsedRows.length + ' rows)';
     document.getElementById('col-selector').style.display = 'block';
     updatePreview();
   };
   reader.readAsText(file, 'UTF-8');
 }
 
-// Robust CSV parser: handles quoted fields and embedded newlines
 function parseCSV(text) {
   const rows = [];
   let row = [], field = '', inQ = false;
@@ -426,7 +475,6 @@ function parseCSV(text) {
     }
   }
   if (field || row.length) { row.push(field.trim()); rows.push(row); }
-  // Remove trailing empty row
   if (rows.length && rows[rows.length - 1].every(c => !c)) rows.pop();
   return rows;
 }
@@ -436,57 +484,50 @@ function parseCSV(text) {
 // -------------------------------------------------------
 function updatePreview() {
   const colIdx = parseInt(document.getElementById('col-pick').value);
-  const names  = parsedRows
-    .map(r => (r[colIdx] || '').trim())
-    .filter(n => n);
+  const names  = parsedRows.map(r => (r[colIdx] || '').trim()).filter(n => n);
+  const sample = names.slice(0, 6);
+  const more   = names.length - sample.length;
 
-  const preview = document.getElementById('col-preview');
-  const sample  = names.slice(0, 8);
-  const more    = names.length - sample.length;
-
-  preview.innerHTML =
-    '<div class="preview-count">' + names.length + ' chemicals found</div>' +
+  document.getElementById('col-preview').innerHTML =
+    '<div class="preview-count">' + names.length + ' chemicals detected</div>' +
     sample.map(n => '<span class="preview-tag">' + esc(n) + '</span>').join('') +
-    (more > 0 ? '<span class="preview-tag">+ ' + more + ' more…</span>' : '');
+    (more > 0 ? '<span class="preview-tag">+' + more + ' more</span>' : '');
 
   const btn = document.getElementById('upload-bl-btn');
-  btn.style.display = names.length ? 'inline-block' : 'none';
-  btn.textContent   = 'Upload ' + names.length + ' chemicals to Firestore';
+  btn.style.display = names.length ? 'block' : 'none';
+  btn.textContent   = 'Merge ' + names.length + ' chemicals into Firestore';
   document.getElementById('upload-status').textContent = '';
 }
 
 // -------------------------------------------------------
-//  Upload to Firestore — MERGE (add new, skip existing)
+//  Upload — MERGE (add new, skip existing)
 // -------------------------------------------------------
 async function uploadBlacklist() {
-  const colIdx  = parseInt(document.getElementById('col-pick').value);
-  const csvNames = parsedRows
-    .map(r => (r[colIdx] || '').trim())
-    .filter(n => n);
-
+  const colIdx   = parseInt(document.getElementById('col-pick').value);
+  const csvNames = parsedRows.map(r => (r[colIdx] || '').trim()).filter(n => n);
   if (!csvNames.length) return;
 
   const btn    = document.getElementById('upload-bl-btn');
   const status = document.getElementById('upload-status');
 
-  const existing = new Set(blacklist.map(c => c.name.toLowerCase()));
+  const existing  = new Set(blacklist.map(c => c.name.toLowerCase()));
   const newNames  = csvNames.filter(n => !existing.has(n.toLowerCase()));
   const skipCount = csvNames.length - newNames.length;
 
   if (!newNames.length) {
-    status.innerHTML = '<span class="status-ok">All ' + csvNames.length +
-      ' chemicals are already on the blacklist — nothing to add.</span>';
+    status.innerHTML = '<span class="status-ok">All ' + csvNames.length + ' chemicals already listed — nothing to add.</span>';
+    logActivity('CSV merge: all ' + csvNames.length + ' already existed, nothing added.', 'upload');
     return;
   }
 
   const confirmed = confirm(
     'Add ' + newNames.length + ' new chemical' + (newNames.length !== 1 ? 's' : '') + ' to the blacklist?' +
-    (skipCount ? '\n(' + skipCount + ' already listed — will be skipped.)' : '') +
+    (skipCount ? '\n(' + skipCount + ' already listed — skipped.)' : '') +
     '\n\nProceed?'
   );
   if (!confirmed) return;
 
-  btn.disabled = true;
+  btn.disabled  = true;
   btn.innerHTML = '<span class="spinner"></span>Uploading…';
   status.textContent = '';
 
@@ -497,13 +538,15 @@ async function uploadBlacklist() {
     blacklist = merged;
     renderBlacklist();
     status.innerHTML = '<span class="status-ok">✓ ' + newNames.length + ' added' +
-      (skipCount ? ', ' + skipCount + ' already existed.' : '.') + '</span>';
+      (skipCount ? ', ' + skipCount + ' skipped.' : '.') + '</span>';
+    logActivity('CSV upload: +' + newNames.length + ' added, ' + skipCount + ' skipped (' + csvNames.length + ' total in file)', 'upload');
   } catch (e) {
     console.error(e);
-    status.innerHTML = '<span class="status-err">Upload failed — check console for details.</span>';
+    status.innerHTML = '<span class="status-err">Upload failed — check console.</span>';
+    logActivity('CSV upload failed: ' + e.message, 'del');
   }
-  btn.disabled    = false;
-  btn.textContent = 'Add ' + newNames.length + ' new chemicals to Firestore';
+  btn.disabled  = false;
+  btn.textContent = 'Merge ' + newNames.length + ' chemicals into Firestore';
 }
 
 // -------------------------------------------------------
@@ -513,14 +556,16 @@ async function manualAdd() {
   const input = document.getElementById('manual-chem');
   const name  = input.value.trim();
   if (!name) return;
-
-  const already = blacklist.some(c => c.name.toLowerCase() === name.toLowerCase());
-  if (already) { alert('"' + name + '" is already on the blacklist.'); return; }
-
-  blacklist = [...blacklist, { name }].sort((a, b) => a.name.localeCompare(b.name));
+  if (blacklist.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+    alert('"' + name + '" is already on the blacklist.');
+    return;
+  }
+  const merged = [...blacklist, { name }].sort((a, b) => a.name.localeCompare(b.name));
   try {
-    await window.FB.setBlacklist(blacklist);
+    await window.FB.setBlacklist(merged);
+    blacklist = merged;
     renderBlacklist();
+    logActivity('Added: ' + name, 'add');
     input.value = '';
     input.focus();
   } catch (e) {
@@ -534,10 +579,12 @@ async function manualAdd() {
 // -------------------------------------------------------
 async function deleteFromBlacklist(name) {
   if (!confirm('Remove "' + name + '" from the blacklist?')) return;
-  blacklist = blacklist.filter(c => c.name.toLowerCase() !== name.toLowerCase());
+  const updated = blacklist.filter(c => c.name.toLowerCase() !== name.toLowerCase());
   try {
-    await window.FB.setBlacklist(blacklist);
+    await window.FB.setBlacklist(updated);
+    blacklist = updated;
     renderBlacklist();
+    logActivity('Removed: ' + name, 'del');
   } catch (e) {
     alert('Failed to save — check console.');
     console.error(e);
@@ -545,22 +592,21 @@ async function deleteFromBlacklist(name) {
 }
 
 // -------------------------------------------------------
-//  Load & render blacklist
+//  Load + render blacklist
 // -------------------------------------------------------
 async function loadBlacklist() {
   document.getElementById('bl-count').textContent = 'Loading…';
   blacklist = await window.FB.getBlacklist();
   blacklist.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   renderBlacklist();
+  logActivity('Blacklist loaded — ' + blacklist.length + ' chemicals', 'upload');
 }
 
 function renderBlacklist() {
   const list    = document.getElementById('bl-list');
   const count   = document.getElementById('bl-count');
   const query   = (document.getElementById('bl-search').value || '').trim().toLowerCase();
-  const visible = query
-    ? blacklist.filter(c => c.name.toLowerCase().includes(query))
-    : blacklist;
+  const visible = query ? blacklist.filter(c => c.name.toLowerCase().includes(query)) : blacklist;
 
   if (!blacklist.length) {
     count.textContent = '0 chemicals on the blacklist';
