@@ -876,12 +876,10 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
         <button class="sheet-sub-btn"        id="sub-sheet"  onclick="setMode('sheet')">Sheet 4×</button>
       </div>
       <div class="export-wrap" id="export-wrap">
-        <button class="export-btn" onclick="toggleExportMenu()">Export / Import <span>▾</span></button>
-        <div class="export-menu" id="export-menu">
-          <button onclick="exportJSON()">⬇&nbsp; Export label as JSON</button>
-          <button onclick="importJSON()">⬆&nbsp; Import label from JSON</button>
-          <button onclick="exportLibraryJSON()" style="border-top:2px solid #ddd">⬇&nbsp; Export full library</button>
-          <button onclick="importLibraryJSON()">⬆&nbsp; Import into library</button>
+        <button class="export-btn" onclick="toggleFavPanel()">★ Favorites <span>▾</span></button>
+        <div class="export-menu" id="fav-panel">
+          <button onclick="pinCurrentLabel()" style="color:#2a6b3f;font-weight:800;border-bottom:2px solid #ddd">★&nbsp; Pin current label</button>
+          <div id="fav-list"></div>
         </div>
       </div>
     </div>
@@ -1798,10 +1796,10 @@ function init() {
   window.addEventListener('resize', scheduleFit);
   window.addEventListener('load',   scheduleFit);
 
-  // Close export dropdown when clicking outside it
+  // Close favorites panel when clicking outside it
   document.addEventListener('click', e => {
     const wrap = $('export-wrap');
-    if (wrap && !wrap.contains(e.target)) closeExportMenu();
+    if (wrap && !wrap.contains(e.target)) closeFavPanel();
   });
 
   // Facility gate: check for saved session, otherwise show login
@@ -1819,13 +1817,6 @@ function syncHMIS() {
   update();
 }
 
-function toggleExportMenu() {
-  $('export-menu').classList.toggle('open');
-}
-function closeExportMenu() {
-  const m = $('export-menu');
-  if (m) m.classList.remove('open');
-}
 
 /* ── Shared form data helpers ───────────────────────────────── */
 function getCurrentFormData() {
@@ -1892,99 +1883,82 @@ function loadFormData(d) {
   update();
 }
 
-/* ── Export / Import ────────────────────────────────────────── */
-function exportJSON() {
-  closeExportMenu();
+/* ── Favorites ───────────────────────────────────────────────── */
+let favCache = [];
+
+function toggleFavPanel() {
+  const panel = $('fav-panel');
+  if (!panel) return;
+  const opening = !panel.classList.contains('open');
+  panel.classList.toggle('open', opening);
+  if (opening) loadFavorites();
+}
+
+function closeFavPanel() {
+  const panel = $('fav-panel');
+  if (panel) panel.classList.remove('open');
+}
+
+async function loadFavorites() {
+  if (!window.FB || !window.FB.facilityCode) {
+    renderFavorites([]);
+    return;
+  }
+  renderFavorites(null);
+  favCache = await window.FB.getFavorites(window.FB.facilityCode);
+  favCache.sort((a, b) => (a.product || '').localeCompare(b.product || ''));
+  renderFavorites(favCache);
+}
+
+function renderFavorites(favs) {
+  const list = $('fav-list');
+  if (!list) return;
+  if (favs === null) {
+    list.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:#888">Loading…</div>';
+    return;
+  }
+  if (!favs.length) {
+    list.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:#888">No favorites yet — pin a label above.</div>';
+    return;
+  }
+  list.innerHTML = favs.map((f, i) => `
+    <div style="display:flex;align-items:center;border-bottom:1px solid #eee">
+      <button onclick="loadFavorite(${i})" style="flex:1;text-align:left;padding:10px 14px;border:0;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#222">${f.product || '(unnamed)'}</button>
+      <button onclick="deleteFavorite('${f._id}')" style="flex-shrink:0;padding:8px 10px;border:0;background:none;cursor:pointer;font-size:13px;color:#bbb;border-left:1px solid #eee" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function loadFavorite(idx) {
+  const f = favCache[idx];
+  if (!f) return;
+  const { _id, pinnedAt, ...labelData } = f;
+  loadFormData(labelData);
+  closeFavPanel();
+}
+
+async function pinCurrentLabel() {
+  if (!window.FB || !window.FB.facilityCode) {
+    alert('Log in to a facility first.');
+    return;
+  }
   const data = getCurrentFormData();
-  const name = (data.product.trim() || 'label').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = name + '.json'; a.click();
-  URL.revokeObjectURL(url);
+  if (!data.product.trim()) {
+    alert('Enter a Product Identifier before pinning.');
+    return;
+  }
+  if (favCache.some(f => (f.product || '').trim().toLowerCase() === data.product.trim().toLowerCase())) {
+    alert(`"${data.product.trim()}" is already in favorites.`);
+    return;
+  }
+  await window.FB.addFavorite(window.FB.facilityCode, data);
+  await loadFavorites();
 }
 
-function exportLibraryJSON() {
-  closeExportMenu();
-  const lib = getLibrary();
-  if (!lib.length) { alert('Library is empty — save some chemicals first.'); return; }
-  const exportedBy = (prompt('Your name (for export record):') || '').trim();
-  const today = new Date().toISOString().slice(0, 10);
-  const payload = {
-    _meta: {
-      exported:   today,
-      exportedBy: exportedBy || 'Unknown',
-      tool:       'Chemical Safety Label Generator'
-    },
-    chemicals: lib
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const namePart = exportedBy ? `_${exportedBy.replace(/[^a-z0-9]/gi, '_')}` : '';
-  a.href = url; a.download = `chem_label_library${namePart}_${today}.json`; a.click();
-  URL.revokeObjectURL(url);
-}
-
-function importLibraryJSON() {
-  closeExportMenu();
-  const input = document.createElement('input');
-  input.type   = 'file';
-  input.accept = '.json,application/json';
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = evt => {
-      try {
-        const parsed   = JSON.parse(evt.target.result);
-        const imported = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.chemicals) ? parsed.chemicals : null);
-        if (!imported) throw new Error('Not a library file');
-        const lib = getLibrary();
-        let added = 0, skipped = 0;
-        imported.forEach(c => {
-          if (!c.product) return;
-          if (lib.some(e => e.product.trim().toLowerCase() === c.product.trim().toLowerCase())) {
-            skipped++;
-          } else {
-            lib.push(c);
-            added++;
-          }
-        });
-        lib.sort((a, b) => a.product.localeCompare(b.product));
-        saveLibrary(lib);
-        populateLibrarySelect();
-        if (window.FB && window.FB.facilityCode) window.FB.push();
-        alert(`Import complete: ${added} added, ${skipped} already in library.`);
-      } catch {
-        alert('Invalid file. Please select a library JSON exported from this tool.');
-      }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
-
-
-function importJSON() {
-  closeExportMenu();
-  const input = document.createElement('input');
-  input.type   = 'file';
-  input.accept = '.json,application/json';
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = evt => {
-      try {
-        loadFormData(JSON.parse(evt.target.result));
-      } catch {
-        alert('Invalid JSON file. Please select a label JSON exported from this tool.');
-      }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
+async function deleteFavorite(docId) {
+  if (!window.FB || !window.FB.facilityCode) return;
+  await window.FB.removeFavorite(window.FB.facilityCode, docId);
+  favCache = favCache.filter(f => f._id !== docId);
+  renderFavorites(favCache);
 }
 
 /* ── Chemical Library (localStorage) ───────────────────────── */

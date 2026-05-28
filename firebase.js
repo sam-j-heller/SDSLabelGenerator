@@ -296,6 +296,34 @@ window.FB = {
     await setDoc(doc(db, 'facilities', upper), { chemCount: chemicals.length }, { merge: true });
   },
 
+  // Return array of { _id, product, pinnedAt, ...labelData } for a facility's favorites.
+  async getFavorites(code) {
+    const upper = code.trim().toUpperCase();
+    try {
+      const snap = await getDocs(collection(db, 'facilities', upper, 'favorites'));
+      return snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+    } catch (e) {
+      console.error('Firebase getFavorites error:', e);
+      return [];
+    }
+  },
+
+  // Pin a label to the facility's favorites. labelData = getCurrentFormData() output.
+  async addFavorite(code, labelData) {
+    const upper = code.trim().toUpperCase();
+    const ref = await addDoc(collection(db, 'facilities', upper, 'favorites'), {
+      ...labelData,
+      pinnedAt: serverTimestamp()
+    });
+    return ref.id;
+  },
+
+  // Remove a favorite by document ID.
+  async removeFavorite(code, docId) {
+    const upper = code.trim().toUpperCase();
+    await deleteDoc(doc(db, 'facilities', upper, 'favorites', docId));
+  },
+
   // One-time migration: moves a facility's legacy chemicals array into its
   // chemicals subcollection, then clears the array on the parent document.
   async migrateFacilityChemicals(code) {
