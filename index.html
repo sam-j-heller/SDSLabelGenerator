@@ -84,7 +84,7 @@ body {
   width: 100%; background: #2a6b3f; color: #fff; border: 0;
   padding: 10px 14px; font-size: 13px; font-weight: 700;
   letter-spacing: 1px; cursor: pointer; border-radius: 3px;
-  text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;
+  text-transform: uppercase; display: flex; justify-content: center; align-items: center; gap: 6px;
 }
 .export-btn:hover { background: #358a50; }
 .export-menu {
@@ -878,7 +878,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
       <div class="export-wrap" id="export-wrap">
         <button class="export-btn" onclick="toggleFavPanel()">★ Favorites <span>▾</span></button>
         <div class="export-menu" id="fav-panel">
-          <button onclick="pinCurrentLabel()" style="color:#2a6b3f;font-weight:800;border-bottom:2px solid #ddd">★&nbsp; Pin current label</button>
+          <button onclick="pinCurrentLabel()" style="color:#2a6b3f;font-weight:800;border-bottom:2px solid #ddd;text-align:center">★&nbsp; Favorite</button>
           <div id="fav-list"></div>
         </div>
       </div>
@@ -1923,7 +1923,7 @@ function renderFavorites(favs) {
   }
   list.innerHTML = favs.map((f, i) => `
     <div style="display:flex;align-items:center;border-bottom:1px solid #eee">
-      <button onclick="loadFavorite(${i})" style="flex:1;text-align:left;padding:10px 14px;border:0;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#222">${f.product || '(unnamed)'}</button>
+      <button onclick="loadFavorite(${i})" style="flex:1;min-width:0;text-align:left;padding:10px 14px;border:0;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.product || '(unnamed)'}</button>
       <button onclick="deleteFavorite('${f._id}')" style="flex-shrink:0;padding:8px 10px;border:0;background:none;cursor:pointer;font-size:13px;color:#bbb;border-left:1px solid #eee" title="Remove">✕</button>
     </div>`).join('');
 }
