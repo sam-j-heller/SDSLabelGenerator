@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Quick Label — Admin Console</title>
 <script type="module" src="firebase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; min-height: 100%; }
@@ -792,22 +791,6 @@ nav {
 </div><!-- #app -->
 
 <script>
-// -------------------------------------------------------
-//  EmailJS — approval notification emails
-//  Sign up free at https://emailjs.com (200 emails/month)
-//  1. Create an Email Service (Gmail / Outlook / etc.)
-//  2. Create a Template — available variables:
-//     {{to_email}}, {{to_name}}, {{product_name}},
-//     {{facility_name}}, {{facility_code}}
-//  3. Paste your IDs below and the system will auto-email
-//     workers when their submission is approved.
-// -------------------------------------------------------
-const EMAILJS_CONFIG = {
-  publicKey:  '',   // Your EmailJS Public Key
-  serviceId:  '',   // e.g. 'service_abc123'
-  templateId: '',   // e.g. 'template_abc123'
-};
-
 // -------------------------------------------------------
 //  State
 // -------------------------------------------------------
@@ -1707,8 +1690,7 @@ function renderApprovals() {
   }
   list.innerHTML = filtered.map((p, i) => {
     const realIdx  = pendingApprovals.indexOf(p);
-    const when     = p.submittedAt?.toDate ? p.submittedAt.toDate().toLocaleString() : '—';
-    const hasEmail = !!(p.supplier?.email);
+    const when = p.submittedAt?.toDate ? p.submittedAt.toDate().toLocaleString() : '—';
     return `
     <div class="appr-row" id="appr-row-${realIdx}">
       <div class="appr-info">
@@ -1717,7 +1699,6 @@ function renderApprovals() {
           <span class="appr-fac">${esc(p.facilityCode)}</span>${esc(p.facilityName)}
           · Submitted ${esc(when)}
           ${p.supplier?.preparedBy ? ' · <strong>' + esc(p.supplier.preparedBy) + '</strong>' : ''}
-          ${hasEmail ? ' · <span title="' + esc(p.supplier.email) + '" style="color:#1a3a5c">✉</span>' : ''}
         </div>
       </div>
       <div class="appr-actions">
@@ -1739,23 +1720,6 @@ async function doApprove(idx) {
     const ok = await window.FB.approveChemical(p.facilityCode, p._id);
     if (ok) {
       logActivity(`Approved "${p.product}" for ${p.facilityCode}`, 'add');
-      // Email notification
-      const email = p.supplier?.email;
-      if (email && EMAILJS_CONFIG.publicKey && EMAILJS_CONFIG.serviceId && EMAILJS_CONFIG.templateId) {
-        try {
-          emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
-          await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
-            to_email:      email,
-            to_name:       p.supplier?.preparedBy || '',
-            product_name:  p.product  || '',
-            facility_name: p.facilityName || '',
-            facility_code: p.facilityCode || '',
-          });
-          logActivity(`Notified ${email} of approval`, 'upload');
-        } catch (emailErr) {
-          console.warn('Email notification failed:', emailErr);
-        }
-      }
       pendingApprovals.splice(idx, 1);
       populateApprovalsFacilityFilter();
       renderApprovals();
