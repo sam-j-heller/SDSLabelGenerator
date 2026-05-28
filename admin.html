@@ -299,6 +299,13 @@ nav {
   cursor: pointer; text-align: center;
 }
 .fac-del-btn:hover { background: #fff0f0; border-color: #cc0000; }
+.inline-banner {
+  border-radius: 4px; padding: 8px 12px; font-size: 12px; font-weight: 600;
+  margin-top: 8px; display: none; line-height: 1.4;
+}
+.banner-success { background: #d4f0de; color: #1a5c33; border: 1px solid #a8dcbc; }
+.banner-error   { background: #fde8e8; color: #8b1a1a; border: 1px solid #f5b8b8; }
+.banner-warn    { background: #fff3cd; color: #7a5a00; border: 1px solid #ffd97d; }
 .fac-list-header {
   display: grid;
   grid-template-columns: 90px 1fr 100px 55px 75px 65px;
@@ -632,6 +639,7 @@ nav {
             <div class="dz-sub">All columns detected automatically</div>
           </div>
           <input type="file" id="file-input" accept=".csv,.txt" onchange="fileChosen(event)">
+          <div id="csv-banner" class="inline-banner"></div>
 
           <div id="col-selector">
             <div class="col-label">Chemical name column</div>
@@ -650,6 +658,7 @@ nav {
                    onkeydown="if(event.key==='Enter')manualAdd()">
             <button class="manual-add-btn" onclick="manualAdd()">+ Add</button>
           </div>
+          <div id="bl-banner" class="inline-banner"></div>
         </div>
 
         <!-- Activity Log (blacklist tab) -->
@@ -717,6 +726,7 @@ nav {
         <div class="card">
           <h2>All Facilities</h2>
           <div id="fac-count">Loading…</div>
+          <div id="fac-banner" class="inline-banner"></div>
           <div id="fac-list">
             <div class="fac-list-header">
               <span>Code</span><span>Name</span><span>Chemicals</span><span></span><span></span><span></span>
@@ -740,6 +750,7 @@ nav {
       </div>
       <button class="cc-reload" onclick="loadApprovals()">↻ Refresh</button>
     </div>
+    <div id="appr-banner" class="inline-banner" style="margin:0 0 8px"></div>
     <div id="appr-list">
       <div class="appr-empty">Open this tab to load pending approvals.</div>
     </div>
@@ -959,7 +970,7 @@ function readCSVFile(file) {
   reader.onload = ev => {
     const rows = parseCSV(ev.target.result);
     if (rows.length < 2) {
-      alert('CSV appears empty — make sure you exported correctly.');
+      showBanner('csv-banner', 'CSV appears empty — make sure you exported correctly.', 'error');
       return;
     }
     parsedHeaders = rows[0];
@@ -1113,7 +1124,7 @@ async function manualAdd() {
   const name  = input.value.trim();
   if (!name) return;
   if (blacklist.some(c => c.name.toLowerCase() === name.toLowerCase())) {
-    alert('"' + name + '" is already on the blacklist.');
+    showBanner('bl-banner', '"' + name + '" is already on the blacklist.', 'warn');
     return;
   }
   try {
@@ -1125,7 +1136,7 @@ async function manualAdd() {
     input.value = '';
     input.focus();
   } catch (e) {
-    alert('Failed to save — check console.');
+    showBanner('bl-banner', 'Failed to save — check console.', 'error');
     console.error(e);
   }
 }
@@ -1143,7 +1154,7 @@ async function deleteFromBlacklist(id) {
     renderBlacklist();
     logActivity('Removed: ' + name, 'del');
   } catch (e) {
-    alert('Failed to save — check console.');
+    showBanner('bl-banner', 'Failed to save — check console.', 'error');
     console.error(e);
   }
 }
@@ -1314,7 +1325,7 @@ async function deleteFacility(code) {
     renderFacilities();
     logActivity('Deleted facility: ' + code + ' — ' + name, 'del');
   } catch (e) {
-    alert('Failed to delete — check console.');
+    showBanner('fac-banner', 'Failed to delete — check console.', 'error');
     console.error(e);
   }
 }
@@ -1691,6 +1702,16 @@ function esc(s) {
   return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function showBanner(id, msg, type, duration) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'inline-banner banner-' + (type || 'info');
+  el.textContent = msg;
+  el.style.display = '';
+  clearTimeout(el._bt);
+  if (duration !== 0) el._bt = setTimeout(() => { el.style.display = 'none'; }, duration || 4500);
+}
+
 // -------------------------------------------------------
 //  Approvals
 // -------------------------------------------------------
@@ -1772,7 +1793,7 @@ async function doApprove(idx) {
     console.error(e);
     if (row) row.querySelectorAll('button').forEach(b => { b.disabled = false; });
     if (approveBtn) approveBtn.textContent = '✓ Approve';
-    alert('Approval failed — check console.');
+    showBanner('appr-banner', 'Approval failed — check console.', 'error');
   }
 }
 
@@ -1794,7 +1815,7 @@ async function doReject(idx) {
     console.error(e);
     if (row) row.querySelectorAll('button').forEach(b => { b.disabled = false; });
     if (rejectBtn) rejectBtn.textContent = '✕ Reject';
-    alert('Rejection failed — check console.');
+    showBanner('appr-banner', 'Rejection failed — check console.', 'error');
   }
 }
 
@@ -1909,7 +1930,7 @@ async function approveFromReview() {
     console.error(e);
     footer.forEach(b => b.disabled = false);
     if (approveBtn) approveBtn.textContent = '✓ Approve';
-    alert('Approval failed — check console.');
+    showBanner('review-banner', 'Approval failed — check console.', 'error');
   }
 }
 
@@ -1934,7 +1955,7 @@ async function rejectFromReview() {
     console.error(e);
     footer.forEach(b => b.disabled = false);
     if (rejectBtn) rejectBtn.textContent = '✕ Reject';
-    alert('Rejection failed — check console.');
+    showBanner('review-banner', 'Rejection failed — check console.', 'error');
   }
 }
 
@@ -2060,6 +2081,7 @@ function updateApprovalsBadge() {
 
     </div>
     <div class="review-footer">
+      <div id="review-banner" class="inline-banner" style="flex:1;margin:0 8px 0 0;align-self:center"></div>
       <button class="appr-reject" onclick="rejectFromReview()">✕ Reject</button>
       <button class="appr-approve" onclick="approveFromReview()">✓ Approve</button>
     </div>

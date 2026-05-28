@@ -141,6 +141,13 @@ body {
   background: #cc0000; color: #fff;
 }
 .lib-del-btn:hover { background: #aa0000; }
+.inline-banner {
+  border-radius: 3px; padding: 7px 10px; font-size: 11px; font-weight: 600;
+  margin-top: 6px; display: none; line-height: 1.4;
+}
+.banner-success { background: #1a3d24; color: #6cd98a; border: 1px solid #2d6640; }
+.banner-error   { background: #3d1a1a; color: #f08080; border: 1px solid #6d3030; }
+.banner-warn    { background: #3d3010; color: #e0c060; border: 1px solid #6d5820; }
 .lib-save-btn {
   width: 100%; margin-top: 6px; padding: 7px; font-size: 11px; font-weight: 700;
   cursor: pointer; border-radius: 3px; border: 0;
@@ -879,6 +886,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
         <button class="export-btn" onclick="toggleFavPanel()">★ Favorites <span>▾</span></button>
         <div class="export-menu" id="fav-panel">
           <button onclick="pinCurrentLabel()" style="color:#2a6b3f;font-weight:800;border-bottom:2px solid #ddd;text-align:center">★&nbsp; Favorite</button>
+          <div id="fav-banner" class="inline-banner" style="margin:4px 8px 0"></div>
           <div id="fav-list"></div>
         </div>
       </div>
@@ -905,6 +913,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
         </div>
         <button class="lib-del-btn" id="lib-del-btn" onclick="deleteFromLibrary()" style="width:100%;margin-top:4px;display:none">✕ Remove Selected</button>
         <button class="lib-save-btn" onclick="saveToLibrary()">+ Save Current to Library</button>
+        <div id="save-banner" class="inline-banner"></div>
       </div>
 
       <div class="fg">
@@ -1937,16 +1946,16 @@ function loadFavorite(idx) {
 
 async function pinCurrentLabel() {
   if (!window.FB || !window.FB.facilityCode) {
-    alert('Log in to a facility first.');
+    showBanner('fav-banner', 'Log in to a facility first.', 'warn');
     return;
   }
   const data = getCurrentFormData();
   if (!data.product.trim()) {
-    alert('Enter a Product Identifier before pinning.');
+    showBanner('fav-banner', 'Enter a Product Identifier before pinning.', 'warn');
     return;
   }
   if (favCache.some(f => (f.product || '').trim().toLowerCase() === data.product.trim().toLowerCase())) {
-    alert(`"${data.product.trim()}" is already in favorites.`);
+    showBanner('fav-banner', `"${data.product.trim()}" is already in favorites.`, 'warn');
     return;
   }
   await window.FB.addFavorite(window.FB.facilityCode, data);
@@ -2052,11 +2061,11 @@ function populateLibrarySelect() { /* no-op: combo reads live from library on op
 
 async function saveToLibrary() {
   const data = getCurrentFormData();
-  if (!data.product.trim()) { alert('Enter a Product Identifier before saving to the library.'); return; }
+  if (!data.product.trim()) { showBanner('save-banner', 'Enter a Product Identifier before saving.', 'warn'); return; }
   if (window.FB && window.FB.facilityCode) {
     const blocked = await window.FB.isBlacklisted(data.product);
     if (blocked) {
-      alert(`"${data.product}" is on the company restricted substances list and cannot be added to the library.`);
+      showBanner('save-banner', `"${data.product}" is on the restricted substances list and cannot be added.`, 'error');
       return;
     }
   }
@@ -2080,11 +2089,11 @@ async function saveToLibrary() {
       (p.product || '').trim().toLowerCase() === data.product.trim().toLowerCase()
     );
     if (alreadyPending) {
-      alert(`"${data.product}" is already waiting for approval.\nAn engineer or safety officer will review it soon.`);
+      showBanner('save-banner', `"${data.product}" is already waiting for approval — an engineer will review it soon.`, 'warn');
       return;
     }
     await window.FB.submitForApproval(window.FB.facilityCode, data);
-    alert(`"${data.product}" has been submitted for approval.\nAn engineer or safety officer will review it before it appears in the library.`);
+    showBanner('save-banner', `"${data.product}" submitted for approval. It will appear in the library once reviewed.`, 'success');
   } else {
     // New chemical without Firebase — save locally
     lib.push(data);
@@ -2124,6 +2133,17 @@ function deleteFromLibrary() {
   saveLibrary(lib);
   filterCombo();
   if (window.FB && window.FB.facilityCode) window.FB.push();
+}
+
+/* ── Inline banners ─────────────────────────────────────────── */
+function showBanner(id, msg, type, duration) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'inline-banner banner-' + (type || 'info');
+  el.textContent = msg;
+  el.style.display = '';
+  clearTimeout(el._bt);
+  if (duration !== 0) el._bt = setTimeout(() => { el.style.display = 'none'; }, duration || 4500);
 }
 
 /* ── Company Logo ───────────────────────────────────────────── */
