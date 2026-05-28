@@ -383,11 +383,13 @@ window.FB = {
   },
 
   // Approve a pending chemical: add to chemicals subcollection, update chemCount, delete from pending.
-  async approveChemical(code, pendingId) {
+  // Pass overrideData to save reviewer-edited values instead of the original submission.
+  async approveChemical(code, pendingId, overrideData = null) {
     const upper = code.trim().toUpperCase();
     const pendSnap = await getDoc(doc(db, 'facilities', upper, 'pending', pendingId));
     if (!pendSnap.exists()) return false;
-    const { status, submittedAt, ...labelData } = pendSnap.data();
+    const { status, submittedAt, ...storedData } = pendSnap.data();
+    const labelData = overrideData || storedData;
     await addDoc(collection(db, 'facilities', upper, 'chemicals'), {
       ...labelData,
       savedAt: serverTimestamp()
