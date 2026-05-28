@@ -147,7 +147,7 @@ body {
 }
 .banner-success { background: #1a3d24; color: #6cd98a; border: 1px solid #2d6640; }
 .banner-error   { background: #3d1a1a; color: #f08080; border: 1px solid #6d3030; }
-.banner-warn    { background: #3d3010; color: #e0c060; border: 1px solid #6d5820; }
+.banner-warn    { background: #3d2010; color: #e08844; border: 1px solid #6d3820; }
 .lib-save-btn {
   width: 100%; margin-top: 6px; padding: 7px; font-size: 11px; font-weight: 700;
   cursor: pointer; border-radius: 3px; border: 0;
@@ -200,7 +200,12 @@ body {
   cursor: pointer;
   color: #222;
 }
-.pic-list input { margin-right: 6px; }
+.pic-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px 4px;
+}
+.pic-list input { margin-right: 4px; }
 
 /* ============================================================
    LABEL PREVIEW (10in × 7.5in — matches print dimensions)
