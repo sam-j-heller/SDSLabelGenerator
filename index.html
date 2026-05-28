@@ -2062,20 +2062,32 @@ async function saveToLibrary() {
   const lib = getLibrary();
   const idx = lib.findIndex(c => c.product.trim().toLowerCase() === data.product.trim().toLowerCase());
   if (idx >= 0) {
+    // Existing chemical — overwrite directly, no approval needed
     if (!confirm(`"${data.product}" is already saved. Overwrite it?`)) return;
     lib[idx] = data;
+    saveLibrary(lib);
+    selectedLibIdx = idx;
+    $('lib-search').value = data.product;
+    const delBtn = $('lib-del-btn');
+    if (delBtn) delBtn.style.display = 'block';
+    filterCombo();
+    if (window.FB && window.FB.facilityCode) window.FB.push();
+  } else if (window.FB && window.FB.facilityCode) {
+    // New chemical with Firebase — route through approval queue
+    await window.FB.submitForApproval(window.FB.facilityCode, data);
+    alert(`"${data.product}" has been submitted for approval.\nAn engineer or safety officer will review it before it appears in the library.`);
   } else {
+    // New chemical without Firebase — save locally
     lib.push(data);
     lib.sort((a, b) => a.product.localeCompare(b.product));
+    saveLibrary(lib);
+    const newIdx = getLibrary().findIndex(c => c.product === data.product);
+    selectedLibIdx = newIdx >= 0 ? newIdx : null;
+    $('lib-search').value = data.product;
+    const delBtn = $('lib-del-btn');
+    if (delBtn) delBtn.style.display = selectedLibIdx !== null ? 'block' : 'none';
+    filterCombo();
   }
-  saveLibrary(lib);
-  const newIdx = getLibrary().findIndex(c => c.product === data.product);
-  selectedLibIdx = newIdx >= 0 ? newIdx : null;
-  $('lib-search').value = data.product;
-  const delBtn = $('lib-del-btn');
-  if (delBtn) delBtn.style.display = selectedLibIdx !== null ? 'block' : 'none';
-  filterCombo();
-  if (window.FB && window.FB.facilityCode) window.FB.push();
 }
 
 function loadFromLibrary() {

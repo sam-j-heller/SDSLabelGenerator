@@ -345,6 +345,54 @@ window.FB = {
     await deleteDoc(doc(db, 'facilities', upper, 'favorites', docId));
   },
 
+  // Submit a new chemical for approval. Writes to /facilities/{code}/pending/{id}.
+  async submitForApproval(code, labelData) {
+    const upper = code.trim().toUpperCase();
+    const ref = await addDoc(collection(db, 'facilities', upper, 'pending'), {
+      ...labelData,
+      submittedAt: serverTimestamp(),
+      status: 'pending'
+    });
+    return ref.id;
+  },
+
+  // Return all pending chemicals across every facility, sorted oldest-first.
+  async getAllPending() {
+    const facs = await window.FB.listFacilities();
+    const results = [];
+    await Promise.all(facs.map(async fac => {
+      try {
+        const snap = await getDocs(collection(db, 'facilities', fac.code, 'pending'));
+        snap.docs.forEach(d => {
+          results.push({ ...d.data(), _id: d.id, facilityCode: fac.code, facilityName: fac.name });
+        });
+      } catch (e) { /* facility may have no pending subcollection yet */ }
+    }));
+    return results.sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0));
+  },
+
+  // Approve a pending chemical: add to chemicals subcollection, update chemCount, delete from pending.
+  async approveChemical(code, pendingId) {
+    const upper = code.trim().toUpperCase();
+    const pendSnap = await getDoc(doc(db, 'facilities', upper, 'pending', pendingId));
+    if (!pendSnap.exists()) return false;
+    const { status, submittedAt, ...labelData } = pendSnap.data();
+    await addDoc(collection(db, 'facilities', upper, 'chemicals'), {
+      ...labelData,
+      savedAt: serverTimestamp()
+    });
+    const chemSnap = await getDocs(collection(db, 'facilities', upper, 'chemicals'));
+    await setDoc(doc(db, 'facilities', upper), { chemCount: chemSnap.docs.length }, { merge: true });
+    await deleteDoc(doc(db, 'facilities', upper, 'pending', pendingId));
+    return true;
+  },
+
+  // Reject a pending chemical: delete it from pending without adding to chemicals.
+  async rejectChemical(code, pendingId) {
+    const upper = code.trim().toUpperCase();
+    await deleteDoc(doc(db, 'facilities', upper, 'pending', pendingId));
+  },
+
   // One-time migration: moves a facility's legacy chemicals array into its
   // chemicals subcollection, then clears the array on the parent document.
   async migrateFacilityChemicals(code) {
