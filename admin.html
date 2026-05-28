@@ -193,13 +193,67 @@ nav {
 .bl-del:hover { opacity: 1; }
 #bl-empty { padding: 32px; text-align: center; font-size: 12px; color: #aaa; font-style: italic; }
 
-/* ---------- Facilities stub ---------- */
-.coming-soon {
-  border: 2px dashed #dde; border-radius: 8px; padding: 60px;
-  text-align: center; color: #aaa;
+/* ---------- Facilities ---------- */
+.fac-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
 }
-.coming-soon h3 { margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #bbb; }
-.coming-soon p { margin: 0; font-size: 13px; }
+.fac-field-label {
+  font-size: 11px; font-weight: 700; color: #555;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  margin: 12px 0 4px;
+}
+.fac-field-label:first-of-type { margin-top: 0; }
+.fac-input {
+  width: 100%; padding: 8px 10px; font-size: 13px;
+  border: 1.5px solid #bbc; border-radius: 5px; font-family: inherit;
+}
+.fac-input:focus { outline: none; border-color: #1a3a5c; }
+.fac-code-input { text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
+.fac-create-btn {
+  width: 100%; margin-top: 14px; padding: 10px;
+  background: #1a3a5c; color: #fff; border: none; border-radius: 5px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.fac-create-btn:hover { background: #0f2540; }
+.fac-create-btn:disabled { background: #aaa; cursor: default; }
+#fac-create-status { font-size: 11px; margin-top: 8px; min-height: 14px; }
+
+#fac-list { border: 1px solid #eee; border-radius: 5px; overflow: hidden; }
+.fac-item {
+  display: grid;
+  grid-template-columns: 90px 1fr 110px 80px;
+  align-items: center;
+  padding: 10px 14px; border-bottom: 1px solid #f0f0f0;
+  font-size: 12px; gap: 12px;
+}
+.fac-item:last-child { border-bottom: none; }
+.fac-item:hover { background: #fafbff; }
+.fac-code-badge {
+  font-family: monospace; font-weight: 800; font-size: 12px;
+  background: #1a3a5c; color: #fff; padding: 3px 8px;
+  border-radius: 4px; letter-spacing: 1px; text-align: center;
+}
+.fac-name-cell { color: #222; font-weight: 600; }
+.fac-count-cell { color: #777; font-size: 11px; text-align: center; }
+.fac-del-btn {
+  padding: 5px 10px; background: none; border: 1px solid #ddd;
+  border-radius: 4px; font-size: 11px; font-weight: 700; color: #cc0000;
+  cursor: pointer; text-align: center;
+}
+.fac-del-btn:hover { background: #fff0f0; border-color: #cc0000; }
+.fac-list-header {
+  display: grid;
+  grid-template-columns: 90px 1fr 110px 80px;
+  padding: 7px 14px; gap: 12px;
+  background: #f4f5f8; border-bottom: 1px solid #e0e0e8;
+  font-size: 10px; font-weight: 700; color: #888;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+#fac-count { font-size: 12px; color: #666; margin-bottom: 8px; }
+#fac-empty { padding: 32px; text-align: center; font-size: 12px; color: #aaa; font-style: italic; }
 
 /* ---------- Spinner ---------- */
 .spinner {
@@ -242,12 +296,12 @@ nav {
   </header>
 
   <nav>
-    <button class="tab-btn active" onclick="switchTab('blacklist', this)">Chemical Blacklist</button>
-    <button class="tab-btn" onclick="switchTab('facilities', this)">Facilities</button>
+    <button class="tab-btn active" onclick="switchTab('facilities', this)">Facilities</button>
+    <button class="tab-btn" onclick="switchTab('blacklist', this)">Chemical Blacklist</button>
   </nav>
 
   <!-- ===== BLACKLIST TAB ===== -->
-  <div id="tab-blacklist" class="tab-panel active">
+  <div id="tab-blacklist" class="tab-panel">
     <div class="bl-grid">
 
       <!-- LEFT COLUMN -->
@@ -285,14 +339,6 @@ nav {
           </div>
         </div>
 
-        <!-- Activity Log -->
-        <div class="card">
-          <h2>Activity Log</h2>
-          <div id="activity-log">
-            <div class="log-entry log-empty">No activity yet this session.</div>
-          </div>
-        </div>
-
       </div><!-- .bl-left -->
 
       <!-- RIGHT COLUMN -->
@@ -309,10 +355,48 @@ nav {
   </div>
 
   <!-- ===== FACILITIES TAB ===== -->
-  <div id="tab-facilities" class="tab-panel">
-    <div class="coming-soon">
-      <h3>Facility Management</h3>
-      <p>Create, view, and deactivate facility codes.<br>Coming in Block 2.</p>
+  <div id="tab-facilities" class="tab-panel active">
+    <div class="fac-grid">
+
+      <!-- LEFT: Create form + log -->
+      <div class="fac-left">
+        <div class="card">
+          <h2>Add Facility</h2>
+          <p>Facility codes are 3–8 characters, all caps. Users enter these to access their library.</p>
+          <div class="fac-field-label">Facility Code</div>
+          <input type="text" id="fac-code" class="fac-input fac-code-input"
+                 placeholder="e.g. RVO001" maxlength="10" autocomplete="off"
+                 oninput="this.value=this.value.toUpperCase()">
+          <div class="fac-field-label">Facility Name</div>
+          <input type="text" id="fac-name" class="fac-input"
+                 placeholder="e.g. Salem Manufacturing" autocomplete="off"
+                 onkeydown="if(event.key==='Enter')createFacility()">
+          <button class="fac-create-btn" onclick="createFacility()">+ Create Facility</button>
+          <div id="fac-create-status"></div>
+        </div>
+
+        <div class="card">
+          <h2>Activity Log</h2>
+          <div id="activity-log">
+            <div class="log-entry log-empty">No activity yet this session.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Facility list -->
+      <div class="fac-right">
+        <div class="card">
+          <h2>All Facilities</h2>
+          <div id="fac-count">Loading…</div>
+          <div id="fac-list">
+            <div class="fac-list-header">
+              <span>Code</span><span>Name</span><span>Chemicals</span><span></span>
+            </div>
+            <div id="fac-empty">Loading…</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -324,8 +408,9 @@ nav {
 // -------------------------------------------------------
 let parsedRows    = [];
 let parsedHeaders = [];
-let blacklist     = [];   // [ { name } ] sorted alphabetically
-let activityLog   = [];   // [ { ts, msg, type } ]
+let blacklist     = [];      // [ { name } ] sorted alphabetically
+let facilities    = [];      // [ { code, name, chemCount } ]
+let activityLog   = [];      // [ { ts, msg, type } ]
 
 // -------------------------------------------------------
 //  Gate
@@ -352,6 +437,7 @@ async function doAdminLogin() {
   if (ok) {
     document.getElementById('gate').style.display = 'none';
     document.getElementById('app').style.display  = 'flex';
+    loadFacilities();
     loadBlacklist();
   } else {
     err.textContent = 'Incorrect passphrase.';
@@ -629,6 +715,98 @@ function renderBlacklist() {
       '<button class="bl-del" data-name="' + esc(c.name) + '" title="Remove from blacklist" onclick="deleteFromBlacklist(this.dataset.name)">✕</button>' +
     '</div>'
   ).join('');
+}
+
+// -------------------------------------------------------
+//  Facilities
+// -------------------------------------------------------
+async function loadFacilities() {
+  document.getElementById('fac-count').textContent = 'Loading…';
+  facilities = await window.FB.listFacilities();
+  facilities.sort((a, b) => a.code.localeCompare(b.code));
+  renderFacilities();
+}
+
+function renderFacilities() {
+  const listEl = document.getElementById('fac-list');
+  const countEl = document.getElementById('fac-count');
+  countEl.textContent = facilities.length + ' facilit' + (facilities.length !== 1 ? 'ies' : 'y');
+
+  if (!facilities.length) {
+    listEl.innerHTML =
+      '<div class="fac-list-header"><span>Code</span><span>Name</span><span>Chemicals</span><span></span></div>' +
+      '<div id="fac-empty">No facilities yet — create one on the left.</div>';
+    return;
+  }
+  listEl.innerHTML =
+    '<div class="fac-list-header"><span>Code</span><span>Name</span><span>Chemicals</span><span></span></div>' +
+    facilities.map(f =>
+      '<div class="fac-item">' +
+        '<span class="fac-code-badge">' + esc(f.code) + '</span>' +
+        '<span class="fac-name-cell">' + esc(f.name) + '</span>' +
+        '<span class="fac-count-cell">' + f.chemCount + ' saved</span>' +
+        '<button class="fac-del-btn" data-code="' + esc(f.code) + '" onclick="deleteFacility(this.dataset.code)">Delete</button>' +
+      '</div>'
+    ).join('');
+}
+
+async function createFacility() {
+  const codeEl   = document.getElementById('fac-code');
+  const nameEl   = document.getElementById('fac-name');
+  const statusEl = document.getElementById('fac-create-status');
+  const btn      = document.querySelector('.fac-create-btn');
+
+  const code = codeEl.value.trim().toUpperCase();
+  const name = nameEl.value.trim();
+
+  if (!code) { statusEl.innerHTML = '<span class="status-err">Enter a facility code.</span>'; codeEl.focus(); return; }
+  if (!name) { statusEl.innerHTML = '<span class="status-err">Enter a facility name.</span>'; nameEl.focus(); return; }
+  if (facilities.some(f => f.code === code)) {
+    statusEl.innerHTML = '<span class="status-err">Code ' + esc(code) + ' already exists.</span>'; return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Creating…';
+  statusEl.textContent = '';
+
+  try {
+    await window.FB.createFacility(code, name);
+    facilities.push({ code, name, chemCount: 0 });
+    facilities.sort((a, b) => a.code.localeCompare(b.code));
+    renderFacilities();
+    logActivity('Created facility: ' + code + ' — ' + name, 'add');
+    statusEl.innerHTML = '<span class="status-ok">✓ ' + code + ' created.</span>';
+    codeEl.value = '';
+    nameEl.value = '';
+    codeEl.focus();
+  } catch (e) {
+    console.error(e);
+    statusEl.innerHTML = '<span class="status-err">Failed — check console.</span>';
+  }
+  btn.disabled = false;
+  btn.textContent = '+ Create Facility';
+}
+
+async function deleteFacility(code) {
+  const fac = facilities.find(f => f.code === code);
+  const name = fac ? fac.name : code;
+  const chemCount = fac ? fac.chemCount : 0;
+
+  const warning = chemCount > 0
+    ? '\n\nWARNING: This will also delete the ' + chemCount + ' chemical(s) saved in this facility\'s library.'
+    : '';
+
+  if (!confirm('Delete facility ' + code + ' (' + name + ')?' + warning + '\n\nThis cannot be undone.')) return;
+
+  try {
+    await window.FB.deleteFacility(code);
+    facilities = facilities.filter(f => f.code !== code);
+    renderFacilities();
+    logActivity('Deleted facility: ' + code + ' — ' + name, 'del');
+  } catch (e) {
+    alert('Failed to delete — check console.');
+    console.error(e);
+  }
 }
 
 // -------------------------------------------------------
