@@ -386,6 +386,11 @@ nav {
 #transfer-status { font-size: 11px; padding: 0 20px 12px; min-height: 14px; }
 #fac-count { font-size: 12px; color: #666; margin-bottom: 8px; }
 #fac-empty { padding: 32px; text-align: center; font-size: 12px; color: #aaa; font-style: italic; }
+.fac-migrate-badge {
+  display: inline-block; font-size: 9px; font-weight: 800; padding: 1px 5px;
+  border-radius: 3px; background: #fff3cd; color: #856404;
+  text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
+}
 
 /* ---------- Edit Facility modal ---------- */
 #edit-modal {
@@ -604,6 +609,14 @@ nav {
                  onkeydown="if(event.key==='Enter')createFacility()">
           <button class="fac-create-btn" onclick="createFacility()">+ Create Facility</button>
           <div id="fac-create-status"></div>
+        </div>
+
+        <!-- Facility migration notice (hidden until legacy format detected) -->
+        <div class="migrate-notice" id="fac-migrate-notice" style="display:none">
+          <h2>⚠ Migration Required</h2>
+          <p id="fac-migrate-msg">Some facilities store chemicals in the legacy format.</p>
+          <button class="migrate-btn" id="fac-migrate-btn" onclick="migrateAllFacilities()">Migrate All Facilities →</button>
+          <div id="fac-migrate-status" style="font-size:11px;margin-top:6px;min-height:14px"></div>
         </div>
 
         <div class="card">
@@ -1092,9 +1105,21 @@ async function loadFacilities() {
 }
 
 function renderFacilities() {
-  const listEl = document.getElementById('fac-list');
+  const listEl  = document.getElementById('fac-list');
   const countEl = document.getElementById('fac-count');
   countEl.textContent = facilities.length + ' facilit' + (facilities.length !== 1 ? 'ies' : 'y');
+
+  // Show/hide migration notice based on whether any facility needs it
+  const anyNeedMigration = facilities.some(f => f.needsMigration);
+  const notice = document.getElementById('fac-migrate-notice');
+  const msgEl  = document.getElementById('fac-migrate-msg');
+  if (anyNeedMigration) {
+    const n = facilities.filter(f => f.needsMigration).length;
+    msgEl.textContent = n + ' facilit' + (n !== 1 ? 'ies' : 'y') + ' still store chemicals in the legacy array format. Migrate to use subcollections.';
+    notice.style.display = 'block';
+  } else {
+    notice.style.display = 'none';
+  }
 
   const hdr = '<div class="fac-list-header"><span>Code</span><span>Name</span><span>Chemicals</span><span></span><span></span><span></span></div>';
   if (!facilities.length) {
@@ -1106,7 +1131,10 @@ function renderFacilities() {
       '<div class="fac-item">' +
         '<span class="fac-code-badge">' + esc(f.code) + '</span>' +
         '<span class="fac-name-cell">' + esc(f.name) + '</span>' +
-        '<span class="fac-count-cell">' + f.chemCount + ' saved</span>' +
+        '<span class="fac-count-cell">' +
+          f.chemCount + ' saved' +
+          (f.needsMigration ? ' <span class="fac-migrate-badge">legacy</span>' : '') +
+        '</span>' +
         '<button class="fac-edit-btn" data-code="' + esc(f.code) + '" onclick="openEdit(this.dataset.code)">Edit</button>' +
         '<button class="fac-transfer-btn" data-code="' + esc(f.code) + '" onclick="openTransfer(this.dataset.code)">Transfer</button>' +
         '<button class="fac-del-btn" data-code="' + esc(f.code) + '" onclick="deleteFacility(this.dataset.code)">Delete</button>' +
@@ -1270,6 +1298,42 @@ async function saveEdit() {
     statusEl.innerHTML = '<span class="status-err">Failed to save — check console.</span>';
     saveBtn.disabled  = false;
     saveBtn.textContent = 'Save Changes';
+  }
+}
+
+// -------------------------------------------------------
+//  Facility migration (array → subcollections)
+// -------------------------------------------------------
+async function migrateAllFacilities() {
+  const btn    = document.getElementById('fac-migrate-btn');
+  const status = document.getElementById('fac-migrate-status');
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner" style="border-color:#fff;border-top-color:transparent"></span>Migrating…';
+  status.textContent = '';
+
+  const toMigrate = facilities.filter(f => f.needsMigration);
+  let totalMoved = 0, errors = 0;
+
+  for (const fac of toMigrate) {
+    try {
+      const result = await window.FB.migrateFacilityChemicals(fac.code);
+      totalMoved += result.count || 0;
+      fac.needsMigration = false;
+      logActivity('Migrated ' + fac.code + ': ' + (result.count || 0) + ' chemicals → subcollection', 'upload');
+    } catch (e) {
+      console.error('Migration failed for ' + fac.code, e);
+      errors++;
+      logActivity('Migration failed for ' + fac.code + ': ' + e.message, 'del');
+    }
+  }
+
+  await loadFacilities();  // reload to get updated chemCounts and needsMigration flags
+
+  if (errors) {
+    status.innerHTML = '<span class="status-err">' + errors + ' failed — check console.</span>';
+  } else {
+    status.innerHTML = '<span class="status-ok">✓ ' + toMigrate.length + ' facilit' +
+      (toMigrate.length !== 1 ? 'ies' : 'y') + ' migrated (' + totalMoved + ' chemicals).</span>';
   }
 }
 

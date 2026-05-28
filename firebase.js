@@ -35,20 +35,18 @@ window.FB = {
     window.FB.facilityCode = upper;
     window.FB.facilityName = data.name || upper;
     sessionStorage.setItem('facilityCode', upper);
-    localStorage.setItem('chemLabelLibrary', JSON.stringify(data.chemicals || []));
+    // Load from subcollection (falls back to legacy array automatically)
+    const chemicals = await window.FB.getFacilityChemicals(upper);
+    localStorage.setItem('chemLabelLibrary', JSON.stringify(chemicals));
     return window.FB.facilityName;
   },
 
-  // Write the current localStorage library back to this facility's Firestore doc.
+  // Write the current localStorage library back to Firestore as subcollection docs.
   async push() {
     if (!window.FB.facilityCode) return;
     try {
       const lib = JSON.parse(localStorage.getItem('chemLabelLibrary') || '[]');
-      await setDoc(
-        doc(db, 'facilities', window.FB.facilityCode),
-        { chemicals: lib },
-        { merge: true }
-      );
+      await window.FB.setFacilityChemicals(window.FB.facilityCode, lib);
     } catch (e) {
       console.error('Firebase push error:', e);
     }
@@ -196,35 +194,51 @@ window.FB = {
     return { count: toMigrate.length };
   },
 
-  // Return array of { code, name, chemCount } for all facilities.
+  // Return array of { code, name, chemCount, needsMigration } for all facilities.
+  // chemCount uses the stored field; needsMigration is true when a legacy
+  // chemicals array still exists on the document.
   async listFacilities() {
     try {
       const snap = await getDocs(collection(db, 'facilities'));
-      return snap.docs.map(d => ({
-        code: d.id,
-        name: d.data().name || d.id,
-        chemCount: (d.data().chemicals || []).length
-      }));
+      return snap.docs.map(d => {
+        const legacyArr = d.data().chemicals;
+        return {
+          code:           d.id,
+          name:           d.data().name || d.id,
+          chemCount:      d.data().chemCount ?? (legacyArr || []).length,
+          needsMigration: Array.isArray(legacyArr) && legacyArr.length > 0
+        };
+      });
     } catch (e) {
       console.error('Firebase listFacilities error:', e);
       return [];
     }
   },
 
-  // Create or update a facility document.
+  // Create a new facility document (name only — chemicals live in subcollection).
   async createFacility(code, name) {
     const upper = code.trim().toUpperCase();
     await setDoc(
       doc(db, 'facilities', upper),
-      { name: name.trim(), chemicals: [] },
+      { name: name.trim() },
       { merge: true }
     );
     return upper;
   },
 
-  // Delete a facility document entirely.
+  // Delete a facility document. Note: subcollection docs must be deleted separately
+  // (Firestore does not cascade-delete subcollections from the client SDK).
   async deleteFacility(code) {
-    await deleteDoc(doc(db, 'facilities', code.trim().toUpperCase()));
+    const upper = code.trim().toUpperCase();
+    // Delete all subcollection docs first
+    const chemSnap = await getDocs(collection(db, 'facilities', upper, 'chemicals'));
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < chemSnap.docs.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      chemSnap.docs.slice(i, i + BATCH_SIZE).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+    await deleteDoc(doc(db, 'facilities', upper));
   },
 
   // Update only the name field of a facility (does not touch chemicals).
@@ -236,19 +250,70 @@ window.FB = {
     );
   },
 
-  // Return the chemicals array for a specific facility (admin use — no localStorage side-effects).
+  // Return the chemicals for a specific facility from its subcollection.
+  // Falls back to the legacy chemicals array on the document if the subcollection
+  // is empty (supports the migration window).
   async getFacilityChemicals(code) {
-    const snap = await getDoc(doc(db, 'facilities', code.trim().toUpperCase()));
-    if (!snap.exists()) return [];
-    return snap.data().chemicals || [];
+    const upper   = code.trim().toUpperCase();
+    const collRef = collection(db, 'facilities', upper, 'chemicals');
+    const snap    = await getDocs(collRef);
+    if (!snap.empty) {
+      return snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+    }
+    // Legacy fallback
+    const facSnap = await getDoc(doc(db, 'facilities', upper));
+    if (!facSnap.exists()) return [];
+    return facSnap.data().chemicals || [];
   },
 
-  // Overwrite the chemicals array for a specific facility.
+  // Replace the entire chemicals subcollection for a facility.
+  // Strips internal _id / savedAt fields before writing, then updates chemCount.
   async setFacilityChemicals(code, chemicals) {
-    await setDoc(
-      doc(db, 'facilities', code.trim().toUpperCase()),
-      { chemicals },
-      { merge: true }
-    );
+    const upper   = code.trim().toUpperCase();
+    const collRef = collection(db, 'facilities', upper, 'chemicals');
+    const BATCH_SIZE = 500;
+
+    // Delete all existing subcollection docs
+    const existing = await getDocs(collRef);
+    for (let i = 0; i < existing.docs.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      existing.docs.slice(i, i + BATCH_SIZE).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+
+    // Write new docs
+    for (let i = 0; i < chemicals.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      chemicals.slice(i, i + BATCH_SIZE).forEach(chem => {
+        const { _id, savedAt, ...rest } = typeof chem === 'object' ? chem : { product: chem };
+        const ref = doc(collRef);
+        batch.set(ref, { ...rest, savedAt: serverTimestamp() });
+      });
+      await batch.commit();
+    }
+
+    // Keep chemCount on the parent doc for fast list rendering
+    await setDoc(doc(db, 'facilities', upper), { chemCount: chemicals.length }, { merge: true });
+  },
+
+  // One-time migration: moves a facility's legacy chemicals array into its
+  // chemicals subcollection, then clears the array on the parent document.
+  async migrateFacilityChemicals(code) {
+    const upper   = code.trim().toUpperCase();
+    const facSnap = await getDoc(doc(db, 'facilities', upper));
+    if (!facSnap.exists()) return { count: 0, skipped: true };
+
+    const legacy = facSnap.data().chemicals;
+    if (!Array.isArray(legacy) || !legacy.length) return { count: 0 };
+
+    // Skip if subcollection already has docs (already migrated)
+    const existing = await getDocs(collection(db, 'facilities', upper, 'chemicals'));
+    if (!existing.empty) return { count: 0, alreadyDone: true };
+
+    await window.FB.setFacilityChemicals(upper, legacy);
+    // Clear the now-migrated array from the parent doc to free document space
+    await setDoc(doc(db, 'facilities', upper), { chemicals: [] }, { merge: true });
+
+    return { count: legacy.length };
   }
 };
