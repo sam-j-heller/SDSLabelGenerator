@@ -314,7 +314,7 @@ window.FB = {
       });
     }));
     return Array.from(nameMap.values())
-      .sort((a, b) => b.facilities.length - a.facilities.length || a.product.localeCompare(b.product));
+      .sort((a, b) => a.product.localeCompare(b.product));
   },
 
   // Return array of { _id, product, pinnedAt, ...labelData } for a facility's favorites.
