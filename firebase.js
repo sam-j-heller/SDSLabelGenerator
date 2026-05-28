@@ -135,6 +135,15 @@ window.FB = {
     await deleteDoc(doc(db, 'facilities', code.trim().toUpperCase()));
   },
 
+  // Update only the name field of a facility (does not touch chemicals).
+  async updateFacilityName(code, name) {
+    await setDoc(
+      doc(db, 'facilities', code.trim().toUpperCase()),
+      { name: name.trim() },
+      { merge: true }
+    );
+  },
+
   // Return the chemicals array for a specific facility (admin use — no localStorage side-effects).
   async getFacilityChemicals(code) {
     const snap = await getDoc(doc(db, 'facilities', code.trim().toUpperCase()));
