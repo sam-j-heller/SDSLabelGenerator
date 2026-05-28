@@ -87,23 +87,25 @@ nav {
   display: grid;
   grid-template-columns: 360px 1fr;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 .bl-left {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 160px);
+  height: 100%;
 }
 .bl-log-card {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 160px;
+  overflow: hidden;
 }
 .bl-log-card #bl-log {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  max-height: none;
 }
 
 /* ---------- Cards ---------- */
