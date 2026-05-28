@@ -1709,8 +1709,6 @@ function setMode(mode) {
   const subSheet  = $('sub-sheet');
   if (subSingle) subSingle.classList.toggle('active', mode === 'sticker');
   if (subSheet)  subSheet.classList.toggle('active',  mode === 'sheet');
-  const exportWrap = $('export-wrap');
-  if (exportWrap) exportWrap.style.display = (mode === 'sticker' || mode === 'sheet') ? 'none' : '';
   // Inject per-mode @page rule so print dialog uses the right paper size
   let ps = document.getElementById('dynamic-print-style');
   if (!ps) {
