@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quick Label — Admin Console</title>
+<script type="module" src="firebase.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; min-height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  background: #eef0f4;
+  color: #222;
+}
+
+/* ---------- Gate ---------- */
+#gate {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 100%);
+}
+.gate-card {
+  background: #fff; border-radius: 10px; padding: 44px 48px;
+  width: 380px; box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.gate-brand { font-size: 11px; font-weight: 700; color: #888; letter-spacing: 2px; text-transform: uppercase; }
+.gate-title { font-size: 24px; font-weight: 900; color: #b40000; letter-spacing: -0.5px; margin-bottom: 4px; }
+.gate-label { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 12px; }
+.gate-input {
+  width: 100%; padding: 11px 12px; font-size: 14px;
+  border: 1.5px solid #ccc; border-radius: 5px; font-family: inherit;
+  margin-top: 2px;
+}
+.gate-input:focus { outline: none; border-color: #1a3a5c; }
+#gate-error { font-size: 12px; color: #cc0000; min-height: 16px; }
+.gate-btn {
+  width: 100%; padding: 12px; background: #1a3a5c; color: #fff;
+  border: none; border-radius: 5px; font-size: 14px; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.5px; margin-top: 6px;
+}
+.gate-btn:hover { background: #0f2540; }
+.gate-btn:disabled { background: #aaa; cursor: default; }
+
+/* ---------- App shell ---------- */
+#app { display: none; min-height: 100vh; }
+
+header {
+  background: linear-gradient(90deg, #0a1628 0%, #1a3a5c 100%);
+  padding: 16px 32px; display: flex; align-items: center; gap: 20px;
+}
+.hdr-brand { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.5); letter-spacing: 2px; text-transform: uppercase; }
+.hdr-title { font-size: 18px; font-weight: 900; color: #fff; }
+.hdr-sep { flex: 1; }
+.hdr-out {
+  background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+  padding: 6px 14px; border-radius: 4px; font-size: 11px; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.5px;
+}
+.hdr-out:hover { background: rgba(255,255,255,0.22); }
+
+/* ---------- Tabs ---------- */
+nav {
+  background: #fff; border-bottom: 2px solid #ddd;
+  padding: 0 32px; display: flex; gap: 0;
+}
+.tab-btn {
+  background: none; border: none; border-bottom: 3px solid transparent;
+  padding: 14px 20px; font-size: 13px; font-weight: 700; color: #666;
+  cursor: pointer; letter-spacing: 0.3px; margin-bottom: -2px;
+  transition: color 0.15s;
+}
+.tab-btn.active { color: #1a3a5c; border-bottom-color: #1a3a5c; }
+.tab-btn:hover:not(.active) { color: #333; }
+
+/* ---------- Content ---------- */
+.tab-panel { display: none; padding: 28px 32px; max-width: 960px; }
+.tab-panel.active { display: block; }
+
+.card {
+  background: #fff; border: 1px solid #dde; border-radius: 8px;
+  padding: 24px; margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.card h2 {
+  margin: 0 0 4px 0; font-size: 14px; font-weight: 800;
+  color: #1a3a5c; text-transform: uppercase; letter-spacing: 1px;
+}
+.card p { margin: 0 0 16px 0; font-size: 12px; color: #666; }
+
+/* ---------- CSV Upload ---------- */
+#drop-zone {
+  border: 2px dashed #aab; border-radius: 6px; padding: 32px;
+  text-align: center; cursor: pointer; background: #f8f9fc;
+  transition: border-color 0.15s, background 0.15s;
+}
+#drop-zone.drag-over { border-color: #1a3a5c; background: #eef3ff; }
+#drop-zone .dz-icon { font-size: 32px; margin-bottom: 8px; }
+#drop-zone .dz-label { font-size: 13px; font-weight: 600; color: #444; }
+#drop-zone .dz-sub { font-size: 11px; color: #888; margin-top: 4px; }
+#file-input { display: none; }
+
+/* ---------- Column Selector ---------- */
+#col-selector { display: none; margin-top: 16px; }
+.col-label { font-size: 12px; font-weight: 700; color: #333; margin-bottom: 6px; }
+.col-select {
+  padding: 8px 10px; font-size: 13px; border: 1.5px solid #bbc;
+  border-radius: 5px; font-family: inherit; background: #fff; cursor: pointer;
+}
+.col-select:focus { outline: none; border-color: #1a3a5c; }
+#col-preview { margin-top: 12px; }
+.preview-tag {
+  display: inline-block; background: #eef3ff; border: 1px solid #c0cff0;
+  border-radius: 3px; padding: 2px 8px; font-size: 11px; color: #1a3a5c;
+  margin: 2px;
+}
+.preview-count { font-size: 12px; color: #555; margin: 8px 0 4px; }
+#upload-bl-btn {
+  display: none; margin-top: 14px; padding: 10px 24px;
+  background: #1a3a5c; color: #fff; border: none; border-radius: 5px;
+  font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
+}
+#upload-bl-btn:hover { background: #0f2540; }
+#upload-bl-btn:disabled { background: #aaa; cursor: default; }
+#upload-status { font-size: 12px; margin-top: 8px; min-height: 16px; }
+.status-ok  { color: #2a7a3f; font-weight: 700; }
+.status-err { color: #cc0000; font-weight: 700; }
+
+/* ---------- Manual Add ---------- */
+.manual-row { display: flex; gap: 8px; margin-top: 0; }
+.manual-input {
+  flex: 1; padding: 8px 10px; font-size: 13px;
+  border: 1.5px solid #bbc; border-radius: 5px; font-family: inherit;
+}
+.manual-input:focus { outline: none; border-color: #1a3a5c; }
+.manual-add-btn {
+  padding: 8px 18px; background: #2a6b3f; color: #fff; border: none;
+  border-radius: 5px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.manual-add-btn:hover { background: #1f5230; }
+
+/* ---------- Current Blacklist ---------- */
+#bl-count { font-size: 12px; color: #666; margin-bottom: 10px; }
+#bl-list { max-height: 340px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; }
+.bl-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; border-bottom: 1px solid #f0f0f0; font-size: 12px;
+}
+.bl-item:last-child { border-bottom: none; }
+.bl-item:hover { background: #fafbff; }
+.bl-name { color: #222; }
+.bl-del {
+  background: none; border: none; color: #cc0000; cursor: pointer;
+  font-size: 14px; font-weight: 900; padding: 0 4px; line-height: 1;
+  opacity: 0.6;
+}
+.bl-del:hover { opacity: 1; }
+#bl-empty { padding: 24px; text-align: center; font-size: 12px; color: #aaa; font-style: italic; }
+
+/* ---------- Facilities (Block 2 stub) ---------- */
+.coming-soon {
+  border: 2px dashed #dde; border-radius: 8px; padding: 48px;
+  text-align: center; color: #aaa;
+}
+.coming-soon h3 { margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #bbb; }
+.coming-soon p { margin: 0; font-size: 13px; }
+
+/* ---------- Spinner ---------- */
+.spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid #fff; border-top-color: transparent;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  vertical-align: middle; margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ===== GATE ===== -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-brand">Quick Label</div>
+    <div class="gate-title">Admin Console</div>
+    <div class="gate-label">Admin Passphrase</div>
+    <input type="password" id="gate-input" class="gate-input" placeholder="Enter passphrase"
+           autocomplete="off" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    <div id="gate-error"></div>
+    <button id="gate-btn" class="gate-btn" onclick="doAdminLogin()">Sign In →</button>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app">
+
+  <header>
+    <div>
+      <div class="hdr-brand">Quick Label</div>
+      <div class="hdr-title">Admin Console</div>
+    </div>
+    <div class="hdr-sep"></div>
+    <button class="hdr-out" onclick="signOut()">Sign Out</button>
+  </header>
+
+  <nav>
+    <button class="tab-btn active" onclick="switchTab('blacklist', this)">Chemical Blacklist</button>
+    <button class="tab-btn" onclick="switchTab('facilities', this)">Facilities</button>
+  </nav>
+
+  <!-- ===== BLACKLIST TAB ===== -->
+  <div id="tab-blacklist" class="tab-panel active">
+
+    <!-- CSV Upload card -->
+    <div class="card">
+      <h2>Upload Blacklist from CSV</h2>
+      <p>Export your Excel file as CSV (File → Save As → CSV UTF-8), then drop it here or click to browse.</p>
+
+      <div id="drop-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">
+        <div class="dz-icon">📄</div>
+        <div class="dz-label">Drop CSV file here or click to browse</div>
+        <div class="dz-sub">Accepts .csv — all columns will be detected automatically</div>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.txt" onchange="fileChosen(event)">
+
+      <!-- Column selector — shown after file loads -->
+      <div id="col-selector">
+        <div class="col-label">Which column contains the chemical name?</div>
+        <select id="col-pick" class="col-select" onchange="updatePreview()">
+        </select>
+        <div id="col-preview"></div>
+        <button id="upload-bl-btn" onclick="uploadBlacklist()">Upload to Firestore</button>
+        <div id="upload-status"></div>
+      </div>
+    </div>
+
+    <!-- Manual add card -->
+    <div class="card">
+      <h2>Add Chemical Manually</h2>
+      <div class="manual-row">
+        <input type="text" id="manual-chem" class="manual-input" placeholder="Chemical name"
+               onkeydown="if(event.key==='Enter')manualAdd()">
+        <button class="manual-add-btn" onclick="manualAdd()">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Current list card -->
+    <div class="card">
+      <h2>Current Blacklist</h2>
+      <div id="bl-count">Loading…</div>
+      <div id="bl-list"><div id="bl-empty">Loading blacklist…</div></div>
+    </div>
+
+  </div>
+
+  <!-- ===== FACILITIES TAB ===== -->
+  <div id="tab-facilities" class="tab-panel">
+    <div class="coming-soon">
+      <h3>Facility Management</h3>
+      <p>Create, view, and deactivate facility codes.<br>Coming in Block 2.</p>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<script>
+// -------------------------------------------------------
+//  State
+// -------------------------------------------------------
+let parsedRows    = [];   // all rows from uploaded CSV
+let parsedHeaders = [];   // header row values
+let blacklist     = [];   // current blacklist from Firestore [ { name } ]
+
+// -------------------------------------------------------
+//  Gate
+// -------------------------------------------------------
+async function doAdminLogin() {
+  const btn   = document.getElementById('gate-btn');
+  const input = document.getElementById('gate-input');
+  const err   = document.getElementById('gate-error');
+  const pass  = input.value;
+  if (!pass.trim()) { err.textContent = 'Enter the passphrase.'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Checking…';
+  err.textContent = '';
+
+  if (!window.FB) {
+    // Firebase module not loaded yet — retry once
+    await new Promise(r => setTimeout(r, 800));
+  }
+
+  const ok = await window.FB.adminLogin(pass);
+  if (ok) {
+    document.getElementById('gate').style.display   = 'none';
+    document.getElementById('app').style.display    = 'block';
+    loadBlacklist();
+  } else {
+    err.textContent = 'Incorrect passphrase.';
+    btn.disabled    = false;
+    btn.textContent = 'Sign In →';
+    input.value     = '';
+    input.focus();
+  }
+}
+
+function signOut() {
+  document.getElementById('gate').style.display   = 'flex';
+  document.getElementById('app').style.display    = 'none';
+  document.getElementById('gate-input').value     = '';
+  document.getElementById('gate-error').textContent = '';
+}
+
+// -------------------------------------------------------
+//  Tab switching
+// -------------------------------------------------------
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// -------------------------------------------------------
+//  Drag-and-drop zone
+// -------------------------------------------------------
+function dzOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function dzLeave(e) {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function dzDrop(e) {
+  e.preventDefault();
+  dzLeave();
+  const file = e.dataTransfer.files[0];
+  if (file) readCSVFile(file);
+}
+function fileChosen(e) {
+  const file = e.target.files[0];
+  if (file) readCSVFile(file);
+  e.target.value = '';
+}
+
+// -------------------------------------------------------
+//  CSV parsing
+// -------------------------------------------------------
+function readCSVFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const text = ev.target.result;
+    const rows = parseCSV(text);
+    if (rows.length < 2) {
+      alert('CSV appears empty or has only one row — make sure you exported correctly.');
+      return;
+    }
+    parsedHeaders = rows[0];
+    parsedRows    = rows.slice(1);
+
+    // Populate column picker, defaulting to "Substance" if present
+    const pick = document.getElementById('col-pick');
+    pick.innerHTML = '';
+    parsedHeaders.forEach((h, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = h || '(column ' + (i + 1) + ')';
+      if ((h || '').trim().toLowerCase() === 'substance') opt.selected = true;
+      pick.appendChild(opt);
+    });
+
+    document.getElementById('drop-zone').querySelector('.dz-label').textContent =
+      '✓ ' + file.name + ' loaded (' + parsedRows.length + ' data rows)';
+
+    document.getElementById('col-selector').style.display = 'block';
+    updatePreview();
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// Robust CSV parser: handles quoted fields and embedded newlines
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], n = text[i + 1];
+    if (inQ) {
+      if (c === '"' && n === '"') { field += '"'; i++; }
+      else if (c === '"')         { inQ = false; }
+      else                        { field += c; }
+    } else {
+      if      (c === '"')  { inQ = true; }
+      else if (c === ',')  { row.push(field.trim()); field = ''; }
+      else if (c === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else                 { field += c; }
+    }
+  }
+  if (field || row.length) { row.push(field.trim()); rows.push(row); }
+  // Remove trailing empty row
+  if (rows.length && rows[rows.length - 1].every(c => !c)) rows.pop();
+  return rows;
+}
+
+// -------------------------------------------------------
+//  Column preview
+// -------------------------------------------------------
+function updatePreview() {
+  const colIdx = parseInt(document.getElementById('col-pick').value);
+  const names  = parsedRows
+    .map(r => (r[colIdx] || '').trim())
+    .filter(n => n);
+
+  const preview = document.getElementById('col-preview');
+  const sample  = names.slice(0, 8);
+  const more    = names.length - sample.length;
+
+  preview.innerHTML =
+    '<div class="preview-count">' + names.length + ' chemicals found</div>' +
+    sample.map(n => '<span class="preview-tag">' + esc(n) + '</span>').join('') +
+    (more > 0 ? '<span class="preview-tag">+ ' + more + ' more…</span>' : '');
+
+  const btn = document.getElementById('upload-bl-btn');
+  btn.style.display = names.length ? 'inline-block' : 'none';
+  btn.textContent   = 'Upload ' + names.length + ' chemicals to Firestore';
+  document.getElementById('upload-status').textContent = '';
+}
+
+// -------------------------------------------------------
+//  Upload to Firestore (REPLACE full blacklist)
+// -------------------------------------------------------
+async function uploadBlacklist() {
+  const colIdx = parseInt(document.getElementById('col-pick').value);
+  const names  = parsedRows
+    .map(r => (r[colIdx] || '').trim())
+    .filter(n => n);
+
+  if (!names.length) return;
+
+  const btn    = document.getElementById('upload-bl-btn');
+  const status = document.getElementById('upload-status');
+
+  const confirmed = confirm(
+    'This will REPLACE the entire Firestore blacklist with ' + names.length +
+    ' chemicals from the CSV.\n\nAny manually added chemicals not in the CSV will be removed.\n\nProceed?'
+  );
+  if (!confirmed) return;
+
+  btn.disabled    = true;
+  btn.innerHTML   = '<span class="spinner"></span>Uploading…';
+  status.textContent = '';
+
+  try {
+    await window.FB.setBlacklist(names);
+    blacklist = names.map(n => ({ name: n }));
+    renderBlacklist();
+    status.innerHTML = '<span class="status-ok">✓ ' + names.length + ' chemicals uploaded successfully.</span>';
+  } catch (e) {
+    console.error(e);
+    status.innerHTML = '<span class="status-err">Upload failed — check console for details.</span>';
+  }
+  btn.disabled  = false;
+  btn.textContent = 'Upload ' + names.length + ' chemicals to Firestore';
+}
+
+// -------------------------------------------------------
+//  Manual add
+// -------------------------------------------------------
+async function manualAdd() {
+  const input = document.getElementById('manual-chem');
+  const name  = input.value.trim();
+  if (!name) return;
+
+  const already = blacklist.some(c => c.name.toLowerCase() === name.toLowerCase());
+  if (already) { alert('"' + name + '" is already on the blacklist.'); return; }
+
+  blacklist = [...blacklist, { name }].sort((a, b) => a.name.localeCompare(b.name));
+  try {
+    await window.FB.setBlacklist(blacklist);
+    renderBlacklist();
+    input.value = '';
+    input.focus();
+  } catch (e) {
+    alert('Failed to save — check console.');
+    console.error(e);
+  }
+}
+
+// -------------------------------------------------------
+//  Delete from blacklist
+// -------------------------------------------------------
+async function deleteFromBlacklist(name) {
+  if (!confirm('Remove "' + name + '" from the blacklist?')) return;
+  blacklist = blacklist.filter(c => c.name.toLowerCase() !== name.toLowerCase());
+  try {
+    await window.FB.setBlacklist(blacklist);
+    renderBlacklist();
+  } catch (e) {
+    alert('Failed to save — check console.');
+    console.error(e);
+  }
+}
+
+// -------------------------------------------------------
+//  Load & render blacklist
+// -------------------------------------------------------
+async function loadBlacklist() {
+  document.getElementById('bl-count').textContent = 'Loading…';
+  blacklist = await window.FB.getBlacklist();
+  blacklist.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  renderBlacklist();
+}
+
+function renderBlacklist() {
+  const list  = document.getElementById('bl-list');
+  const count = document.getElementById('bl-count');
+  count.textContent = blacklist.length + ' chemical' + (blacklist.length !== 1 ? 's' : '') + ' on the blacklist';
+
+  if (!blacklist.length) {
+    list.innerHTML = '<div id="bl-empty">No chemicals on the blacklist yet.</div>';
+    return;
+  }
+  list.innerHTML = blacklist.map(c =>
+    '<div class="bl-item">' +
+      '<span class="bl-name">' + esc(c.name) + '</span>' +
+      '<button class="bl-del" title="Remove" onclick="deleteFromBlacklist(' + JSON.stringify(c.name) + ')">✕</button>' +
+    '</div>'
+  ).join('');
+}
+
+// -------------------------------------------------------
+//  Util
+// -------------------------------------------------------
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

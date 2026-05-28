@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCpV2BBY1t2UnZjYaZ7RATHvwxtGWSwxoU",
@@ -67,5 +67,71 @@ window.FB = {
       console.error('Firebase blacklist error:', e);
       return false;
     }
+  },
+
+  // --- Admin functions ---
+
+  // Verify admin passphrase stored in Firestore at /admin/config { passphrase: "..." }.
+  // Returns true on match.
+  async adminLogin(passphrase) {
+    try {
+      const snap = await getDoc(doc(db, 'admin', 'config'));
+      if (!snap.exists()) return false;
+      return (snap.data().passphrase || '') === passphrase.trim();
+    } catch (e) {
+      console.error('Firebase adminLogin error:', e);
+      return false;
+    }
+  },
+
+  // Return the full blacklist array of { name } objects.
+  async getBlacklist() {
+    try {
+      const snap = await getDoc(doc(db, 'blacklist', 'prohibited'));
+      if (!snap.exists()) return [];
+      return snap.data().chemicals || [];
+    } catch (e) {
+      console.error('Firebase getBlacklist error:', e);
+      return [];
+    }
+  },
+
+  // Overwrite the entire blacklist with an array of name strings or { name } objects.
+  async setBlacklist(chemicals) {
+    const normalized = chemicals.map(c =>
+      typeof c === 'string' ? { name: c.trim() } : { name: (c.name || '').trim() }
+    ).filter(c => c.name);
+    await setDoc(doc(db, 'blacklist', 'prohibited'), { chemicals: normalized });
+  },
+
+  // Return array of { code, name, chemCount } for all facilities.
+  async listFacilities() {
+    try {
+      const snap = await getDocs(collection(db, 'facilities'));
+      return snap.docs.map(d => ({
+        code: d.id,
+        name: d.data().name || d.id,
+        chemCount: (d.data().chemicals || []).length
+      }));
+    } catch (e) {
+      console.error('Firebase listFacilities error:', e);
+      return [];
+    }
+  },
+
+  // Create or update a facility document.
+  async createFacility(code, name) {
+    const upper = code.trim().toUpperCase();
+    await setDoc(
+      doc(db, 'facilities', upper),
+      { name: name.trim(), chemicals: [] },
+      { merge: true }
+    );
+    return upper;
+  },
+
+  // Delete a facility document entirely.
+  async deleteFacility(code) {
+    await deleteDoc(doc(db, 'facilities', code.trim().toUpperCase()));
   }
 };
