@@ -89,6 +89,22 @@ nav {
   gap: 20px;
   align-items: start;
 }
+.bl-left {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 160px);
+}
+.bl-log-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 160px;
+}
+.bl-log-card #bl-log {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
 
 /* ---------- Cards ---------- */
 .card {
@@ -154,7 +170,7 @@ nav {
 .manual-add-btn:hover { background: #1f5230; }
 
 /* ---------- Activity Log ---------- */
-#activity-log {
+#fac-log, #bl-log {
   background: #0d1b2e; border-radius: 5px;
   padding: 10px 12px; max-height: 180px; overflow-y: auto;
   font-family: "Consolas", "Courier New", monospace; font-size: 11px;
@@ -224,10 +240,10 @@ nav {
 #fac-list { border: 1px solid #eee; border-radius: 5px; overflow: hidden; }
 .fac-item {
   display: grid;
-  grid-template-columns: 90px 1fr 110px 80px;
+  grid-template-columns: 90px 1fr 110px 80px 80px;
   align-items: center;
   padding: 10px 14px; border-bottom: 1px solid #f0f0f0;
-  font-size: 12px; gap: 12px;
+  font-size: 12px; gap: 10px;
 }
 .fac-item:last-child { border-bottom: none; }
 .fac-item:hover { background: #fafbff; }
@@ -238,20 +254,103 @@ nav {
 }
 .fac-name-cell { color: #222; font-weight: 600; }
 .fac-count-cell { color: #777; font-size: 11px; text-align: center; }
+.fac-transfer-btn {
+  padding: 5px 8px; background: none; border: 1px solid #bcd;
+  border-radius: 4px; font-size: 11px; font-weight: 700; color: #1a3a5c;
+  cursor: pointer; text-align: center;
+}
+.fac-transfer-btn:hover { background: #eef3ff; border-color: #1a3a5c; }
 .fac-del-btn {
-  padding: 5px 10px; background: none; border: 1px solid #ddd;
+  padding: 5px 8px; background: none; border: 1px solid #ddd;
   border-radius: 4px; font-size: 11px; font-weight: 700; color: #cc0000;
   cursor: pointer; text-align: center;
 }
 .fac-del-btn:hover { background: #fff0f0; border-color: #cc0000; }
 .fac-list-header {
   display: grid;
-  grid-template-columns: 90px 1fr 110px 80px;
-  padding: 7px 14px; gap: 12px;
+  grid-template-columns: 90px 1fr 110px 80px 80px;
+  padding: 7px 14px; gap: 10px;
   background: #f4f5f8; border-bottom: 1px solid #e0e0e8;
   font-size: 10px; font-weight: 700; color: #888;
   text-transform: uppercase; letter-spacing: 0.8px;
 }
+
+/* ---------- Transfer modal ---------- */
+#transfer-modal {
+  display: none; position: fixed; inset: 0; z-index: 8000;
+  align-items: center; justify-content: center;
+  background: rgba(10,22,40,0.7); backdrop-filter: blur(3px);
+}
+#transfer-modal.open { display: flex; }
+.transfer-card {
+  background: #fff; border-radius: 10px; width: 520px; max-height: 80vh;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.transfer-header {
+  background: #1a3a5c; color: #fff; padding: 16px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.transfer-header h3 { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; }
+.transfer-close {
+  background: none; border: none; color: #fff; font-size: 20px;
+  cursor: pointer; line-height: 1; padding: 0 4px; opacity: 0.7;
+}
+.transfer-close:hover { opacity: 1; }
+.transfer-body { padding: 20px; overflow-y: auto; flex: 1; }
+.transfer-row { display: flex; gap: 10px; margin-bottom: 14px; }
+.transfer-row > div { flex: 1; }
+.transfer-sel-label {
+  font-size: 11px; font-weight: 700; color: #555;
+  text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 4px;
+}
+.transfer-select {
+  width: 100%; padding: 8px 10px; font-size: 12px;
+  border: 1.5px solid #bbc; border-radius: 5px; font-family: inherit;
+}
+.transfer-select:focus { outline: none; border-color: #1a3a5c; }
+#transfer-load-btn {
+  width: 100%; padding: 8px; background: #f0f2f6; border: 1px solid #ccd;
+  border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer;
+  color: #1a3a5c; margin-bottom: 14px;
+}
+#transfer-load-btn:hover { background: #e4e8f4; }
+#transfer-load-btn:disabled { color: #aaa; cursor: default; }
+.transfer-select-all {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  background: #f8f9fc; border-radius: 5px; margin-bottom: 6px;
+  font-size: 12px; font-weight: 700; color: #333; cursor: pointer;
+  border: 1px solid #e4e8f4;
+}
+#transfer-chem-list {
+  max-height: 220px; overflow-y: auto;
+  border: 1px solid #eee; border-radius: 5px;
+}
+.transfer-chem-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-bottom: 1px solid #f4f4f4;
+  font-size: 12px; cursor: pointer;
+}
+.transfer-chem-item:last-child { border-bottom: none; }
+.transfer-chem-item:hover { background: #fafbff; }
+.transfer-chem-item input[type=checkbox] { margin: 0; cursor: pointer; }
+.transfer-footer {
+  padding: 14px 20px; border-top: 1px solid #eee;
+  display: flex; gap: 10px; flex-shrink: 0; background: #fafbfc;
+}
+.transfer-move-btn {
+  flex: 1; padding: 10px; background: #1a3a5c; color: #fff;
+  border: none; border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.transfer-move-btn:hover { background: #0f2540; }
+.transfer-copy-btn {
+  flex: 1; padding: 10px; background: #2a6b3f; color: #fff;
+  border: none; border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.transfer-copy-btn:hover { background: #1f5230; }
+.transfer-move-btn:disabled, .transfer-copy-btn:disabled { background: #aaa; cursor: default; }
+#transfer-status { font-size: 11px; padding: 0 20px 12px; min-height: 14px; }
 #fac-count { font-size: 12px; color: #666; margin-bottom: 8px; }
 #fac-empty { padding: 32px; text-align: center; font-size: 12px; color: #aaa; font-style: italic; }
 
@@ -339,6 +438,14 @@ nav {
           </div>
         </div>
 
+        <!-- Activity Log (blacklist tab) -->
+        <div class="card bl-log-card">
+          <h2>Activity Log</h2>
+          <div id="bl-log">
+            <div class="log-entry log-empty">No activity yet this session.</div>
+          </div>
+        </div>
+
       </div><!-- .bl-left -->
 
       <!-- RIGHT COLUMN -->
@@ -377,7 +484,7 @@ nav {
 
         <div class="card">
           <h2>Activity Log</h2>
-          <div id="activity-log">
+          <div id="fac-log">
             <div class="log-entry log-empty">No activity yet this session.</div>
           </div>
         </div>
@@ -399,6 +506,45 @@ nav {
 
     </div>
   </div>
+
+<!-- ===== TRANSFER MODAL ===== -->
+<div id="transfer-modal" onclick="if(event.target===this)closeTransfer()">
+  <div class="transfer-card">
+    <div class="transfer-header">
+      <h3>Transfer Chemicals Between Facilities</h3>
+      <button class="transfer-close" onclick="closeTransfer()">✕</button>
+    </div>
+    <div class="transfer-body">
+      <div class="transfer-row">
+        <div>
+          <div class="transfer-sel-label">From Facility</div>
+          <select id="transfer-from" class="transfer-select" onchange="resetTransferList()"></select>
+        </div>
+        <div>
+          <div class="transfer-sel-label">To Facility</div>
+          <select id="transfer-to" class="transfer-select" onchange="resetTransferList()"></select>
+        </div>
+      </div>
+      <button id="transfer-load-btn" onclick="loadTransferChemicals()">Load Chemicals from Source →</button>
+      <div id="transfer-chem-wrap" style="display:none">
+        <label class="transfer-select-all">
+          <input type="checkbox" id="transfer-select-all" onchange="toggleSelectAll(this.checked)">
+          Select all (<span id="transfer-total-count">0</span> chemicals)
+        </label>
+        <div id="transfer-chem-list"></div>
+      </div>
+    </div>
+    <div id="transfer-status"></div>
+    <div class="transfer-footer">
+      <button class="transfer-move-btn" id="transfer-move-btn" onclick="doTransfer(true)" disabled>
+        Move Selected (remove from source)
+      </button>
+      <button class="transfer-copy-btn" id="transfer-copy-btn" onclick="doTransfer(false)" disabled>
+        Copy Selected (keep in source)
+      </button>
+    </div>
+  </div>
+</div>
 
 </div><!-- #app -->
 
@@ -477,17 +623,18 @@ function logActivity(msg, type) {
 }
 
 function renderLog() {
-  const el = document.getElementById('activity-log');
-  if (!activityLog.length) {
-    el.innerHTML = '<div class="log-entry log-empty">No activity yet this session.</div>';
-    return;
-  }
-  el.innerHTML = activityLog.map(e =>
-    '<div class="log-entry">' +
-      '<span class="log-time">' + esc(e.ts) + '</span>' +
-      '<span class="log-' + e.type + '">' + esc(e.msg) + '</span>' +
-    '</div>'
-  ).join('');
+  const html = activityLog.length
+    ? activityLog.map(e =>
+        '<div class="log-entry">' +
+          '<span class="log-time">' + esc(e.ts) + '</span>' +
+          '<span class="log-' + e.type + '">' + esc(e.msg) + '</span>' +
+        '</div>'
+      ).join('')
+    : '<div class="log-entry log-empty">No activity yet this session.</div>';
+  ['fac-log', 'bl-log'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
 }
 
 // -------------------------------------------------------
@@ -734,17 +881,18 @@ function renderFacilities() {
 
   if (!facilities.length) {
     listEl.innerHTML =
-      '<div class="fac-list-header"><span>Code</span><span>Name</span><span>Chemicals</span><span></span></div>' +
+      '<div class="fac-list-header"><span>Code</span><span>Name</span><span>Chemicals</span><span></span><span></span></div>' +
       '<div id="fac-empty">No facilities yet — create one on the left.</div>';
     return;
   }
   listEl.innerHTML =
-    '<div class="fac-list-header"><span>Code</span><span>Name</span><span>Chemicals</span><span></span></div>' +
+    '<div class="fac-list-header"><span>Code</span><span>Name</span><span>Chemicals</span><span></span><span></span></div>' +
     facilities.map(f =>
       '<div class="fac-item">' +
         '<span class="fac-code-badge">' + esc(f.code) + '</span>' +
         '<span class="fac-name-cell">' + esc(f.name) + '</span>' +
         '<span class="fac-count-cell">' + f.chemCount + ' saved</span>' +
+        '<button class="fac-transfer-btn" data-code="' + esc(f.code) + '" onclick="openTransfer(this.dataset.code)">Transfer</button>' +
         '<button class="fac-del-btn" data-code="' + esc(f.code) + '" onclick="deleteFacility(this.dataset.code)">Delete</button>' +
       '</div>'
     ).join('');
@@ -806,6 +954,159 @@ async function deleteFacility(code) {
   } catch (e) {
     alert('Failed to delete — check console.');
     console.error(e);
+  }
+}
+
+// -------------------------------------------------------
+//  Transfer modal
+// -------------------------------------------------------
+let transferSourceChemicals = [];  // chemicals loaded from source facility
+
+function openTransfer(preselectedCode) {
+  const fromSel = document.getElementById('transfer-from');
+  const toSel   = document.getElementById('transfer-to');
+
+  // Populate both dropdowns with all facilities
+  const opts = facilities.map(f =>
+    '<option value="' + esc(f.code) + '">' + esc(f.code) + ' — ' + esc(f.name) + '</option>'
+  ).join('');
+  fromSel.innerHTML = opts;
+  toSel.innerHTML   = opts;
+
+  // Pre-select the clicked facility as source
+  if (preselectedCode) fromSel.value = preselectedCode;
+  // Default destination to first facility that isn't the source
+  const other = facilities.find(f => f.code !== fromSel.value);
+  if (other) toSel.value = other.code;
+
+  resetTransferList();
+  document.getElementById('transfer-modal').classList.add('open');
+}
+
+function closeTransfer() {
+  document.getElementById('transfer-modal').classList.remove('open');
+  resetTransferList();
+}
+
+function resetTransferList() {
+  transferSourceChemicals = [];
+  document.getElementById('transfer-chem-wrap').style.display = 'none';
+  document.getElementById('transfer-chem-list').innerHTML = '';
+  document.getElementById('transfer-select-all').checked = false;
+  document.getElementById('transfer-total-count').textContent = '0';
+  document.getElementById('transfer-status').textContent = '';
+  document.getElementById('transfer-move-btn').disabled = true;
+  document.getElementById('transfer-copy-btn').disabled = true;
+  document.getElementById('transfer-load-btn').disabled = false;
+  document.getElementById('transfer-load-btn').textContent = 'Load Chemicals from Source →';
+}
+
+async function loadTransferChemicals() {
+  const fromCode = document.getElementById('transfer-from').value;
+  const toCode   = document.getElementById('transfer-to').value;
+  if (fromCode === toCode) {
+    document.getElementById('transfer-status').innerHTML =
+      '<span class="status-err" style="padding:0 20px">Source and destination must be different.</span>';
+    return;
+  }
+
+  const btn = document.getElementById('transfer-load-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="border-color:#1a3a5c;border-top-color:transparent"></span>Loading…';
+  document.getElementById('transfer-status').textContent = '';
+
+  transferSourceChemicals = await window.FB.getFacilityChemicals(fromCode);
+
+  if (!transferSourceChemicals.length) {
+    btn.disabled = false;
+    btn.textContent = 'Load Chemicals from Source →';
+    document.getElementById('transfer-status').innerHTML =
+      '<span class="status-err" style="padding:0 20px">No chemicals in this facility\'s library.</span>';
+    return;
+  }
+
+  const listEl = document.getElementById('transfer-chem-list');
+  listEl.innerHTML = transferSourceChemicals.map((c, i) =>
+    '<label class="transfer-chem-item">' +
+      '<input type="checkbox" class="transfer-chem-cb" data-idx="' + i + '" onchange="updateTransferBtns()">' +
+      esc(c.product || c.name || '(unnamed)') +
+    '</label>'
+  ).join('');
+
+  document.getElementById('transfer-total-count').textContent = transferSourceChemicals.length;
+  document.getElementById('transfer-chem-wrap').style.display = 'block';
+  document.getElementById('transfer-load-btn').style.display  = 'none';
+}
+
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.transfer-chem-cb').forEach(cb => cb.checked = checked);
+  updateTransferBtns();
+}
+
+function updateTransferBtns() {
+  const anyChecked = [...document.querySelectorAll('.transfer-chem-cb')].some(cb => cb.checked);
+  document.getElementById('transfer-move-btn').disabled = !anyChecked;
+  document.getElementById('transfer-copy-btn').disabled = !anyChecked;
+
+  const total = document.querySelectorAll('.transfer-chem-cb').length;
+  const checked = [...document.querySelectorAll('.transfer-chem-cb')].filter(cb => cb.checked).length;
+  document.getElementById('transfer-select-all').checked = checked === total;
+}
+
+async function doTransfer(move) {
+  const fromCode = document.getElementById('transfer-from').value;
+  const toCode   = document.getElementById('transfer-to').value;
+
+  const selectedIdxs = [...document.querySelectorAll('.transfer-chem-cb')]
+    .filter(cb => cb.checked).map(cb => parseInt(cb.dataset.idx));
+  const selected = selectedIdxs.map(i => transferSourceChemicals[i]);
+
+  if (!selected.length) return;
+
+  const moveBtn = document.getElementById('transfer-move-btn');
+  const copyBtn = document.getElementById('transfer-copy-btn');
+  moveBtn.disabled = copyBtn.disabled = true;
+
+  const statusEl = document.getElementById('transfer-status');
+  statusEl.textContent = '';
+
+  try {
+    // Get destination library and merge in selected
+    const destChems   = await window.FB.getFacilityChemicals(toCode);
+    const destNames   = new Set(destChems.map(c => (c.product || c.name || '').toLowerCase()));
+    const newForDest  = selected.filter(c => !destNames.has((c.product || c.name || '').toLowerCase()));
+    const merged      = [...destChems, ...newForDest];
+    await window.FB.setFacilityChemicals(toCode, merged);
+
+    if (move) {
+      // Remove selected from source
+      const keepIdxs = new Set(selectedIdxs);
+      const remaining = transferSourceChemicals.filter((_, i) => !keepIdxs.has(i));
+      await window.FB.setFacilityChemicals(fromCode, remaining);
+      // Update local facilities count
+      const src = facilities.find(f => f.code === fromCode);
+      if (src) src.chemCount = remaining.length;
+    }
+
+    // Update destination count
+    const dest = facilities.find(f => f.code === toCode);
+    if (dest) dest.chemCount = merged.length;
+    renderFacilities();
+
+    const action = move ? 'Moved' : 'Copied';
+    const skipped = selected.length - newForDest.length;
+    statusEl.innerHTML =
+      '<span class="status-ok" style="padding:0 20px">✓ ' + action + ' ' + newForDest.length +
+      ' chemical' + (newForDest.length !== 1 ? 's' : '') + ' to ' + toCode +
+      (skipped ? '. ' + skipped + ' already existed.' : '.') + '</span>';
+    logActivity(action + ' ' + newForDest.length + ' chemicals: ' + fromCode + ' → ' + toCode +
+      (skipped ? ' (' + skipped + ' skipped)' : ''), 'upload');
+
+    if (move) closeTransfer();
+  } catch (e) {
+    console.error(e);
+    statusEl.innerHTML = '<span class="status-err" style="padding:0 20px">Transfer failed — check console.</span>';
+    moveBtn.disabled = copyBtn.disabled = false;
   }
 }
 

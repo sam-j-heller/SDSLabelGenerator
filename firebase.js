@@ -133,5 +133,21 @@ window.FB = {
   // Delete a facility document entirely.
   async deleteFacility(code) {
     await deleteDoc(doc(db, 'facilities', code.trim().toUpperCase()));
+  },
+
+  // Return the chemicals array for a specific facility (admin use — no localStorage side-effects).
+  async getFacilityChemicals(code) {
+    const snap = await getDoc(doc(db, 'facilities', code.trim().toUpperCase()));
+    if (!snap.exists()) return [];
+    return snap.data().chemicals || [];
+  },
+
+  // Overwrite the chemicals array for a specific facility.
+  async setFacilityChemicals(code, chemicals) {
+    await setDoc(
+      doc(db, 'facilities', code.trim().toUpperCase()),
+      { chemicals },
+      { merge: true }
+    );
   }
 };
