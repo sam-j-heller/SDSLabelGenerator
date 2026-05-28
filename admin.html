@@ -459,10 +459,13 @@ nav {
   <div class="gate-card">
     <div class="gate-brand">Quick Label</div>
     <div class="gate-title">Admin Console</div>
-    <div class="gate-label">Admin Passphrase</div>
+    <div class="gate-label">Email</div>
+    <input type="email" id="gate-email" class="gate-input" placeholder="admin@example.com"
+           autocomplete="email" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    <div class="gate-label">Password</div>
     <div class="gate-pw-wrap">
-      <input type="password" id="gate-input" class="gate-input" placeholder="Enter passphrase"
-             autocomplete="off" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <input type="password" id="gate-input" class="gate-input" placeholder="Password"
+             autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()">
       <button type="button" class="pw-toggle" onclick="togglePw()" title="Show / hide">👁</button>
     </div>
     <div id="gate-error"></div>
@@ -689,25 +692,28 @@ function togglePw() {
 
 async function doAdminLogin() {
   const btn   = document.getElementById('gate-btn');
+  const email = document.getElementById('gate-email').value;
   const input = document.getElementById('gate-input');
   const err   = document.getElementById('gate-error');
   const pass  = input.value;
-  if (!pass.trim()) { err.textContent = 'Enter the passphrase.'; return; }
+
+  if (!email.trim()) { err.textContent = 'Enter your email.';    return; }
+  if (!pass.trim())  { err.textContent = 'Enter your password.'; return; }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Checking…';
+  btn.innerHTML = '<span class="spinner"></span>Signing in…';
   err.textContent = '';
 
   if (!window.FB) await new Promise(r => setTimeout(r, 800));
 
-  const ok = await window.FB.adminLogin(pass);
+  const ok = await window.FB.adminLogin(email, pass);
   if (ok) {
     document.getElementById('gate').style.display = 'none';
     document.getElementById('app').style.display  = 'flex';
     loadFacilities();
     loadBlacklist();
   } else {
-    err.textContent = 'Incorrect passphrase.';
+    err.textContent = 'Incorrect email or password.';
     btn.disabled    = false;
     btn.textContent = 'Sign In →';
     input.value     = '';
@@ -715,10 +721,12 @@ async function doAdminLogin() {
   }
 }
 
-function signOut() {
-  document.getElementById('gate').style.display = 'flex';
-  document.getElementById('app').style.display  = 'none';
-  document.getElementById('gate-input').value   = '';
+async function signOut() {
+  await window.FB.adminSignOut();
+  document.getElementById('gate').style.display  = 'flex';
+  document.getElementById('app').style.display   = 'none';
+  document.getElementById('gate-email').value    = '';
+  document.getElementById('gate-input').value    = '';
   document.getElementById('gate-error').textContent = '';
 }
 

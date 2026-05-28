@@ -1,5 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut as fbSignOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCpV2BBY1t2UnZjYaZ7RATHvwxtGWSwxoU",
@@ -71,16 +72,24 @@ window.FB = {
 
   // --- Admin functions ---
 
-  // Verify admin passphrase stored in Firestore at /admin/config { passphrase: "..." }.
-  // Returns true on match.
-  async adminLogin(passphrase) {
+  // Sign in as admin using Firebase Authentication (Email/Password).
+  // Returns true on success, false on bad credentials.
+  async adminLogin(email, password) {
     try {
-      const snap = await getDoc(doc(db, 'admin', 'config'));
-      if (!snap.exists()) return false;
-      return (snap.data().passphrase || '') === passphrase.trim();
+      await signInWithEmailAndPassword(getAuth(), email.trim(), password);
+      return true;
     } catch (e) {
       console.error('Firebase adminLogin error:', e);
       return false;
+    }
+  },
+
+  // Sign out the current admin Firebase Auth session.
+  async adminSignOut() {
+    try {
+      await fbSignOut(getAuth());
+    } catch (e) {
+      console.error('Firebase adminSignOut error:', e);
     }
   },
 
