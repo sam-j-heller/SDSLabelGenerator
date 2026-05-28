@@ -927,41 +927,51 @@ async function uploadBlacklist() {
   const btn    = document.getElementById('upload-bl-btn');
   const status = document.getElementById('upload-status');
 
-  const existing  = new Set(blacklist.map(c => c.name.toLowerCase()));
-  const newChems  = chemicals.filter(c => !existing.has(c.name.toLowerCase()));
-  const newNames  = newChems.map(c => c.name);
-  const skipCount = csvNames.length - newChems.length;
+  // Build a name→id map from the current local blacklist
+  const existingMap = new Map(blacklist.map(c => [c.name.toLowerCase(), c.id]));
 
-  if (!newNames.length) {
-    status.innerHTML = '<span class="status-ok">All ' + csvNames.length + ' chemicals already listed — nothing to add.</span>';
-    logActivity('CSV merge: all ' + csvNames.length + ' already existed, nothing added.', 'upload');
+  const newChems    = chemicals.filter(c => !existingMap.has(c.name.toLowerCase()));
+  const updateChems = chemicals
+    .filter(c => existingMap.has(c.name.toLowerCase()))
+    .map(c => {
+      const { name, ...meta } = c;
+      return { id: existingMap.get(c.name.toLowerCase()), fields: meta };
+    });
+
+  const newCount    = newChems.length;
+  const updateCount = updateChems.length;
+
+  if (!newCount && !updateCount) {
+    status.innerHTML = '<span class="status-ok">Nothing to do.</span>';
     return;
   }
 
-  const confirmed = confirm(
-    'Add ' + newNames.length + ' new chemical' + (newNames.length !== 1 ? 's' : '') + ' to the blacklist?' +
-    (skipCount ? '\n(' + skipCount + ' already listed — skipped.)' : '') +
-    '\n\nProceed?'
-  );
-  if (!confirmed) return;
+  const confirmMsg =
+    (newCount    ? newCount    + ' new chemical' + (newCount    !== 1 ? 's' : '') + ' will be added.\n' : '') +
+    (updateCount ? updateCount + ' existing chemical' + (updateCount !== 1 ? 's' : '') + ' will have their metadata updated.\n' : '') +
+    '\nProceed?';
+  if (!confirm(confirmMsg)) return;
 
   btn.disabled  = true;
   btn.innerHTML = '<span class="spinner"></span>Uploading…';
   status.textContent = '';
 
   try {
-    await window.FB.addManyToBlacklist(newChems, 'csv-upload');
-    await loadBlacklist();  // reload to get IDs and timestamps
-    status.innerHTML = '<span class="status-ok">✓ ' + newNames.length + ' added' +
-      (skipCount ? ', ' + skipCount + ' skipped.' : '.') + '</span>';
-    logActivity('CSV upload: +' + newNames.length + ' added, ' + skipCount + ' skipped (' + csvNames.length + ' total in file)', 'upload');
+    if (newCount)    await window.FB.addManyToBlacklist(newChems, 'csv-upload');
+    if (updateCount) await window.FB.updateManyBlacklistMeta(updateChems);
+    await loadBlacklist();
+    status.innerHTML = '<span class="status-ok">✓ ' +
+      (newCount    ? newCount    + ' added'   : '') +
+      (newCount && updateCount ? ', ' : '') +
+      (updateCount ? updateCount + ' updated' : '') + '.</span>';
+    logActivity('CSV upload: +' + newCount + ' added, ' + updateCount + ' metadata updated', 'upload');
   } catch (e) {
     console.error(e);
     status.innerHTML = '<span class="status-err">Upload failed — check console.</span>';
     logActivity('CSV upload failed: ' + e.message, 'del');
   }
   btn.disabled  = false;
-  btn.textContent = 'Merge ' + newNames.length + ' chemicals into Firestore';
+  btn.textContent = 'Upload from CSV';
 }
 
 // -------------------------------------------------------

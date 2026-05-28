@@ -142,6 +142,20 @@ window.FB = {
     await deleteDoc(doc(db, 'blacklist', docId));
   },
 
+  // Batch-update metadata fields on existing blacklist documents.
+  // updates = [{ id, fields }] where fields are the extra columns to write.
+  // Never overwrites name, nameLower, addedAt, or source.
+  async updateManyBlacklistMeta(updates) {
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < updates.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      updates.slice(i, i + BATCH_SIZE).forEach(({ id, fields }) => {
+        batch.update(doc(db, 'blacklist', id), fields);
+      });
+      await batch.commit();
+    }
+  },
+
   // Batch-add many chemicals. Each item may be a plain string (name only)
   // or an object { name, ...extraFields }. Splits into 500-op batches.
   async addManyToBlacklist(chemicals, source = 'csv-upload') {
