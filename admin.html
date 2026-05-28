@@ -139,7 +139,24 @@ nav {
 }
 .manual-add-btn:hover { background: #1f5230; }
 
+/* ---------- Show/hide password toggle ---------- */
+.gate-pw-wrap { position: relative; margin-top: 2px; }
+.gate-pw-wrap .gate-input { padding-right: 44px; margin-top: 0; }
+.pw-toggle {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: #888; font-size: 16px; line-height: 1;
+}
+.pw-toggle:hover { color: #444; }
+
 /* ---------- Current Blacklist ---------- */
+#bl-search-wrap { margin-bottom: 10px; }
+#bl-search {
+  width: 100%; padding: 8px 10px; font-size: 13px;
+  border: 1.5px solid #bbc; border-radius: 5px; font-family: inherit;
+  background: #fff;
+}
+#bl-search:focus { outline: none; border-color: #1a3a5c; }
 #bl-count { font-size: 12px; color: #666; margin-bottom: 10px; }
 #bl-list { max-height: 340px; overflow-y: auto; border: 1px solid #eee; border-radius: 5px; }
 .bl-item {
@@ -183,8 +200,11 @@ nav {
     <div class="gate-brand">Quick Label</div>
     <div class="gate-title">Admin Console</div>
     <div class="gate-label">Admin Passphrase</div>
-    <input type="password" id="gate-input" class="gate-input" placeholder="Enter passphrase"
-           autocomplete="off" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    <div class="gate-pw-wrap">
+      <input type="password" id="gate-input" class="gate-input" placeholder="Enter passphrase"
+             autocomplete="off" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <button type="button" class="pw-toggle" onclick="togglePw()" title="Show/hide passphrase">👁</button>
+    </div>
     <div id="gate-error"></div>
     <button id="gate-btn" class="gate-btn" onclick="doAdminLogin()">Sign In →</button>
   </div>
@@ -248,6 +268,9 @@ nav {
     <!-- Current list card -->
     <div class="card">
       <h2>Current Blacklist</h2>
+      <div id="bl-search-wrap">
+        <input type="text" id="bl-search" placeholder="Search blacklist…" oninput="renderBlacklist()">
+      </div>
       <div id="bl-count">Loading…</div>
       <div id="bl-list"><div id="bl-empty">Loading blacklist…</div></div>
     </div>
@@ -275,6 +298,11 @@ let blacklist     = [];   // current blacklist from Firestore [ { name } ]
 // -------------------------------------------------------
 //  Gate
 // -------------------------------------------------------
+function togglePw() {
+  const input = document.getElementById('gate-input');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
 async function doAdminLogin() {
   const btn   = document.getElementById('gate-btn');
   const input = document.getElementById('gate-input');
@@ -428,40 +456,54 @@ function updatePreview() {
 }
 
 // -------------------------------------------------------
-//  Upload to Firestore (REPLACE full blacklist)
+//  Upload to Firestore — MERGE (add new, skip existing)
 // -------------------------------------------------------
 async function uploadBlacklist() {
-  const colIdx = parseInt(document.getElementById('col-pick').value);
-  const names  = parsedRows
+  const colIdx  = parseInt(document.getElementById('col-pick').value);
+  const csvNames = parsedRows
     .map(r => (r[colIdx] || '').trim())
     .filter(n => n);
 
-  if (!names.length) return;
+  if (!csvNames.length) return;
 
   const btn    = document.getElementById('upload-bl-btn');
   const status = document.getElementById('upload-status');
 
+  const existing = new Set(blacklist.map(c => c.name.toLowerCase()));
+  const newNames  = csvNames.filter(n => !existing.has(n.toLowerCase()));
+  const skipCount = csvNames.length - newNames.length;
+
+  if (!newNames.length) {
+    status.innerHTML = '<span class="status-ok">All ' + csvNames.length +
+      ' chemicals are already on the blacklist — nothing to add.</span>';
+    return;
+  }
+
   const confirmed = confirm(
-    'This will REPLACE the entire Firestore blacklist with ' + names.length +
-    ' chemicals from the CSV.\n\nAny manually added chemicals not in the CSV will be removed.\n\nProceed?'
+    'Add ' + newNames.length + ' new chemical' + (newNames.length !== 1 ? 's' : '') + ' to the blacklist?' +
+    (skipCount ? '\n(' + skipCount + ' already listed — will be skipped.)' : '') +
+    '\n\nProceed?'
   );
   if (!confirmed) return;
 
-  btn.disabled    = true;
-  btn.innerHTML   = '<span class="spinner"></span>Uploading…';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Uploading…';
   status.textContent = '';
 
   try {
-    await window.FB.setBlacklist(names);
-    blacklist = names.map(n => ({ name: n }));
+    const merged = [...blacklist, ...newNames.map(n => ({ name: n }))]
+      .sort((a, b) => a.name.localeCompare(b.name));
+    await window.FB.setBlacklist(merged);
+    blacklist = merged;
     renderBlacklist();
-    status.innerHTML = '<span class="status-ok">✓ ' + names.length + ' chemicals uploaded successfully.</span>';
+    status.innerHTML = '<span class="status-ok">✓ ' + newNames.length + ' added' +
+      (skipCount ? ', ' + skipCount + ' already existed.' : '.') + '</span>';
   } catch (e) {
     console.error(e);
     status.innerHTML = '<span class="status-err">Upload failed — check console for details.</span>';
   }
-  btn.disabled  = false;
-  btn.textContent = 'Upload ' + names.length + ' chemicals to Firestore';
+  btn.disabled    = false;
+  btn.textContent = 'Add ' + newNames.length + ' new chemicals to Firestore';
 }
 
 // -------------------------------------------------------
@@ -513,18 +555,32 @@ async function loadBlacklist() {
 }
 
 function renderBlacklist() {
-  const list  = document.getElementById('bl-list');
-  const count = document.getElementById('bl-count');
-  count.textContent = blacklist.length + ' chemical' + (blacklist.length !== 1 ? 's' : '') + ' on the blacklist';
+  const list    = document.getElementById('bl-list');
+  const count   = document.getElementById('bl-count');
+  const query   = (document.getElementById('bl-search').value || '').trim().toLowerCase();
+  const visible = query
+    ? blacklist.filter(c => c.name.toLowerCase().includes(query))
+    : blacklist;
 
   if (!blacklist.length) {
+    count.textContent = '0 chemicals on the blacklist';
     list.innerHTML = '<div id="bl-empty">No chemicals on the blacklist yet.</div>';
     return;
   }
-  list.innerHTML = blacklist.map(c =>
+
+  count.textContent = query
+    ? visible.length + ' of ' + blacklist.length + ' matching "' + query + '"'
+    : blacklist.length + ' chemical' + (blacklist.length !== 1 ? 's' : '') + ' on the blacklist';
+
+  if (!visible.length) {
+    list.innerHTML = '<div id="bl-empty">No matches for "' + esc(query) + '"</div>';
+    return;
+  }
+
+  list.innerHTML = visible.map(c =>
     '<div class="bl-item">' +
       '<span class="bl-name">' + esc(c.name) + '</span>' +
-      '<button class="bl-del" title="Remove" onclick="deleteFromBlacklist(' + JSON.stringify(c.name) + ')">✕</button>' +
+      '<button class="bl-del" title="Remove from blacklist" onclick="deleteFromBlacklist(' + JSON.stringify(c.name) + ')">✕</button>' +
     '</div>'
   ).join('');
 }
