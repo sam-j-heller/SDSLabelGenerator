@@ -480,6 +480,27 @@ nav {
   vertical-align: middle; margin-right: 5px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Company Chemicals tab ---------- */
+.cc-stats { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.cc-stat  { background: #f4f7fb; border-radius: 6px; padding: 12px 20px; }
+.cc-stat-val { font-size: 24px; font-weight: 800; color: #1a3a5c; line-height: 1; }
+.cc-stat-lbl { font-size: 11px; color: #888; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+.cc-search { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #ccc;
+  border-radius: 4px; font-size: 13px; margin-bottom: 16px; font-family: inherit; }
+.cc-list { border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden; }
+.cc-row { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #eee; gap: 12px; }
+.cc-row:last-child { border-bottom: 0; }
+.cc-shared { background: #fffbf0; }
+.cc-name { flex: 1; font-size: 13px; font-weight: 600; color: #222; min-width: 0; }
+.cc-facs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; flex-shrink: 0; }
+.cc-chip { background: #e8eef7; color: #1a3a5c; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 3px; }
+.cc-shared .cc-chip { background: #fde68a; color: #92400e; }
+.cc-badge { background: #d97706; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 3px; }
+.cc-reload { background: #1a3a5c; color: #fff; border: 0; padding: 6px 14px;
+  font-size: 11px; font-weight: 700; border-radius: 3px; cursor: pointer;
+  letter-spacing: 0.5px; text-transform: uppercase; }
+.cc-reload:hover { background: #254d7a; }
 </style>
 </head>
 <body>
@@ -518,6 +539,7 @@ nav {
   <nav>
     <button class="tab-btn active" onclick="switchTab('facilities', this)">Facilities</button>
     <button class="tab-btn" onclick="switchTab('blacklist', this)">Chemical Blacklist</button>
+    <button class="tab-btn" onclick="switchTab('company', this)">Company Chemicals</button>
   </nav>
 
   <!-- ===== BLACKLIST TAB ===== -->
@@ -641,6 +663,20 @@ nav {
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ===== COMPANY CHEMICALS TAB ===== -->
+  <div id="tab-company" class="tab-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0">Company-Wide Chemicals</h2>
+      <button class="cc-reload" onclick="loadCompanyChemicals()">↻ Refresh</button>
+    </div>
+    <div class="cc-stats" id="cc-stats"></div>
+    <input class="cc-search" id="cc-search" type="text"
+      placeholder="Search by chemical name or facility code…" oninput="filterCompanyChems()">
+    <div class="cc-list" id="cc-list">
+      <div style="padding:16px;color:#888;font-size:13px">Open this tab to load chemicals.</div>
     </div>
   </div>
 
@@ -784,6 +820,7 @@ function switchTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
+  if (name === 'company') loadCompanyChemicals();
 }
 
 // -------------------------------------------------------
@@ -1519,6 +1556,54 @@ async function doMigration() {
 function fmtDate(d) {
   if (!d) return '';
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// -------------------------------------------------------
+//  Company Chemicals
+// -------------------------------------------------------
+let companyChems = [];
+
+async function loadCompanyChemicals() {
+  const list  = document.getElementById('cc-list');
+  const stats = document.getElementById('cc-stats');
+  if (list)  list.innerHTML  = '<div style="padding:16px;color:#888;font-size:13px">Loading…</div>';
+  if (stats) stats.innerHTML = '';
+  companyChems = await window.FB.getAllChemicals();
+  renderCompanyChemicals(companyChems);
+}
+
+function renderCompanyChemicals(chems) {
+  const list  = document.getElementById('cc-list');
+  const stats = document.getElementById('cc-stats');
+  if (!list) return;
+  const totalEntries = chems.reduce((s, c) => s + c.facilities.length, 0);
+  const shared       = chems.filter(c => c.facilities.length > 1).length;
+  if (stats) stats.innerHTML = `
+    <div class="cc-stat"><div class="cc-stat-val">${chems.length}</div><div class="cc-stat-lbl">Unique Chemicals</div></div>
+    <div class="cc-stat"><div class="cc-stat-val">${totalEntries}</div><div class="cc-stat-lbl">Total Entries</div></div>
+    <div class="cc-stat"><div class="cc-stat-val">${shared}</div><div class="cc-stat-lbl">At Multiple Facilities</div></div>`;
+  if (!chems.length) {
+    list.innerHTML = '<div style="padding:16px;color:#888;font-size:13px">No chemicals found.</div>';
+    return;
+  }
+  list.innerHTML = chems.map(c => `
+    <div class="cc-row${c.facilities.length > 1 ? ' cc-shared' : ''}">
+      <span class="cc-name">${esc(c.product)}</span>
+      <span class="cc-facs">
+        ${c.facilities.map(f => `<span class="cc-chip" title="${esc(f.name)}">${esc(f.code)}</span>`).join('')}
+        ${c.facilities.length > 1 ? `<span class="cc-badge">${c.facilities.length}</span>` : ''}
+      </span>
+    </div>`).join('');
+}
+
+function filterCompanyChems() {
+  const q = (document.getElementById('cc-search')?.value || '').trim().toLowerCase();
+  const filtered = q
+    ? companyChems.filter(c =>
+        c.product.toLowerCase().includes(q) ||
+        c.facilities.some(f => f.code.toLowerCase().includes(q) || f.name.toLowerCase().includes(q)))
+    : companyChems;
+  renderCompanyChemicals(filtered);
 }
 
 function esc(s) {

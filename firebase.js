@@ -296,6 +296,27 @@ window.FB = {
     await setDoc(doc(db, 'facilities', upper), { chemCount: chemicals.length }, { merge: true });
   },
 
+  // Return all chemicals across every facility, grouped by product name.
+  // Each entry: { product, facilities: [{ code, name }] }, sorted by facility count desc then alpha.
+  async getAllChemicals() {
+    const facs = await window.FB.listFacilities();
+    const nameMap = new Map();
+    await Promise.all(facs.map(async fac => {
+      const chems = await window.FB.getFacilityChemicals(fac.code);
+      chems.forEach(c => {
+        const key = (c.product || '').trim().toLowerCase();
+        if (!key) return;
+        if (!nameMap.has(key)) nameMap.set(key, { product: (c.product || '').trim(), facilities: [] });
+        const entry = nameMap.get(key);
+        if (!entry.facilities.some(f => f.code === fac.code)) {
+          entry.facilities.push({ code: fac.code, name: fac.name });
+        }
+      });
+    }));
+    return Array.from(nameMap.values())
+      .sort((a, b) => b.facilities.length - a.facilities.length || a.product.localeCompare(b.product));
+  },
+
   // Return array of { _id, product, pinnedAt, ...labelData } for a facility's favorites.
   async getFavorites(code) {
     const upper = code.trim().toUpperCase();
