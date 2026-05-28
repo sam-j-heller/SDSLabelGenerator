@@ -999,6 +999,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
 
       <div style="padding: 12px; border-top: 2px solid #ccc; margin-top: 4px;">
         <button class="lib-save-btn" onclick="saveToLibrary()">+ Save Current to Library</button>
+        <div id="save-banner-bottom" class="inline-banner"></div>
         <button class="clear-btn" onclick="clearForm()" style="margin-top: 6px;">Clear Form</button>
       </div>
     </div>
@@ -2061,13 +2062,11 @@ function populateLibrarySelect() { /* no-op: combo reads live from library on op
 
 async function saveToLibrary() {
   const data = getCurrentFormData();
-  if (!data.product.trim()) { showBanner('save-banner', 'Enter a Product Identifier before saving.', 'warn'); return; }
-  if (window.FB && window.FB.facilityCode) {
-    const blocked = await window.FB.isBlacklisted(data.product);
-    if (blocked) {
-      showBanner('save-banner', `"${data.product}" is on the restricted substances list and cannot be added.`, 'error');
-      return;
-    }
+  if (!data.product.trim()) { showSaveBanners('Enter a Product Identifier before saving.', 'warn'); return; }
+  const blocked = await window.FB.isBlacklisted(data.product);
+  if (blocked) {
+    showSaveBanners(`"${data.product}" is on the restricted substances list and cannot be added.`, 'error');
+    return;
   }
   const lib = getLibrary();
   const idx = lib.findIndex(c => c.product.trim().toLowerCase() === data.product.trim().toLowerCase());
@@ -2081,30 +2080,20 @@ async function saveToLibrary() {
     const delBtn = $('lib-del-btn');
     if (delBtn) delBtn.style.display = 'block';
     filterCombo();
-    if (window.FB && window.FB.facilityCode) window.FB.push();
-  } else if (window.FB && window.FB.facilityCode) {
-    // New chemical with Firebase — check for duplicate pending first
+    window.FB.push();
+    showSaveBanners(`"${data.product}" updated.`, 'success');
+  } else {
+    // New chemical — submit for approval
     const pending = await window.FB.getFacilityPending(window.FB.facilityCode);
     const alreadyPending = pending.some(p =>
       (p.product || '').trim().toLowerCase() === data.product.trim().toLowerCase()
     );
     if (alreadyPending) {
-      showBanner('save-banner', `"${data.product}" is already waiting for approval — an engineer will review it soon.`, 'warn');
+      showSaveBanners(`"${data.product}" is already waiting for approval — an engineer will review it soon.`, 'warn');
       return;
     }
     await window.FB.submitForApproval(window.FB.facilityCode, data);
-    showBanner('save-banner', `"${data.product}" submitted for approval. It will appear in the library once reviewed.`, 'success');
-  } else {
-    // New chemical without Firebase — save locally
-    lib.push(data);
-    lib.sort((a, b) => a.product.localeCompare(b.product));
-    saveLibrary(lib);
-    const newIdx = getLibrary().findIndex(c => c.product === data.product);
-    selectedLibIdx = newIdx >= 0 ? newIdx : null;
-    $('lib-search').value = data.product;
-    const delBtn = $('lib-del-btn');
-    if (delBtn) delBtn.style.display = selectedLibIdx !== null ? 'block' : 'none';
-    filterCombo();
+    showSaveBanners(`"${data.product}" submitted for approval. It will appear in the library once reviewed.`, 'success');
   }
 }
 
@@ -2144,6 +2133,10 @@ function showBanner(id, msg, type, duration) {
   el.style.display = '';
   clearTimeout(el._bt);
   if (duration !== 0) el._bt = setTimeout(() => { el.style.display = 'none'; }, duration || 4500);
+}
+function showSaveBanners(msg, type, duration) {
+  showBanner('save-banner', msg, type, duration);
+  showBanner('save-banner-bottom', msg, type, duration);
 }
 
 /* ── Company Logo ───────────────────────────────────────────── */
