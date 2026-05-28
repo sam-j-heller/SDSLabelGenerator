@@ -882,13 +882,14 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
           <div id="fav-list"></div>
         </div>
       </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #444;display:flex;gap:6px;align-items:center">
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #444;display:flex;align-items:center;gap:6px">
         <span style="font-size:10px;color:#aaa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;white-space:nowrap;flex-shrink:0">Logo</span>
-        <button type="button" class="lib-load-btn" onclick="uploadLogo()" style="flex:1;font-size:10px;padding:4px 6px">Upload Image</button>
-        <button type="button" class="lib-del-btn" id="logo-clear-btn" onclick="clearLogo()" title="Remove logo" style="display:none;padding:4px 7px">✕</button>
-        <div id="logo-thumb-row" style="display:none;align-items:center;gap:4px">
-          <img id="logo-thumb" style="height:16px;max-width:60px;object-fit:contain;border:1px solid #555;padding:1px;background:#fff">
-          <span style="font-size:9px;color:#aaa;white-space:nowrap">active</span>
+        <div id="logo-zone" onclick="uploadLogo()" title="Click to upload company logo"
+             style="cursor:pointer;border:1px dashed #555;border-radius:3px;padding:3px 8px;display:flex;align-items:center;gap:5px;min-height:24px;flex:1">
+          <span id="logo-placeholder" style="font-size:9px;color:#666;white-space:nowrap;user-select:none">+ add logo</span>
+          <img id="logo-thumb" style="display:none;height:16px;max-width:80px;object-fit:contain">
+          <button type="button" id="logo-clear-btn" onclick="event.stopPropagation();clearLogo()" title="Remove logo"
+                  style="display:none;background:none;border:none;color:#888;cursor:pointer;font-size:12px;padding:0 0 0 2px;line-height:1;margin-left:auto">✕</button>
         </div>
       </div>
     </div>
@@ -2157,12 +2158,12 @@ function applyLogo(dataUrl) {
     if (dataUrl) { img.src = dataUrl; img.style.display = ''; }
     else         { img.src = '';      img.style.display = 'none'; }
   });
-  const clearBtn  = $('logo-clear-btn');
-  const thumbRow  = $('logo-thumb-row');
-  const thumb     = $('logo-thumb');
-  if (clearBtn) clearBtn.style.display = dataUrl ? '' : 'none';
-  if (thumbRow) thumbRow.style.display = dataUrl ? 'flex' : 'none';
-  if (thumb && dataUrl) thumb.src = dataUrl;
+  const placeholder = $('logo-placeholder');
+  const thumb       = $('logo-thumb');
+  const clearBtn    = $('logo-clear-btn');
+  if (placeholder) placeholder.style.display = dataUrl ? 'none' : '';
+  if (thumb)     { thumb.style.display = dataUrl ? '' : 'none'; if (dataUrl) thumb.src = dataUrl; }
+  if (clearBtn)    clearBtn.style.display = dataUrl ? '' : 'none';
 }
 
 function clearForm() {
