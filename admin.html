@@ -708,11 +708,16 @@ nav {
       <!-- RIGHT: Worker list -->
       <div class="fac-right">
         <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap">
             <h2 style="margin:0">All Workers</h2>
-            <select id="worker-fac-filter" class="col-select" style="font-size:11px;padding:5px 8px;min-width:160px" onchange="renderWorkers()">
-              <option value="">All Facilities</option>
-            </select>
+            <div style="display:flex;align-items:center;gap:10px">
+              <label style="font-size:11px;color:#555;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap">
+                <input type="checkbox" id="show-admins-chk" onchange="loadWorkers()"> Show admins
+              </label>
+              <select id="worker-fac-filter" class="col-select" style="font-size:11px;padding:5px 8px;min-width:160px" onchange="renderWorkers()">
+                <option value="">All Facilities</option>
+              </select>
+            </div>
           </div>
           <div id="worker-list-wrap">
             <div style="color:#888;font-size:13px;padding:12px 0">Open this tab to load workers.</div>
@@ -976,7 +981,8 @@ async function loadWorkers() {
   const wrap = document.getElementById('worker-list-wrap');
   if (wrap) wrap.innerHTML = '<div style="color:#888;font-size:13px;padding:12px 0">Loading…</div>';
   populateWorkerFacilitySelect();
-  workerList = await window.FB.listWorkers();
+  const showAdmins = (document.getElementById('show-admins-chk') || {}).checked || false;
+  workerList = await window.FB.listWorkers(showAdmins);
   populateWorkerFacilityFilter();
   renderWorkers();
 }

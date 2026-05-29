@@ -877,8 +877,8 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
       <div id="gate-error" class="gate-error"></div>
       <button id="gate-btn" class="gate-btn" onclick="workerSignIn()">Sign In →</button>
       <hr class="gate-divider">
-      <div style="font-size:11px;color:#999;text-align:center;margin-bottom:6px">Have a @rhenus.com email?</div>
-      <button class="gate-link" onclick="showGatePanel('register')">Create your account →</button>
+      <button class="gate-link" onclick="showGatePanel('register')">@rhenus.com? Create your account →</button>
+      <button class="gate-link" style="margin-top:6px" onclick="showGatePanel('forgot')">First time or forgot password →</button>
     </div>
 
     <!-- Self-register form (@rhenus.com only) -->
@@ -892,25 +892,26 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
       <button class="gate-link" style="margin-top:8px" onclick="showGatePanel('signin')">← Back to sign in</button>
     </div>
 
-    <!-- Admin facility picker -->
-    <div id="gate-admin" style="display:none">
-      <div class="gate-label">Select Facility</div>
-      <select id="gate-admin-fac" class="gate-input" style="font-size:13px;padding:9px 10px;cursor:pointer">
-        <option value="">— Loading facilities… —</option>
-      </select>
-      <div id="gate-admin-error" class="gate-error"></div>
-      <button id="gate-admin-btn" class="gate-btn" style="margin-top:8px" onclick="adminPickFacility()">Enter →</button>
-      <button class="gate-link" style="margin-top:8px" onclick="workerSignOut()">Sign out</button>
+    <!-- Forgot / first-time password setup -->
+    <div id="gate-forgot" style="display:none">
+      <p style="font-size:12px;color:#555;margin:0 0 12px">Enter your email and we'll send a link to set or reset your password.</p>
+      <div class="gate-label">Email</div>
+      <input type="email" id="forgot-email" class="gate-input" placeholder="you@email.com" autocomplete="email">
+      <div id="forgot-msg" class="gate-error"></div>
+      <button id="forgot-btn" class="gate-btn" style="margin-top:8px" onclick="sendForgotPassword()">Send Reset Link →</button>
+      <button class="gate-link" style="margin-top:8px" onclick="showGatePanel('signin')">← Back to sign in</button>
     </div>
 
-    <!-- Pending facility assignment message -->
-    <div id="gate-pending" style="display:none">
-      <div class="gate-pending">
-        ✅ Your account is set up!<br><br>
-        An administrator will assign your facility shortly.<br>
-        You'll have full access once that's done.
-      </div>
-      <button class="gate-link" style="margin-top:12px" onclick="window.FB.workerLogout().then(()=>showGatePanel('signin'))">Sign out</button>
+    <!-- Facility picker (self-registered workers + admins) -->
+    <div id="gate-picker" style="display:none">
+      <p id="gate-picker-msg" style="font-size:12px;color:#555;margin:0 0 12px"></p>
+      <div class="gate-label">Select Your Facility</div>
+      <select id="gate-picker-fac" class="gate-input" style="font-size:13px;padding:9px 10px;cursor:pointer">
+        <option value="">— Loading… —</option>
+      </select>
+      <div id="gate-picker-error" class="gate-error"></div>
+      <button id="gate-picker-btn" class="gate-btn" style="margin-top:8px" onclick="confirmFacilityPick()">Enter →</button>
+      <button class="gate-link" style="margin-top:8px" onclick="workerSignOut()">Sign out</button>
     </div>
   </div>
 </div>
@@ -1857,8 +1858,7 @@ function init() {
   if (window.FB) {
     window.FB.onAuthChange(profile => {
       if (!profile) { showGatePanel('signin'); return; }
-      if (profile.role === 'admin') { showAdminFacilityPicker(); return; }
-      if (!profile.facilityCode) { showGatePanel('pending'); return; }
+      if (profile.role === 'admin' || !profile.facilityCode) { showFacilityPicker(); return; }
       onWorkerReady(profile);
     });
   }
@@ -2215,14 +2215,14 @@ function clearForm() {
 
 /* ── Worker Auth Gate ───────────────────────────────────────── */
 function showGatePanel(panel) {
-  ['signin', 'register', 'pending', 'admin'].forEach(p => {
+  ['signin', 'register', 'forgot', 'picker'].forEach(p => {
     const el = $('gate-' + p);
     if (el) el.style.display = p === panel ? '' : 'none';
   });
   const gate = $('facility-gate');
   if (gate) gate.style.display = 'flex';
   setTimeout(() => {
-    const focus = { signin: 'gate-email', register: 'reg-email' }[panel];
+    const focus = { signin: 'gate-email', register: 'reg-email', forgot: 'forgot-email' }[panel];
     if (focus) { const el = $(focus); if (el) el.focus(); }
   }, 50);
 }
@@ -2264,8 +2264,7 @@ async function workerSignIn() {
   try {
     const profile = await window.FB.workerLogin(email, password);
     btn.disabled = false; btn.textContent = 'Sign In →';
-    if (profile.role === 'admin') { await showAdminFacilityPicker(); return; }
-    if (!profile.facilityCode) { showGatePanel('pending'); return; }
+    if (profile.role === 'admin' || !profile.facilityCode) { await showFacilityPicker(); return; }
     onWorkerReady(profile);
   } catch (e) {
     btn.disabled = false; btn.textContent = 'Sign In →';
@@ -2304,9 +2303,15 @@ async function workerRegister() {
   }
 }
 
-async function showAdminFacilityPicker() {
-  showGatePanel('admin');
-  const sel = $('gate-admin-fac');
+async function showFacilityPicker() {
+  const profile = window.FB.workerProfile;
+  const isAdmin = profile && profile.role === 'admin';
+  const msg = $('gate-picker-msg');
+  if (msg) msg.textContent = isAdmin
+    ? 'Select a facility to work in this session.'
+    : 'Select your facility to complete account setup.';
+  showGatePanel('picker');
+  const sel = $('gate-picker-fac');
   if (!sel) return;
   sel.innerHTML = '<option value="">— Loading… —</option>';
   try {
@@ -2318,14 +2323,23 @@ async function showAdminFacilityPicker() {
   }
 }
 
-async function adminPickFacility() {
-  const sel = $('gate-admin-fac');
-  const err = $('gate-admin-error');
-  const btn = $('gate-admin-btn');
+async function confirmFacilityPick() {
+  const sel = $('gate-picker-fac');
+  const err = $('gate-picker-error');
+  const btn = $('gate-picker-btn');
   const code = sel ? sel.value : '';
   if (!code) { if (err) err.textContent = 'Please select a facility.'; return; }
   btn.disabled = true; btn.textContent = 'Loading…';
   if (err) err.textContent = '';
+
+  const profile = window.FB.workerProfile;
+  const isAdmin = profile && profile.role === 'admin';
+
+  // Workers get their facility saved permanently; admins are session-only
+  if (!isAdmin && profile && profile.uid) {
+    try { await window.FB.updateWorkerFacility(profile.uid, code); } catch (e) { console.error(e); }
+  }
+
   const name = await window.FB.login(code);
   btn.disabled = false; btn.textContent = 'Enter →';
   if (!name) { if (err) err.textContent = 'Could not load facility.'; return; }
@@ -2335,6 +2349,21 @@ async function adminPickFacility() {
   selectedLibIdx = null;
   filterCombo();
   loadFavorites();
+}
+
+async function sendForgotPassword() {
+  const email = ($('forgot-email') || {}).value || '';
+  const msg   = $('forgot-msg');
+  const btn   = $('forgot-btn');
+  if (!email) { if (msg) { msg.style.color = '#c00'; msg.textContent = 'Enter your email address.'; } return; }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await window.FB.sendPasswordReset(email);
+    if (msg) { msg.style.color = '#2e7d32'; msg.textContent = 'Reset link sent — check your inbox (and spam folder).'; }
+  } catch (e) {
+    if (msg) { msg.style.color = '#c00'; msg.textContent = 'Could not send reset email. Check the address and try again.'; }
+  }
+  btn.disabled = false; btn.textContent = 'Send Reset Link →';
 }
 
 async function workerSignOut() {

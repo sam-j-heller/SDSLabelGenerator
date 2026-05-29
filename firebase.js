@@ -471,11 +471,14 @@ window.FB = {
       createdAt:    serverTimestamp()
     });
 
-    // Sign out of secondary app, then send password-setup email
+    // Sign out of secondary app, then send password-setup email.
+    // Email failure is non-fatal — account exists and admin can resend manually.
     await workerCreationAuth.signOut();
-    await sendPasswordResetEmail(auth, email.trim().toLowerCase(), {
-      url: window.location.origin + window.location.pathname.replace('admin.html', 'index.html')
-    });
+    try {
+      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+    } catch (emailErr) {
+      console.warn('Password reset email failed (account was created):', emailErr);
+    }
 
     return uid;
   },
@@ -560,7 +563,12 @@ window.FB = {
     return snap.exists() ? { uid: snap.id, ...snap.data() } : null;
   },
 
-  async listWorkers() {
+  async listWorkers(includeAdmins = false) {
+    if (includeAdmins) {
+      const snap = await getDocs(collection(db, 'users'));
+      return snap.docs.map(d => ({ uid: d.id, ...d.data() }))
+        .sort((a, b) => (a.email || '').localeCompare(b.email || ''));
+    }
     const snap = await getDocs(query(collection(db, 'users'), where('role', '==', 'worker')));
     return snap.docs.map(d => ({ uid: d.id, ...d.data() }))
       .sort((a, b) => (a.email || '').localeCompare(b.email || ''));
@@ -586,9 +594,11 @@ window.FB = {
   },
 
   async resendWorkerInvite(email) {
-    await sendPasswordResetEmail(auth, email.trim().toLowerCase(), {
-      url: window.location.origin + window.location.pathname.replace('admin.html', 'index.html')
-    });
+    await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+  },
+
+  async sendPasswordReset(email) {
+    await sendPasswordResetEmail(auth, email.trim().toLowerCase());
   },
 
   // Subscribe to Firebase Auth state changes. Callback receives the loaded
