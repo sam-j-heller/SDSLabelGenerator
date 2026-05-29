@@ -2292,7 +2292,7 @@ async function workerRegister() {
   try {
     await window.FB.workerSelfRegister(email, password);
     btn.disabled = false; btn.textContent = 'Create Account →';
-    showGatePanel('pending');
+    showFacilityPicker();
   } catch (e) {
     btn.disabled = false; btn.textContent = 'Create Account →';
     const msg = e.message === 'domain-not-allowed'         ? 'Only @rhenus.com addresses can self-register.'
