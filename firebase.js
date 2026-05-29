@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, addDoc, writeBatch, serverTimestamp, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, signInWithEmailAndPassword, signOut as fbSignOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, signOut as fbSignOut, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCpV2BBY1t2UnZjYaZ7RATHvwxtGWSwxoU",
@@ -11,8 +11,14 @@ const firebaseConfig = {
   appId: "1:864132804780:web:e0ee42eb8eb7b57114af09"
 };
 
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
+const auth = getAuth(app);
+
+// Secondary app instance — used to create worker accounts without
+// signing the admin out of their own session.
+const workerCreationApp  = initializeApp(firebaseConfig, 'workerCreation');
+const workerCreationAuth = getAuth(workerCreationApp);
 
 window.FB = {
   facilityCode: null,
@@ -82,7 +88,7 @@ window.FB = {
   // Returns true on success, false on bad credentials.
   async adminLogin(email, password) {
     try {
-      await signInWithEmailAndPassword(getAuth(), email.trim(), password);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       return true;
     } catch (e) {
       console.error('Firebase adminLogin error:', e);
@@ -93,7 +99,7 @@ window.FB = {
   // Sign out the current admin Firebase Auth session.
   async adminSignOut() {
     try {
-      await fbSignOut(getAuth());
+      await fbSignOut(auth);
     } catch (e) {
       console.error('Firebase adminSignOut error:', e);
     }
@@ -439,5 +445,164 @@ window.FB = {
     await setDoc(doc(db, 'facilities', upper), { chemicals: [] }, { merge: true });
 
     return { count: legacy.length };
+  },
+
+  // ── Worker account management ────────────────────────────────
+
+  // Admin creates a worker account using the secondary app so the admin
+  // session is unaffected. Sends a password-setup email to the worker.
+  async createWorkerAccount(email, facilityCode) {
+    const upper   = facilityCode.trim().toUpperCase();
+    const facSnap = await getDoc(doc(db, 'facilities', upper));
+    const facilityName = facSnap.exists() ? facSnap.data().name : upper;
+
+    // Create account via secondary app (keeps admin signed in)
+    const tempPw = Math.random().toString(36).slice(-10) + 'Aa1!';
+    const cred   = await createUserWithEmailAndPassword(workerCreationAuth, email.trim().toLowerCase(), tempPw);
+    const uid    = cred.user.uid;
+
+    // Write worker profile to Firestore
+    await setDoc(doc(db, 'users', uid), {
+      email:        email.trim().toLowerCase(),
+      facilityCode: upper,
+      facilityName,
+      role:         'worker',
+      status:       'active',
+      createdAt:    serverTimestamp()
+    });
+
+    // Sign out of secondary app, then send password-setup email
+    await workerCreationAuth.signOut();
+    await sendPasswordResetEmail(auth, email.trim().toLowerCase(), {
+      url: window.location.origin + window.location.pathname.replace('admin.html', 'index.html')
+    });
+
+    return uid;
+  },
+
+  // Worker signs in with email + password.
+  // Loads their facility automatically from their Firestore profile.
+  async workerLogin(email, password) {
+    const cred    = await signInWithEmailAndPassword(auth, email.trim(), password);
+    const profile = await window.FB.getWorkerProfile(cred.user.uid);
+
+    if (!profile || profile.role !== 'worker') {
+      await fbSignOut(auth);
+      throw new Error('not-a-worker');
+    }
+    if (profile.status === 'inactive') {
+      await fbSignOut(auth);
+      throw new Error('inactive');
+    }
+
+    window.FB.workerProfile = profile;
+
+    if (!profile.facilityCode) {
+      // Account exists but no facility assigned yet
+      window.FB.facilityCode = null;
+      window.FB.facilityName = null;
+      window.FB.facilityLogo = null;
+      return profile;
+    }
+
+    // Load facility data
+    const upper   = profile.facilityCode;
+    const facSnap = await getDoc(doc(db, 'facilities', upper));
+    window.FB.facilityCode = upper;
+    window.FB.facilityName = profile.facilityName || (facSnap.exists() ? facSnap.data().name : upper);
+    window.FB.facilityLogo = facSnap.exists() ? (facSnap.data().logo || null) : null;
+
+    const chemicals = await window.FB.getFacilityChemicals(upper);
+    localStorage.setItem('chemLabelLibrary', JSON.stringify(chemicals));
+
+    return profile;
+  },
+
+  // @rhenus.com workers can self-register. They land in pending-facility
+  // status until an admin assigns their facility.
+  async workerSelfRegister(email, password) {
+    if (!email.trim().toLowerCase().endsWith('@rhenus.com')) {
+      throw new Error('domain-not-allowed');
+    }
+    const cred = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+    const profile = {
+      email:        email.trim().toLowerCase(),
+      facilityCode: null,
+      facilityName: null,
+      role:         'worker',
+      status:       'pending-facility',
+      createdAt:    serverTimestamp()
+    };
+    await setDoc(doc(db, 'users', cred.user.uid), profile);
+    window.FB.workerProfile = { uid: cred.user.uid, ...profile };
+    window.FB.facilityCode  = null;
+    window.FB.facilityName  = null;
+    window.FB.facilityLogo  = null;
+    return window.FB.workerProfile;
+  },
+
+  async workerLogout() {
+    window.FB.facilityCode  = null;
+    window.FB.facilityName  = null;
+    window.FB.facilityLogo  = null;
+    window.FB.workerProfile = null;
+    await fbSignOut(auth);
+  },
+
+  async getWorkerProfile(uid) {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return snap.exists() ? { uid: snap.id, ...snap.data() } : null;
+  },
+
+  async listWorkers() {
+    const snap = await getDocs(query(collection(db, 'users'), where('role', '==', 'worker')));
+    return snap.docs.map(d => ({ uid: d.id, ...d.data() }))
+      .sort((a, b) => (a.email || '').localeCompare(b.email || ''));
+  },
+
+  async updateWorkerFacility(uid, facilityCode) {
+    const upper   = facilityCode.trim().toUpperCase();
+    const facSnap = await getDoc(doc(db, 'facilities', upper));
+    const facilityName = facSnap.exists() ? facSnap.data().name : upper;
+    await setDoc(doc(db, 'users', uid), { facilityCode: upper, facilityName, status: 'active' }, { merge: true });
+  },
+
+  async deactivateWorker(uid) {
+    await setDoc(doc(db, 'users', uid), { status: 'inactive' }, { merge: true });
+  },
+
+  async reactivateWorker(uid) {
+    await setDoc(doc(db, 'users', uid), { status: 'active' }, { merge: true });
+  },
+
+  async resendWorkerInvite(email) {
+    await sendPasswordResetEmail(auth, email.trim().toLowerCase(), {
+      url: window.location.origin + window.location.pathname.replace('admin.html', 'index.html')
+    });
+  },
+
+  // Subscribe to Firebase Auth state changes. Callback receives the loaded
+  // worker profile (or null if signed out). Used by index.html instead of
+  // sessionStorage polling.
+  onAuthChange(callback) {
+    onAuthStateChanged(auth, async user => {
+      if (!user) { callback(null); return; }
+      try {
+        const profile = await window.FB.getWorkerProfile(user.uid);
+        if (!profile || profile.role !== 'worker') { callback(null); return; }
+        if (profile.status === 'inactive') { callback(null); return; }
+        window.FB.workerProfile = profile;
+        if (profile.facilityCode) {
+          const upper   = profile.facilityCode;
+          const facSnap = await getDoc(doc(db, 'facilities', upper));
+          window.FB.facilityCode = upper;
+          window.FB.facilityName = profile.facilityName || (facSnap.exists() ? facSnap.data().name : upper);
+          window.FB.facilityLogo = facSnap.exists() ? (facSnap.data().logo || null) : null;
+          const chemicals = await window.FB.getFacilityChemicals(upper);
+          localStorage.setItem('chemLabelLibrary', JSON.stringify(chemicals));
+        }
+        callback(profile);
+      } catch (e) { console.error('onAuthChange error:', e); callback(null); }
+    });
   }
 };

@@ -833,6 +833,10 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
 }
 .gate-btn:hover    { background: #900; }
 .gate-btn:disabled { background: #bbb; cursor: default; }
+.gate-link { width: 100%; margin-top: 10px; background: none; border: none; color: #888; font-size: 11px; cursor: pointer; font-family: inherit; text-decoration: underline; padding: 0; }
+.gate-link:hover { color: #555; }
+.gate-divider { border: none; border-top: 1px solid #eee; margin: 16px 0 14px; }
+.gate-pending { font-size: 12px; color: #555; text-align: center; line-height: 1.6; padding: 8px 0; }
 
 /* ── Facility Bar (top of sidebar when logged in) ───────────── */
 #facility-bar {
@@ -856,16 +860,47 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
 </head>
 <body>
 
-<!-- Facility Gate Overlay -->
+<!-- Worker Login / Register Gate -->
 <div id="facility-gate" style="display:none">
   <div class="gate-card">
     <div class="gate-title">Quick Label</div>
     <div class="gate-sub">Chemical Safety Label Generator</div>
-    <div class="gate-label">Facility Code</div>
-    <input type="text" id="gate-code" class="gate-input" placeholder="e.g. RVA001"
-           autocomplete="off" onkeydown="if(event.key==='Enter')facilityLogin()">
-    <div id="gate-error" class="gate-error"></div>
-    <button id="gate-btn" class="gate-btn" onclick="facilityLogin()">Access Library →</button>
+
+    <!-- Sign-in form -->
+    <div id="gate-signin">
+      <div class="gate-label">Email</div>
+      <input type="email" id="gate-email" class="gate-input" placeholder="you@rhenus.com"
+             autocomplete="email" onkeydown="if(event.key==='Enter')workerSignIn()">
+      <div class="gate-label" style="margin-top:12px">Password</div>
+      <input type="password" id="gate-password" class="gate-input" placeholder="Password"
+             autocomplete="current-password" onkeydown="if(event.key==='Enter')workerSignIn()">
+      <div id="gate-error" class="gate-error"></div>
+      <button id="gate-btn" class="gate-btn" onclick="workerSignIn()">Sign In →</button>
+      <hr class="gate-divider">
+      <div style="font-size:11px;color:#999;text-align:center;margin-bottom:6px">Have a @rhenus.com email?</div>
+      <button class="gate-link" onclick="showGatePanel('register')">Create your account →</button>
+    </div>
+
+    <!-- Self-register form (@rhenus.com only) -->
+    <div id="gate-register" style="display:none">
+      <div class="gate-label">Rhenus Email</div>
+      <input type="email" id="reg-email" class="gate-input" placeholder="name@rhenus.com" autocomplete="email">
+      <div class="gate-label" style="margin-top:12px">Choose a Password</div>
+      <input type="password" id="reg-password" class="gate-input" placeholder="At least 6 characters" autocomplete="new-password">
+      <div id="reg-error" class="gate-error"></div>
+      <button id="reg-btn" class="gate-btn" onclick="workerRegister()">Create Account →</button>
+      <button class="gate-link" style="margin-top:8px" onclick="showGatePanel('signin')">← Back to sign in</button>
+    </div>
+
+    <!-- Pending facility assignment message -->
+    <div id="gate-pending" style="display:none">
+      <div class="gate-pending">
+        ✅ Your account is set up!<br><br>
+        An administrator will assign your facility shortly.<br>
+        You'll have full access once that's done.
+      </div>
+      <button class="gate-link" style="margin-top:12px" onclick="window.FB.workerLogout().then(()=>showGatePanel('signin'))">Sign out</button>
+    </div>
   </div>
 </div>
 
@@ -875,7 +910,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
   <aside class="form-panel">
     <div id="facility-bar">
       <span class="fac-name" id="facility-name-display"></span>
-      <button onclick="switchFacility()">Switch Facility</button>
+      <button onclick="workerSignOut()">Sign Out</button>
     </div>
     <div class="print-bar">
       <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
@@ -1805,11 +1840,15 @@ function init() {
     if (wrap && !wrap.contains(e.target)) closeFavPanel();
   });
 
-  // Facility gate: check for saved session, otherwise show login
+  // Auth gate — Firebase Auth handles session persistence automatically.
+  // Show the gate immediately, then hide it if the user is already signed in.
+  showGatePanel('signin');
   if (window.FB) {
-    const savedCode = sessionStorage.getItem('facilityCode');
-    if (savedCode) facilityAutoLogin(savedCode);
-    else showFacilityGate();
+    window.FB.onAuthChange(profile => {
+      if (!profile) { showGatePanel('signin'); return; }
+      if (!profile.facilityCode) { showGatePanel('pending'); return; }
+      onWorkerReady(profile);
+    });
   }
 }
 
@@ -2162,12 +2201,18 @@ function clearForm() {
   update();
 }
 
-/* ── Facility Gate ──────────────────────────────────────────── */
-function showFacilityGate(msg) {
+/* ── Worker Auth Gate ───────────────────────────────────────── */
+function showGatePanel(panel) {
+  ['signin', 'register', 'pending'].forEach(p => {
+    const el = $('gate-' + p);
+    if (el) el.style.display = p === panel ? '' : 'none';
+  });
   const gate = $('facility-gate');
   if (gate) gate.style.display = 'flex';
-  if (msg) { const e = $('gate-error'); if (e) e.textContent = msg; }
-  setTimeout(() => { const c = $('gate-code'); if (c) c.focus(); }, 50);
+  setTimeout(() => {
+    const focus = { signin: 'gate-email', register: 'reg-email' }[panel];
+    if (focus) { const el = $(focus); if (el) el.focus(); }
+  }, 50);
 }
 
 function hideFacilityGate() {
@@ -2187,51 +2232,71 @@ function updateFacilityBar() {
   }
 }
 
-async function facilityLogin() {
-  const input = $('gate-code');
-  const btn   = $('gate-btn');
-  const err   = $('gate-error');
-  if (!input || !window.FB) return;
-  const code = input.value.trim();
-  if (!code) { if (err) err.textContent = 'Please enter your facility code.'; return; }
-  btn.disabled = true; btn.textContent = 'Connecting…';
-  if (err) err.textContent = '';
-  const name = await window.FB.login(code);
-  btn.disabled = false; btn.textContent = 'Access Library →';
-  if (!name) {
-    if (err) err.textContent = 'Facility code not found. Contact your administrator.';
-    return;
-  }
+function onWorkerReady(profile) {
   applyLogo(window.FB.facilityLogo);
   hideFacilityGate();
   updateFacilityBar();
   selectedLibIdx = null;
   filterCombo();
+  loadFavorites();
 }
 
-async function facilityAutoLogin(code) {
-  if (!window.FB) return;
-  const name = await window.FB.login(code);
-  if (name) {
-    applyLogo(window.FB.facilityLogo);
-    hideFacilityGate();
-    updateFacilityBar();
-    selectedLibIdx = null;
-  } else {
-    sessionStorage.removeItem('facilityCode');
-    showFacilityGate('Your previous session has expired. Please re-enter your facility code.');
+async function workerSignIn() {
+  const email    = ($('gate-email')    || {}).value || '';
+  const password = ($('gate-password') || {}).value || '';
+  const err = $('gate-error');
+  const btn = $('gate-btn');
+  if (!email || !password) { if (err) err.textContent = 'Enter your email and password.'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  if (err) err.textContent = '';
+  try {
+    const profile = await window.FB.workerLogin(email, password);
+    btn.disabled = false; btn.textContent = 'Sign In →';
+    if (!profile.facilityCode) { showGatePanel('pending'); return; }
+    onWorkerReady(profile);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Sign In →';
+    const msg = e.message === 'inactive'       ? 'Your account has been deactivated. Contact your administrator.'
+              : e.message === 'not-a-worker'   ? 'Account not found. Use the admin panel if you are an administrator.'
+              : e.code    === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential'
+                                               ? 'Incorrect email or password.'
+              : 'Sign-in failed — please try again.';
+    if (err) err.textContent = msg;
   }
 }
 
-function switchFacility() {
-  if (!confirm('Switch facility? Your current library view will be replaced.')) return;
-  sessionStorage.removeItem('facilityCode');
-  if (window.FB) { window.FB.facilityCode = null; window.FB.facilityName = null; window.FB.facilityLogo = null; }
+async function workerRegister() {
+  const email    = ($('reg-email')    || {}).value || '';
+  const password = ($('reg-password') || {}).value || '';
+  const err = $('reg-error');
+  const btn = $('reg-btn');
+  if (!email.toLowerCase().endsWith('@rhenus.com')) {
+    if (err) err.textContent = 'Self-registration is only available for @rhenus.com addresses.';
+    return;
+  }
+  if (password.length < 6) { if (err) err.textContent = 'Password must be at least 6 characters.'; return; }
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  if (err) err.textContent = '';
+  try {
+    await window.FB.workerSelfRegister(email, password);
+    btn.disabled = false; btn.textContent = 'Create Account →';
+    showGatePanel('pending');
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Create Account →';
+    const msg = e.message === 'domain-not-allowed'         ? 'Only @rhenus.com addresses can self-register.'
+              : e.code    === 'auth/email-already-in-use'  ? 'An account with this email already exists.'
+              : e.code    === 'auth/weak-password'         ? 'Password must be at least 6 characters.'
+              : 'Registration failed — please try again.';
+    if (err) err.textContent = msg;
+  }
+}
+
+async function workerSignOut() {
   applyLogo(null);
-  const code = $('gate-code'); if (code) code.value = '';
-  const err  = $('gate-error'); if (err)  err.textContent = '';
   updateFacilityBar();
-  showFacilityGate();
+  clearForm();
+  await window.FB.workerLogout();
+  showGatePanel('signin');
 }
 
 document.addEventListener('DOMContentLoaded', init);

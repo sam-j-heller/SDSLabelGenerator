@@ -607,6 +607,7 @@ nav {
 
   <nav>
     <button class="tab-btn active" onclick="switchTab('facilities', this)">Facilities</button>
+    <button class="tab-btn" onclick="switchTab('workers', this)">Workers</button>
     <button class="tab-btn" onclick="switchTab('approvals', this)" id="tab-btn-approvals">Approvals</button>
     <button class="tab-btn" onclick="switchTab('company', this)">Company Chemicals</button>
     <button class="tab-btn" onclick="switchTab('blacklist', this)">Chemical Blacklist</button>
@@ -682,6 +683,39 @@ nav {
       </div>
 
     </div><!-- .bl-grid -->
+  </div>
+
+  <!-- ===== WORKERS TAB ===== -->
+  <div id="tab-workers" class="tab-panel">
+    <div class="fac-grid">
+
+      <!-- LEFT: Add worker form -->
+      <div class="fac-left">
+        <div class="card">
+          <h2>Add Worker</h2>
+          <p style="font-size:11px;color:#666;margin-bottom:12px">Enter the worker's email and assign their facility. They will receive an email to set up their password.</p>
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">Email Address</label>
+          <input type="email" id="worker-email-input" class="edit-input" placeholder="worker@rhenus.com" autocomplete="off" style="margin-bottom:10px">
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">Assign Facility</label>
+          <select id="worker-fac-select" class="col-select" style="width:100%;padding:8px 10px;font-size:12px;margin-bottom:12px">
+            <option value="">— Select facility —</option>
+          </select>
+          <button onclick="addWorker()" style="width:100%;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">Send Invite →</button>
+          <div id="worker-add-status" style="font-size:11px;min-height:18px;margin-top:8px"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Worker list -->
+      <div class="fac-right">
+        <div class="card">
+          <h2>All Workers</h2>
+          <div id="worker-list-wrap">
+            <div style="color:#888;font-size:13px;padding:12px 0">Open this tab to load workers.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <!-- ===== FACILITIES TAB ===== -->
@@ -923,8 +957,132 @@ function switchTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
-  if (name === 'company') loadCompanyChemicals();
+  if (name === 'company')   loadCompanyChemicals();
   if (name === 'approvals') loadApprovals();
+  if (name === 'workers')   loadWorkers();
+}
+
+// -------------------------------------------------------
+//  Workers tab
+// -------------------------------------------------------
+let workerList = [];
+
+async function loadWorkers() {
+  const wrap = document.getElementById('worker-list-wrap');
+  if (wrap) wrap.innerHTML = '<div style="color:#888;font-size:13px;padding:12px 0">Loading…</div>';
+  populateWorkerFacilitySelect();
+  workerList = await window.FB.listWorkers();
+  renderWorkers();
+}
+
+function populateWorkerFacilitySelect() {
+  const sel = document.getElementById('worker-fac-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Select facility —</option>' +
+    facilities.map(f => `<option value="${esc(f.code)}">${esc(f.code)} — ${esc(f.name)}</option>`).join('');
+}
+
+function renderWorkers() {
+  const wrap = document.getElementById('worker-list-wrap');
+  if (!wrap) return;
+  if (!workerList.length) {
+    wrap.innerHTML = '<div style="color:#888;font-size:13px;padding:12px 0">No workers yet. Add one on the left.</div>';
+    return;
+  }
+
+  const statusLabel = s => s === 'inactive'        ? '<span style="color:#c00;font-size:10px;font-weight:700">INACTIVE</span>'
+                         : s === 'pending-facility' ? '<span style="color:#e08844;font-size:10px;font-weight:700">PENDING FACILITY</span>'
+                         :                           '<span style="color:#2e7d32;font-size:10px;font-weight:700">ACTIVE</span>';
+
+  wrap.innerHTML = workerList.map((w, i) => `
+    <div style="display:grid;grid-template-columns:1fr auto;align-items:start;padding:10px 0;border-bottom:1px solid #f0f0f0;gap:8px">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#222">${esc(w.email)}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">
+          ${statusLabel(w.status)} &nbsp;·&nbsp;
+          ${w.facilityCode ? `<b>${esc(w.facilityCode)}</b> — ${esc(w.facilityName || '')}` : 'No facility assigned'}
+        </div>
+        ${w.status === 'pending-facility' || !w.facilityCode ? `
+          <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
+            <select id="assign-fac-${i}" class="col-select" style="font-size:11px;padding:3px 6px">
+              <option value="">— Assign facility —</option>
+              ${facilities.map(f => `<option value="${esc(f.code)}">${esc(f.code)} — ${esc(f.name)}</option>`).join('')}
+            </select>
+            <button onclick="assignWorkerFacility(${i})" style="font-size:11px;padding:3px 10px;background:#1a3a5c;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:600">Assign</button>
+          </div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        <button onclick="resendWorkerInvite(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #bcd;border-radius:3px;color:#1a3a5c;cursor:pointer;font-weight:600;white-space:nowrap">Resend Email</button>
+        ${w.status === 'inactive'
+          ? `<button onclick="reactivateWorker(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #a8dcbc;border-radius:3px;color:#1a5c33;cursor:pointer;font-weight:600">Reactivate</button>`
+          : `<button onclick="deactivateWorker(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #f5b8b8;border-radius:3px;color:#8b1a1a;cursor:pointer;font-weight:600">Deactivate</button>`}
+      </div>
+    </div>`).join('');
+}
+
+async function addWorker() {
+  const email  = (document.getElementById('worker-email-input') || {}).value || '';
+  const facCode = (document.getElementById('worker-fac-select') || {}).value || '';
+  const status = document.getElementById('worker-add-status');
+  if (!email) { if (status) status.innerHTML = '<span style="color:#c00">Enter an email address.</span>'; return; }
+  if (!facCode) { if (status) status.innerHTML = '<span style="color:#c00">Select a facility.</span>'; return; }
+  if (status) status.textContent = 'Creating account…';
+  try {
+    await window.FB.createWorkerAccount(email, facCode);
+    if (status) status.innerHTML = `<span style="color:#2e7d32">✓ Invite sent to ${esc(email)}</span>`;
+    document.getElementById('worker-email-input').value = '';
+    document.getElementById('worker-fac-select').value  = '';
+    logActivity('Added worker: ' + email + ' → ' + facCode, 'add');
+    workerList = await window.FB.listWorkers();
+    renderWorkers();
+  } catch (e) {
+    console.error(e);
+    const msg = e.code === 'auth/email-already-in-use' ? 'An account with this email already exists.'
+              : 'Failed to create account — check console.';
+    if (status) status.innerHTML = `<span style="color:#c00">${esc(msg)}</span>`;
+  }
+}
+
+async function assignWorkerFacility(idx) {
+  const w = workerList[idx];
+  const sel = document.getElementById('assign-fac-' + idx);
+  const facCode = sel ? sel.value : '';
+  if (!facCode) return;
+  try {
+    await window.FB.updateWorkerFacility(w.uid, facCode);
+    logActivity('Assigned ' + w.email + ' → ' + facCode, 'add');
+    workerList = await window.FB.listWorkers();
+    renderWorkers();
+  } catch (e) { console.error(e); }
+}
+
+async function deactivateWorker(idx) {
+  const w = workerList[idx];
+  if (!confirm(`Deactivate ${w.email}? They will no longer be able to sign in.`)) return;
+  try {
+    await window.FB.deactivateWorker(w.uid);
+    logActivity('Deactivated worker: ' + w.email, 'del');
+    workerList = await window.FB.listWorkers();
+    renderWorkers();
+  } catch (e) { console.error(e); }
+}
+
+async function reactivateWorker(idx) {
+  const w = workerList[idx];
+  try {
+    await window.FB.reactivateWorker(w.uid);
+    logActivity('Reactivated worker: ' + w.email, 'add');
+    workerList = await window.FB.listWorkers();
+    renderWorkers();
+  } catch (e) { console.error(e); }
+}
+
+async function resendWorkerInvite(idx) {
+  const w = workerList[idx];
+  try {
+    await window.FB.resendWorkerInvite(w.email);
+    logActivity('Resent invite to: ' + w.email, 'add');
+  } catch (e) { console.error(e); }
 }
 
 // -------------------------------------------------------
