@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Quick Label — Chemical Safety Label</title>
+<title>Easy SDS</title>
 <style>
 /* ============================================================
-   QUICK LABEL — Chemical Safety Label Generator
+   EASY SDS
    Single-file vanilla HTML/CSS/JS, no dependencies, no images.
    ------------------------------------------------------------
    Layout: form (30%) + live letter-landscape preview (70%).
@@ -878,7 +878,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
 <!-- Worker Login / Register Gate -->
 <div id="facility-gate" style="display:none">
   <div class="gate-card">
-    <div class="gate-title">Quick Label</div>
+    <div class="gate-title">Easy SDS</div>
     <div class="gate-sub">Chemical Safety Label Generator</div>
 
     <!-- Sign-in form -->
@@ -1596,7 +1596,7 @@ function update() {
   const productName = $('f-product').value.trim();
   $('lbl-product').textContent = productName || '—';
   // Set page title so browser uses the chemical name as the PDF filename
-  document.title = productName ? `${productName} — Safety Label` : 'Quick Label — Chemical Safety Label';
+  document.title = productName ? `${productName} — Easy SDS` : 'Easy SDS';
 
   // Signal word — DANGER (red, large), WARNING (orange, large),
   // or NONE → display "NOT HAZARDOUS" in muted green at smaller size.

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Quick Label — Admin Console</title>
+<title>Easy SDS — Admin Console</title>
 <script type="module" src="firebase.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; }
@@ -687,7 +687,7 @@ nav {
 <!-- ===== GATE ===== -->
 <div id="gate">
   <div class="gate-card">
-    <div class="gate-brand">Quick Label</div>
+    <div class="gate-brand">Easy SDS</div>
     <div class="gate-title">Admin Console</div>
     <div class="gate-label">Email</div>
     <input type="email" id="gate-email" class="gate-input" placeholder="admin@example.com"
@@ -708,7 +708,7 @@ nav {
 
   <header>
     <div>
-      <div class="hdr-brand">Quick Label</div>
+      <div class="hdr-brand">Easy SDS</div>
       <div class="hdr-title">Admin Console</div>
     </div>
     <div class="hdr-sep"></div>
@@ -1332,7 +1332,7 @@ async function setRole(idx, role) {
   const w = workerList[idx];
   const label = role === 'admin' ? 'Make Admin' : 'Remove Admin';
   const msg   = role === 'admin'
-    ? `Give ${w.email} admin access? They will be able to select any facility in the label generator.`
+    ? `Give ${w.email} admin access? They will be able to select any facility in Easy SDS.`
     : `Remove admin access from ${w.email}? They will return to worker status.`;
   if (!confirm(msg)) return;
   try {
@@ -1401,13 +1401,13 @@ function dtBuildTemplate() {
   const foot     = `<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0"><p style="font-size:11px;color:#aaa;margin:0">Rhenus Automotive · Engineering Department</p>`;
 
   if (type === 'test') return {
-    subject: 'Email System Test — Rhenus SDS Label Generator',
+    subject: 'Email System Test — Easy SDS',
     html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
   <div style="background:#5a3a8c;padding:24px 28px;border-radius:6px 6px 0 0">
     <h1 style="color:#fff;margin:0;font-size:20px">Email System Test</h1>
   </div>
   <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
-    <p>This is a test email from the <strong>Rhenus SDS Label Generator</strong> admin panel.</p>
+    <p>This is a test email from the <strong>Easy SDS</strong> admin panel.</p>
     <p>If you received this, your email delivery pipeline (Firebase Trigger Email + Resend) is working correctly.</p>
     <p style="font-size:11px;color:#aaa">Sent ${new Date().toLocaleString()}</p>
     ${foot}
@@ -1416,17 +1416,17 @@ function dtBuildTemplate() {
   };
 
   if (type === 'invite') return {
-    subject: "You have been invited to use the Easy SDS safety label generator",
+    subject: "You've been invited to use Easy SDS",
     html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
   <div style="background:#1a3a5c;padding:24px 28px;border-radius:6px 6px 0 0">
-    <h1 style="color:#fff;margin:0;font-size:20px">Rhenus SDS Label Generator</h1>
+    <h1 style="color:#fff;margin:0;font-size:20px">Easy SDS</h1>
   </div>
   <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
     <p>Hi,</p>
-    <p>You've been added to the <strong>Rhenus SDS Label Generator</strong> for <strong>${facility}</strong>.</p>
+    <p>You've been added to <strong>Easy SDS</strong> for <strong>${facility}</strong>.</p>
     <p>Click below and use <strong>"First time or forgot password"</strong> to set your password for <strong>${toEmail}</strong>.</p>
     <p style="text-align:center;margin:40px 0">
-      <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:14px 32px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Label Generator →</a>
+      <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:14px 32px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Easy SDS →</a>
     </p>
     <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
     ${foot}
