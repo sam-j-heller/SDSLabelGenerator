@@ -530,6 +530,15 @@ nav {
 .appr-review { background: #1a3a5c; color: #fff; border: none; padding: 7px 14px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer; }
 .appr-review:hover { background: #254d7a; }
 
+/* ---------- History tab ---------- */
+.hist-row { background: #fff; border: 1px solid #e0e6ef; border-radius: 6px; padding: 12px 16px; margin-bottom: 8px; }
+.hist-row-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hist-product { font-size: 14px; font-weight: 700; color: #1a3a5c; flex: 1; min-width: 140px; }
+.hist-badge-approved { display: inline-block; background: #d4edda; color: #1a5c33; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
+.hist-badge-rejected { display: inline-block; background: #fde8e8; color: #8b1a1a; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
+.hist-meta { font-size: 11px; color: #888; margin-top: 4px; }
+.hist-reason { background: #fff3f3; border-left: 3px solid #cc0000; padding: 8px 12px; margin-top: 8px; border-radius: 0 3px 3px 0; font-size: 12px; color: #333; }
+
 /* ---------- Reject reason modal ---------- */
 #reject-modal {
   display: none; position: fixed; inset: 0; z-index: 9500;
@@ -686,6 +695,7 @@ nav {
     <button class="tab-btn active" onclick="switchTab('facilities', this)">Facilities</button>
     <button class="tab-btn" onclick="switchTab('workers', this)">Workers</button>
     <button class="tab-btn" onclick="switchTab('approvals', this)" id="tab-btn-approvals">Approvals</button>
+    <button class="tab-btn" onclick="switchTab('history', this)">History</button>
     <button class="tab-btn" onclick="switchTab('company', this)">Company Chemicals</button>
     <button class="tab-btn" onclick="switchTab('blacklist', this)">Chemical Blacklist</button>
   </nav>
@@ -878,6 +888,27 @@ nav {
     </div>
   </div>
 
+  <!-- ===== HISTORY TAB ===== -->
+  <div id="tab-history" class="tab-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <h2 style="margin:0">Submission History</h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="hist-fac-filter" class="col-select" onchange="renderHistory()">
+          <option value="">All Facilities</option>
+        </select>
+        <select id="hist-outcome-filter" class="col-select" onchange="renderHistory()">
+          <option value="">All Outcomes</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <button onclick="loadHistory()" style="padding:6px 14px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer">Refresh</button>
+      </div>
+    </div>
+    <div id="hist-list">
+      <div class="appr-empty">Open this tab to load history.</div>
+    </div>
+  </div>
+
   <!-- ===== COMPANY CHEMICALS TAB ===== -->
   <div id="tab-company" class="tab-panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -1048,6 +1079,7 @@ function switchTab(name, btn) {
   if (name === 'company')   loadCompanyChemicals();
   if (name === 'approvals') loadApprovals();
   if (name === 'workers')   loadWorkers();
+  if (name === 'history')   loadHistory();
 }
 
 // -------------------------------------------------------
@@ -2347,6 +2379,11 @@ async function doApprove(idx) {
     if (ok) {
       logActivity(`Approved "${p.product}" for ${p.facilityCode}`, 'add');
       window.FB.sendApprovalEmail(p.submittedByEmail, p.product, p.facilityName).catch(() => {});
+      window.FB.logSubmissionHistory(p.facilityCode, {
+        product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
+        submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
+        reviewedBy: window.FB.adminProfile?.email || null, outcome: 'approved', reason: null
+      }).catch(() => {});
       pendingApprovals.splice(idx, 1);
       populateApprovalsFacilityFilter();
       renderApprovals();
@@ -2397,6 +2434,11 @@ async function doReject(idx) {
       await window.FB.rejectChemical(p.facilityCode, p._id);
       logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
       window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(() => {});
+      window.FB.logSubmissionHistory(p.facilityCode, {
+        product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
+        submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
+        reviewedBy: window.FB.adminProfile?.email || null, outcome: 'rejected', reason: reason || null
+      }).catch(() => {});
       pendingApprovals.splice(idx, 1);
       renderApprovals();
       updateApprovalsBadge();
@@ -2507,8 +2549,14 @@ async function approveFromReview() {
   try {
     const ok = await window.FB.approveChemical(p.facilityCode, p._id, editedData);
     if (ok) {
-      logActivity(`Approved "${editedData.product || p.product}" for ${p.facilityCode}`, 'add');
-      window.FB.sendApprovalEmail(p.submittedByEmail, editedData.product || p.product, p.facilityName).catch(() => {});
+      const approvedProduct = editedData.product || p.product;
+      logActivity(`Approved "${approvedProduct}" for ${p.facilityCode}`, 'add');
+      window.FB.sendApprovalEmail(p.submittedByEmail, approvedProduct, p.facilityName).catch(() => {});
+      window.FB.logSubmissionHistory(p.facilityCode, {
+        product: approvedProduct, facilityCode: p.facilityCode, facilityName: p.facilityName,
+        submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
+        reviewedBy: window.FB.adminProfile?.email || null, outcome: 'approved', reason: null
+      }).catch(() => {});
       const i = reviewIdx;
       closeReview();
       pendingApprovals.splice(i, 1);
@@ -2536,6 +2584,11 @@ function rejectFromReview() {
       await window.FB.rejectChemical(p.facilityCode, p._id);
       logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
       window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(() => {});
+      window.FB.logSubmissionHistory(p.facilityCode, {
+        product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
+        submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
+        reviewedBy: window.FB.adminProfile?.email || null, outcome: 'rejected', reason: reason || null
+      }).catch(() => {});
       const i = reviewIdx;
       closeReview();
       pendingApprovals.splice(i, 1);
@@ -2558,6 +2611,73 @@ function updateApprovalsBadge() {
   btn.innerHTML = count > 0
     ? `Approvals <span class="appr-badge">${count}</span>`
     : 'Approvals';
+}
+
+// -------------------------------------------------------
+//  Submission History
+// -------------------------------------------------------
+let submissionHistory = [];
+
+async function loadHistory() {
+  const list = document.getElementById('hist-list');
+  if (list) list.innerHTML = '<div style="padding:16px;color:#888;font-size:13px">Loading…</div>';
+  submissionHistory = await window.FB.getAllSubmissionHistory();
+  populateHistoryFacilityFilter();
+  renderHistory();
+}
+
+function populateHistoryFacilityFilter() {
+  const sel = document.getElementById('hist-fac-filter');
+  if (!sel) return;
+  const current = sel.value;
+  const codes = [...new Set(submissionHistory.map(h => h.facilityCode))].sort();
+  sel.innerHTML = '<option value="">All Facilities</option>' +
+    codes.map(code => {
+      const h = submissionHistory.find(h => h.facilityCode === code);
+      return `<option value="${esc(code)}">${esc(code)} — ${esc(h?.facilityName || code)}</option>`;
+    }).join('');
+  if (codes.includes(current)) sel.value = current;
+}
+
+function renderHistory() {
+  const facFilter     = document.getElementById('hist-fac-filter')?.value || '';
+  const outcomeFilter = document.getElementById('hist-outcome-filter')?.value || '';
+  const list          = document.getElementById('hist-list');
+  if (!list) return;
+
+  const filtered = submissionHistory.filter(h =>
+    (!facFilter     || h.facilityCode === facFilter) &&
+    (!outcomeFilter || h.outcome === outcomeFilter)
+  );
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="appr-empty">No history records found.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(h => {
+    const reviewedAt = h.reviewedAt?.toDate ? h.reviewedAt.toDate().toLocaleString() : '—';
+    const submittedAt = h.submittedAt?.toDate ? h.submittedAt.toDate().toLocaleDateString() : '—';
+    const badge = h.outcome === 'approved'
+      ? `<span class="hist-badge-approved">✓ Approved</span>`
+      : `<span class="hist-badge-rejected">✕ Rejected</span>`;
+    const reason = h.reason
+      ? `<div class="hist-reason"><strong>Reason:</strong> ${esc(h.reason)}</div>`
+      : '';
+    return `
+    <div class="hist-row">
+      <div class="hist-row-top">
+        <div class="hist-product">${esc(h.product || '(unnamed)')}</div>
+        ${badge}
+        <span class="appr-fac">${esc(h.facilityCode)}</span>
+      </div>
+      <div class="hist-meta">
+        Submitted ${esc(submittedAt)}${h.submittedByEmail ? ' by <strong>' + esc(h.submittedByEmail) + '</strong>' : ''}
+        &nbsp;·&nbsp; Reviewed ${esc(reviewedAt)}${h.reviewedBy ? ' by <strong>' + esc(h.reviewedBy) + '</strong>' : ''}
+      </div>
+      ${reason}
+    </div>`;
+  }).join('');
 }
 </script>
 

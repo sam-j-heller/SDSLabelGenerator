@@ -433,6 +433,28 @@ window.FB = {
     await deleteDoc(doc(db, 'facilities', upper, 'pending', pendingId));
   },
 
+  // Write a record to /facilities/{code}/submission-history after an approve or reject.
+  async logSubmissionHistory(code, data) {
+    const upper = code.trim().toUpperCase();
+    await addDoc(collection(db, 'facilities', upper, 'submission-history'), {
+      ...data,
+      reviewedAt: serverTimestamp()
+    });
+  },
+
+  // Return all submission history across every facility, sorted newest-first.
+  async getAllSubmissionHistory() {
+    const facs = await window.FB.listFacilities();
+    const results = [];
+    await Promise.all(facs.map(async fac => {
+      try {
+        const snap = await getDocs(collection(db, 'facilities', fac.code, 'submission-history'));
+        snap.docs.forEach(d => results.push({ ...d.data(), _id: d.id, facilityCode: fac.code, facilityName: fac.name }));
+      } catch (e) { /* no history yet */ }
+    }));
+    return results.sort((a, b) => (b.reviewedAt?.seconds || 0) - (a.reviewedAt?.seconds || 0));
+  },
+
   // One-time migration: moves a facility's legacy chemicals array into its
   // chemicals subcollection, then clears the array on the parent document.
   async migrateFacilityChemicals(code) {
