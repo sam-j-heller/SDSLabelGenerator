@@ -855,6 +855,13 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
   font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
 }
 #facility-bar button:hover { background: rgba(255,255,255,0.25); }
+#admin-fac-switcher {
+  display: none; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);
+  color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 3px;
+  cursor: pointer; font-family: inherit; margin-left: 10px; font-weight: 600;
+  max-width: 160px;
+}
+#admin-fac-switcher option { background: #222; color: #fff; }
 </style>
 <script type="module" src="firebase.js"></script>
 </head>
@@ -922,6 +929,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
   <aside class="form-panel">
     <div id="facility-bar">
       <span class="fac-name" id="facility-name-display"></span>
+      <select id="admin-fac-switcher" onchange="adminSwitchFacility(this.value)"></select>
       <button onclick="workerSignOut()">Sign Out</button>
     </div>
     <div class="print-bar">
@@ -2233,15 +2241,46 @@ function hideFacilityGate() {
 }
 
 function updateFacilityBar() {
-  const bar  = $('facility-bar');
-  const name = $('facility-name-display');
+  const bar      = $('facility-bar');
+  const name     = $('facility-name-display');
+  const switcher = $('admin-fac-switcher');
   if (!bar || !name) return;
   if (window.FB && window.FB.facilityCode) {
     name.textContent = window.FB.facilityName || window.FB.facilityCode;
     bar.style.display = 'flex';
+    const isAdmin = window.FB.workerProfile?.role === 'admin';
+    if (isAdmin && switcher) {
+      switcher.style.display = 'inline-block';
+      populateAdminFacSwitcher();
+    } else if (switcher) {
+      switcher.style.display = 'none';
+    }
   } else {
     bar.style.display = 'none';
+    if (switcher) switcher.style.display = 'none';
   }
+}
+
+async function populateAdminFacSwitcher() {
+  const sel = $('admin-fac-switcher');
+  if (!sel) return;
+  try {
+    const facs = await window.FB.listFacilities();
+    sel.innerHTML = facs.map(f =>
+      `<option value="${f.code}"${f.code === window.FB.facilityCode ? ' selected' : ''}>${f.code} — ${f.name}</option>`
+    ).join('');
+  } catch (e) { console.error(e); }
+}
+
+async function adminSwitchFacility(code) {
+  if (!code || code === window.FB.facilityCode) return;
+  const name = await window.FB.login(code);
+  if (!name) return;
+  $('facility-name-display').textContent = name;
+  applyLogo(window.FB.facilityLogo);
+  selectedLibIdx = null;
+  filterCombo();
+  loadFavorites();
 }
 
 function onWorkerReady(profile) {
