@@ -573,7 +573,7 @@ nav {
 
 /* ---------- Dev Tools button ---------- */
 #devtools-btn {
-  display: none;
+  display: inline-block;
   background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85);
   border: 1px solid rgba(255,255,255,0.2);
   padding: 6px 14px; border-radius: 4px; font-size: 11px; font-weight: 700;
@@ -990,10 +990,6 @@ async function doAdminLogin() {
   if (ok) {
     document.getElementById('gate').style.display = 'none';
     document.getElementById('app').style.display  = 'flex';
-    const profile = window.FB.adminProfile;
-    if (profile?.devtoolsAccess || (profile?.email || '').toLowerCase() === 'sam.heller@rhenus.com') {
-      document.getElementById('devtools-btn').style.display = 'inline-block';
-    }
     loadFacilities();
     loadBlacklist();
     window.FB.getAllPending().then(list => { pendingApprovals = list; updateApprovalsBadge(); }).catch(() => {});
