@@ -708,7 +708,12 @@ nav {
       <!-- RIGHT: Worker list -->
       <div class="fac-right">
         <div class="card">
-          <h2>All Workers</h2>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px">
+            <h2 style="margin:0">All Workers</h2>
+            <select id="worker-fac-filter" class="col-select" style="font-size:11px;padding:5px 8px;min-width:160px" onchange="renderWorkers()">
+              <option value="">All Facilities</option>
+            </select>
+          </div>
           <div id="worker-list-wrap">
             <div style="color:#888;font-size:13px;padding:12px 0">Open this tab to load workers.</div>
           </div>
@@ -972,7 +977,21 @@ async function loadWorkers() {
   if (wrap) wrap.innerHTML = '<div style="color:#888;font-size:13px;padding:12px 0">Loading…</div>';
   populateWorkerFacilitySelect();
   workerList = await window.FB.listWorkers();
+  populateWorkerFacilityFilter();
   renderWorkers();
+}
+
+function populateWorkerFacilityFilter() {
+  const sel = document.getElementById('worker-fac-filter');
+  if (!sel) return;
+  const current = sel.value;
+  const codes = [...new Set(workerList.map(w => w.facilityCode).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All Facilities</option>' +
+    codes.map(c => {
+      const fac = facilities.find(f => f.code === c);
+      return `<option value="${esc(c)}">${esc(c)}${fac ? ' — ' + esc(fac.name) : ''}</option>`;
+    }).join('');
+  sel.value = current;
 }
 
 function populateWorkerFacilitySelect() {
@@ -985,8 +1004,14 @@ function populateWorkerFacilitySelect() {
 function renderWorkers() {
   const wrap = document.getElementById('worker-list-wrap');
   if (!wrap) return;
-  if (!workerList.length) {
-    wrap.innerHTML = '<div style="color:#888;font-size:13px;padding:12px 0">No workers yet. Add one on the left.</div>';
+
+  const filterCode = (document.getElementById('worker-fac-filter') || {}).value || '';
+  const filtered = filterCode
+    ? workerList.filter(w => w.facilityCode === filterCode)
+    : workerList;
+
+  if (!filtered.length) {
+    wrap.innerHTML = `<div style="color:#888;font-size:13px;padding:12px 0">${filterCode ? 'No workers at this facility.' : 'No workers yet. Add one on the left.'}</div>`;
     return;
   }
 
@@ -994,15 +1019,21 @@ function renderWorkers() {
                          : s === 'pending-facility' ? '<span style="color:#e08844;font-size:10px;font-weight:700">PENDING FACILITY</span>'
                          :                           '<span style="color:#2e7d32;font-size:10px;font-weight:700">ACTIVE</span>';
 
-  wrap.innerHTML = workerList.map((w, i) => `
+  wrap.innerHTML = filtered.map((w) => {
+    const i = workerList.indexOf(w);
+    const isAdmin = w.role === 'admin';
+    return `
     <div style="display:grid;grid-template-columns:1fr auto;align-items:start;padding:10px 0;border-bottom:1px solid #f0f0f0;gap:8px">
       <div>
-        <div style="font-size:13px;font-weight:600;color:#222">${esc(w.email)}</div>
+        <div style="font-size:13px;font-weight:600;color:#222">
+          ${esc(w.email)}
+          ${isAdmin ? '<span style="font-size:9px;font-weight:700;color:#fff;background:#1a3a5c;padding:1px 5px;border-radius:2px;margin-left:5px;vertical-align:middle">ADMIN</span>' : ''}
+        </div>
         <div style="font-size:11px;color:#888;margin-top:2px">
           ${statusLabel(w.status)} &nbsp;·&nbsp;
           ${w.facilityCode ? `<b>${esc(w.facilityCode)}</b> — ${esc(w.facilityName || '')}` : 'No facility assigned'}
         </div>
-        ${w.status === 'pending-facility' || !w.facilityCode ? `
+        ${!isAdmin && (w.status === 'pending-facility' || !w.facilityCode) ? `
           <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
             <select id="assign-fac-${i}" class="col-select" style="font-size:11px;padding:3px 6px">
               <option value="">— Assign facility —</option>
@@ -1012,12 +1043,16 @@ function renderWorkers() {
           </div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        ${isAdmin
+          ? `<button onclick="setRole(${i},'worker')" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #bbb;border-radius:3px;color:#555;cursor:pointer;font-weight:600;white-space:nowrap">Remove Admin</button>`
+          : `<button onclick="setRole(${i},'admin')"  style="font-size:10px;padding:3px 8px;background:none;border:1px solid #1a3a5c;border-radius:3px;color:#1a3a5c;cursor:pointer;font-weight:600;white-space:nowrap">Make Admin</button>`}
         <button onclick="resendWorkerInvite(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #bcd;border-radius:3px;color:#1a3a5c;cursor:pointer;font-weight:600;white-space:nowrap">Resend Email</button>
         ${w.status === 'inactive'
           ? `<button onclick="reactivateWorker(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #a8dcbc;border-radius:3px;color:#1a5c33;cursor:pointer;font-weight:600">Reactivate</button>`
-          : `<button onclick="deactivateWorker(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #f5b8b8;border-radius:3px;color:#8b1a1a;cursor:pointer;font-weight:600">Deactivate</button>`}
+          : `<button onclick="deactivateWorker(${i})"  style="font-size:10px;padding:3px 8px;background:none;border:1px solid #f5b8b8;border-radius:3px;color:#8b1a1a;cursor:pointer;font-weight:600">Deactivate</button>`}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function addWorker() {
@@ -1072,6 +1107,21 @@ async function reactivateWorker(idx) {
   try {
     await window.FB.reactivateWorker(w.uid);
     logActivity('Reactivated worker: ' + w.email, 'add');
+    workerList = await window.FB.listWorkers();
+    renderWorkers();
+  } catch (e) { console.error(e); }
+}
+
+async function setRole(idx, role) {
+  const w = workerList[idx];
+  const label = role === 'admin' ? 'Make Admin' : 'Remove Admin';
+  const msg   = role === 'admin'
+    ? `Give ${w.email} admin access? They will be able to select any facility in the label generator.`
+    : `Remove admin access from ${w.email}? They will return to worker status.`;
+  if (!confirm(msg)) return;
+  try {
+    await window.FB.setWorkerRole(w.uid, role);
+    logActivity(`${label}: ${w.email}`, role === 'admin' ? 'add' : 'del');
     workerList = await window.FB.listWorkers();
     renderWorkers();
   } catch (e) { console.error(e); }

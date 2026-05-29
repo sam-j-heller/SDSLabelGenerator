@@ -581,6 +581,10 @@ window.FB = {
     await setDoc(doc(db, 'users', uid), { status: 'active' }, { merge: true });
   },
 
+  async setWorkerRole(uid, role) {
+    await setDoc(doc(db, 'users', uid), { role }, { merge: true });
+  },
+
   async resendWorkerInvite(email) {
     await sendPasswordResetEmail(auth, email.trim().toLowerCase(), {
       url: window.location.origin + window.location.pathname.replace('admin.html', 'index.html')
