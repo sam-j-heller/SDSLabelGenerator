@@ -34,6 +34,7 @@ window.FB = {
     const data = snap.data();
     window.FB.facilityCode = upper;
     window.FB.facilityName = data.name || upper;
+    window.FB.facilityLogo = data.logo || null;
     sessionStorage.setItem('facilityCode', upper);
     // Load from subcollection (falls back to legacy array automatically)
     const chemicals = await window.FB.getFacilityChemicals(upper);
@@ -213,6 +214,19 @@ window.FB = {
       console.error('Firebase listFacilities error:', e);
       return [];
     }
+  },
+
+  async setFacilityLogo(code, dataUrl) {
+    const upper = code.trim().toUpperCase();
+    await setDoc(doc(db, 'facilities', upper), { logo: dataUrl || null }, { merge: true });
+  },
+
+  async getFacilityLogo(code) {
+    const upper = code.trim().toUpperCase();
+    try {
+      const snap = await getDoc(doc(db, 'facilities', upper));
+      return snap.exists() ? (snap.data().logo || null) : null;
+    } catch (e) { return null; }
   },
 
   // Create a new facility document (name only — chemicals live in subcollection).

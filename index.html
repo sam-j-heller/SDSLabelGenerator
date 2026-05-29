@@ -208,29 +208,29 @@ body {
 .pic-list input { margin-right: 4px; }
 
 /* ============================================================
-   LABEL PREVIEW (10in × 7.5in — matches print dimensions)
+   LABEL PREVIEW (A4 landscape — 11.69in × 8.27in)
    .label-outer is sized by JS to the *scaled* footprint so the
    preview panel can center it correctly via flex.
    ============================================================ */
 .label-outer {
   position: relative;
   /* Fit the label inside the preview panel while keeping the
-     true 10:7.5 (= 4:3) letter-landscape aspect ratio.
+     A4 landscape aspect ratio (297:210).
      100cqi/100cqb are the panel's content-area width/height. */
-  width: min(calc(100cqi - 16px), calc((100cqb - 16px) * 10 / 7.5));
-  aspect-ratio: 10 / 7.5;
+  width: min(calc(100cqi - 16px), calc((100cqb - 16px) * 11.69 / 8.27));
+  aspect-ratio: 11.69 / 8.27;
 }
 .label-wrap {
   position: absolute;
   top: 0;
   left: 0;
-  width: 10in;
-  height: 7.5in;
+  width: 11.69in;
+  height: 8.27in;
   transform-origin: top left;
 }
 .label {
-  width: 10in;
-  height: 7.5in;
+  width: 11.69in;
+  height: 8.27in;
   background: #fff;
   border: 4px solid #000;
   display: grid;
@@ -778,7 +778,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
     position: static !important;
     width: auto !important; height: auto !important; transform: none !important;
   }
-  body:not([data-mode="sticker"]):not([data-mode="sheet"]) .label { margin: 0; box-shadow: none !important; page-break-inside: avoid; zoom: 1.1; }
+  body:not([data-mode="sticker"]):not([data-mode="sheet"]) .label { margin: 0; box-shadow: none !important; page-break-inside: avoid; }
   /* Sticker print */
   body[data-mode="sticker"] .label-outer { display: none !important; }
   body[data-mode="sticker"] .sticker-outer {
@@ -880,7 +880,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
     <div class="print-bar">
       <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
       <div class="mode-toggle-bar">
-        <button class="mode-btn active" data-mode="full"    onclick="setMode('full')">Full (10×7.5in)</button>
+        <button class="mode-btn active" data-mode="full"    onclick="setMode('full')">Full (A4)</button>
         <button class="mode-btn"        data-mode="sticker" onclick="setMode('sticker')">Sticker (3×4in)</button>
       </div>
       <div class="sheet-subopts">
@@ -893,16 +893,6 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
           <button onclick="pinCurrentLabel()" style="color:#2a6b3f;font-weight:800;border-bottom:2px solid #ddd;text-align:center">★&nbsp; Favorite</button>
           <div id="fav-banner" class="inline-banner" style="margin:4px 8px 0"></div>
           <div id="fav-list"></div>
-        </div>
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #444;display:flex;align-items:center;gap:6px">
-        <span style="font-size:10px;color:#aaa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;white-space:nowrap;flex-shrink:0">Logo</span>
-        <div id="logo-zone" onclick="uploadLogo()" title="Click to upload company logo"
-             style="cursor:pointer;border:1px dashed #555;border-radius:3px;padding:3px 8px;display:flex;align-items:center;gap:5px;min-height:24px;flex:1">
-          <span id="logo-placeholder" style="font-size:9px;color:#666;white-space:nowrap;user-select:none">+ add logo</span>
-          <img id="logo-thumb" style="display:none;height:16px;max-width:80px;object-fit:contain">
-          <button type="button" id="logo-clear-btn" onclick="event.stopPropagation();clearLogo()" title="Remove logo"
-                  style="display:none;background:none;border:none;color:#888;cursor:pointer;font-size:12px;padding:0 0 0 2px;line-height:1;margin-left:auto">✕</button>
         </div>
       </div>
     </div>
@@ -1695,7 +1685,7 @@ function fitLabel() {
   const wrap  = document.getElementById('label-wrap');
   if (outer && wrap) {
     const w = outer.clientWidth;
-    if (w) wrap.style.transform = `scale(${w / 960})`; // 960px = 10in
+    if (w) wrap.style.transform = `scale(${w / 1123})`; // 1123px ≈ 11.69in at 96dpi
   }
   // Sticker label (also runs off-screen in full/sheet mode for fitText measurement)
   const souter = document.getElementById('sticker-outer');
@@ -1736,7 +1726,7 @@ function setMode(mode) {
     ? '@media print { @page { size: 3in 4in; margin: 0; } }'
     : mode === 'sheet'
     ? '@media print { @page { size: letter portrait; margin: 0; } }'
-    : '@media print { @page { size: letter landscape; margin: 0; } }';
+    : '@media print { @page { size: A4 landscape; margin: 0; } }';
   scheduleFit();
   update();
 }
@@ -1793,8 +1783,7 @@ function init() {
   });
 
   preRotateAll();
-  const savedLogo = localStorage.getItem(LOGO_KEY);
-  if (savedLogo) applyLogo(savedLogo);
+  applyLogo(null);
   update();
 
   // Initial fit + react to any size change on the preview panel.
@@ -2145,30 +2134,6 @@ function showSaveBanners(msg, type, duration) {
 }
 
 /* ── Company Logo ───────────────────────────────────────────── */
-const LOGO_KEY = 'companyLogo';
-
-function uploadLogo() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = evt => {
-      localStorage.setItem(LOGO_KEY, evt.target.result);
-      applyLogo(evt.target.result);
-    };
-    reader.readAsDataURL(file);
-  };
-  input.click();
-}
-
-function clearLogo() {
-  localStorage.removeItem(LOGO_KEY);
-  applyLogo(null);
-}
-
 function applyLogo(dataUrl) {
   ['lbl-logo', 's-lbl-logo'].forEach(id => {
     const img = $(id);
@@ -2176,12 +2141,6 @@ function applyLogo(dataUrl) {
     if (dataUrl) { img.src = dataUrl; img.style.display = ''; }
     else         { img.src = '';      img.style.display = 'none'; }
   });
-  const placeholder = $('logo-placeholder');
-  const thumb       = $('logo-thumb');
-  const clearBtn    = $('logo-clear-btn');
-  if (placeholder) placeholder.style.display = dataUrl ? 'none' : '';
-  if (thumb)     { thumb.style.display = dataUrl ? '' : 'none'; if (dataUrl) thumb.src = dataUrl; }
-  if (clearBtn)    clearBtn.style.display = dataUrl ? '' : 'none';
 }
 
 function clearForm() {
@@ -2243,6 +2202,7 @@ async function facilityLogin() {
     if (err) err.textContent = 'Facility code not found. Contact your administrator.';
     return;
   }
+  applyLogo(window.FB.facilityLogo);
   hideFacilityGate();
   updateFacilityBar();
   selectedLibIdx = null;
@@ -2253,6 +2213,7 @@ async function facilityAutoLogin(code) {
   if (!window.FB) return;
   const name = await window.FB.login(code);
   if (name) {
+    applyLogo(window.FB.facilityLogo);
     hideFacilityGate();
     updateFacilityBar();
     selectedLibIdx = null;
@@ -2265,7 +2226,8 @@ async function facilityAutoLogin(code) {
 function switchFacility() {
   if (!confirm('Switch facility? Your current library view will be replaced.')) return;
   sessionStorage.removeItem('facilityCode');
-  if (window.FB) { window.FB.facilityCode = null; window.FB.facilityName = null; }
+  if (window.FB) { window.FB.facilityCode = null; window.FB.facilityName = null; window.FB.facilityLogo = null; }
+  applyLogo(null);
   const code = $('gate-code'); if (code) code.value = '';
   const err  = $('gate-error'); if (err)  err.textContent = '';
   updateFacilityBar();
