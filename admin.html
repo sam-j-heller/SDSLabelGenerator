@@ -2058,6 +2058,7 @@ async function doApprove(idx) {
     const ok = await window.FB.approveChemical(p.facilityCode, p._id);
     if (ok) {
       logActivity(`Approved "${p.product}" for ${p.facilityCode}`, 'add');
+      window.FB.sendApprovalEmail(p.submittedByEmail, p.product, p.facilityName).catch(() => {});
       pendingApprovals.splice(idx, 1);
       populateApprovalsFacilityFilter();
       renderApprovals();
@@ -2082,6 +2083,7 @@ async function doReject(idx) {
   try {
     await window.FB.rejectChemical(p.facilityCode, p._id);
     logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
+    window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName).catch(() => {});
     pendingApprovals.splice(idx, 1);
     renderApprovals();
     updateApprovalsBadge();
@@ -2193,6 +2195,7 @@ async function approveFromReview() {
     const ok = await window.FB.approveChemical(p.facilityCode, p._id, editedData);
     if (ok) {
       logActivity(`Approved "${editedData.product || p.product}" for ${p.facilityCode}`, 'add');
+      window.FB.sendApprovalEmail(p.submittedByEmail, editedData.product || p.product, p.facilityName).catch(() => {});
       const i = reviewIdx;
       closeReview();
       pendingApprovals.splice(i, 1);
@@ -2219,6 +2222,7 @@ async function rejectFromReview() {
   try {
     await window.FB.rejectChemical(p.facilityCode, p._id);
     logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
+    window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName).catch(() => {});
     const i = reviewIdx;
     closeReview();
     pendingApprovals.splice(i, 1);

@@ -377,10 +377,11 @@ window.FB = {
   },
 
   // Submit a new chemical for approval. Writes to /facilities/{code}/pending/{id}.
-  async submitForApproval(code, labelData) {
+  async submitForApproval(code, labelData, submittedByEmail = null) {
     const upper = code.trim().toUpperCase();
     const ref = await addDoc(collection(db, 'facilities', upper, 'pending'), {
       ...labelData,
+      submittedByEmail,
       submittedAt: serverTimestamp(),
       status: 'pending'
     });
@@ -471,13 +472,13 @@ window.FB = {
       createdAt:    serverTimestamp()
     });
 
-    // Sign out of secondary app, then send password-setup email.
-    // Email failure is non-fatal — account exists and admin can resend manually.
+    // Sign out of secondary app, then send invite email via Trigger Email extension.
+    // Email failure is non-fatal — admin can resend from the Workers tab.
     await workerCreationAuth.signOut();
     try {
-      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+      await window.FB.sendWorkerInviteEmail(email.trim().toLowerCase(), facilityName);
     } catch (emailErr) {
-      console.warn('Password reset email failed (account was created):', emailErr);
+      console.warn('Invite email failed (account was created):', emailErr);
     }
 
     return uid;
@@ -599,6 +600,72 @@ window.FB = {
 
   async sendPasswordReset(email) {
     await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+  },
+
+  // ── Email via Trigger Email extension ────────────────────────
+  // Writes a document to /mail — the extension picks it up and sends via SendGrid.
+
+  async sendEmail(to, subject, html) {
+    await addDoc(collection(db, 'mail'), {
+      to,
+      message: { subject, html }
+    });
+  },
+
+  async sendWorkerInviteEmail(email, facilityName) {
+    const appUrl = window.location.href.replace(/admin\.html.*$/, 'index.html');
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
+        <div style="background:#1a3a5c;padding:24px 28px;border-radius:6px 6px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:20px">Rhenus SDS Label Generator</h1>
+        </div>
+        <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
+          <p>Hi,</p>
+          <p>You've been added to the <strong>Rhenus SDS Label Generator</strong> for <strong>${facilityName}</strong>.</p>
+          <p>To get started, click the button below and use <strong>"First time or forgot password"</strong> on the login page to set up your password with this email address (<strong>${email}</strong>).</p>
+          <p style="text-align:center;margin:28px 0">
+            <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:13px 28px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Label Generator →</a>
+          </p>
+          <p style="font-size:12px;color:#888">If you did not expect this invitation, you can ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
+          <p style="font-size:11px;color:#aaa;margin:0">Rhenus Logistics · Safety Department</p>
+        </div>
+      </div>`;
+    await window.FB.sendEmail(email, 'You\'ve been added to the Rhenus SDS Label Generator', html);
+  },
+
+  async sendApprovalEmail(submittedByEmail, productName, facilityName) {
+    if (!submittedByEmail) return;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
+        <div style="background:#1a5c33;padding:24px 28px;border-radius:6px 6px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:20px">✓ Chemical Approved</h1>
+        </div>
+        <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
+          <p>Your submission for <strong>${productName}</strong> at <strong>${facilityName}</strong> has been <strong>approved</strong>.</p>
+          <p>It is now available in the chemical library for your facility.</p>
+          <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
+          <p style="font-size:11px;color:#aaa;margin:0">Rhenus Logistics · Safety Department</p>
+        </div>
+      </div>`;
+    await window.FB.sendEmail(submittedByEmail, `"${productName}" approved`, html);
+  },
+
+  async sendRejectionEmail(submittedByEmail, productName, facilityName) {
+    if (!submittedByEmail) return;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
+        <div style="background:#8b1a1a;padding:24px 28px;border-radius:6px 6px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:20px">Submission Not Approved</h1>
+        </div>
+        <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
+          <p>Your submission for <strong>${productName}</strong> at <strong>${facilityName}</strong> was <strong>not approved</strong>.</p>
+          <p>Please contact your safety officer or engineer for more information.</p>
+          <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
+          <p style="font-size:11px;color:#aaa;margin:0">Rhenus Logistics · Safety Department</p>
+        </div>
+      </div>`;
+    await window.FB.sendEmail(submittedByEmail, `"${productName}" submission not approved`, html);
   },
 
   // Subscribe to Firebase Auth state changes. Callback receives the loaded

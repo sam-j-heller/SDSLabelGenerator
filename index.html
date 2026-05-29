@@ -2137,7 +2137,7 @@ async function saveToLibrary() {
       showSaveBanners(`"${data.product}" is already waiting for approval — an engineer will review it soon.`, 'warn');
       return;
     }
-    await window.FB.submitForApproval(window.FB.facilityCode, data);
+    await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
     showSubmitConfirm(data.product);
   }
 }
