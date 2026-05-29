@@ -992,7 +992,7 @@ async function doAdminLogin() {
     document.getElementById('app').style.display  = 'flex';
     const profile = window.FB.adminProfile;
     if (profile?.devtoolsAccess || (profile?.email || '').toLowerCase() === 'sam.heller@rhenus.com') {
-      document.getElementById('devtools-btn').style.display = '';
+      document.getElementById('devtools-btn').style.display = 'inline-block';
     }
     loadFacilities();
     loadBlacklist();
