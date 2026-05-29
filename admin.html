@@ -530,6 +530,32 @@ nav {
 .appr-review { background: #1a3a5c; color: #fff; border: none; padding: 7px 14px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer; }
 .appr-review:hover { background: #254d7a; }
 
+/* ---------- Reject reason modal ---------- */
+#reject-modal {
+  display: none; position: fixed; inset: 0; z-index: 9500;
+  align-items: center; justify-content: center;
+  background: rgba(10,22,40,0.7); backdrop-filter: blur(3px);
+}
+#reject-modal.open { display: flex; }
+.reject-card {
+  background: #fff; border-radius: 10px; width: 440px; max-width: 96vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4); padding: 28px 28px 24px;
+}
+.reject-card h3 { margin: 0 0 4px; font-size: 16px; color: #8b1a1a; }
+.reject-card .reject-sub { font-size: 12px; color: #666; margin-bottom: 16px; }
+.reject-card label { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.7px; display: block; margin-bottom: 6px; }
+.reject-reason-input {
+  width: 100%; font-size: 13px; font-family: inherit; padding: 9px 11px;
+  border: 1.5px solid #ccc; border-radius: 5px; resize: vertical; min-height: 80px;
+}
+.reject-reason-input:focus { outline: none; border-color: #8b1a1a; }
+.reject-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+.reject-cancel { background: none; border: 1.5px solid #ccc; color: #555; padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.reject-cancel:hover { border-color: #999; color: #333; }
+.reject-confirm { background: #8b1a1a; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.reject-confirm:hover { background: #6b1313; }
+.reject-confirm:disabled { background: #aaa; cursor: default; }
+
 /* ---------- Review modal ---------- */
 #review-modal {
   display: none; position: fixed; inset: 0; z-index: 8000;
@@ -1226,9 +1252,11 @@ function dtTypeChanged() {
   const type = document.getElementById('dt-type').value;
   const needsFacility = ['invite','approval','rejection'].includes(type);
   const needsProduct  = ['approval','rejection'].includes(type);
-  document.getElementById('dt-vars').style.display       = (needsFacility || needsProduct) ? '' : 'none';
-  document.getElementById('dt-var-facility').style.display = needsFacility ? '' : 'none';
-  document.getElementById('dt-var-product').style.display  = needsProduct  ? '' : 'none';
+  const needsReason   = type === 'rejection';
+  document.getElementById('dt-vars').style.display          = (needsFacility || needsProduct) ? '' : 'none';
+  document.getElementById('dt-var-facility').style.display  = needsFacility ? '' : 'none';
+  document.getElementById('dt-var-product').style.display   = needsProduct  ? '' : 'none';
+  document.getElementById('dt-var-reason').style.display    = needsReason   ? '' : 'none';
   dtRefreshAll();
 }
 
@@ -1237,8 +1265,9 @@ function dtBuildTemplate() {
   const toEmail  = document.getElementById('dt-to').value || 'worker@example.com';
   const facility = document.getElementById('dt-facility')?.value || 'Facility Name';
   const product  = document.getElementById('dt-product')?.value  || 'Product Name';
+  const reason   = document.getElementById('dt-reason')?.value.trim() || '';
   const appUrl   = window.location.href.replace(/admin\.html.*$/, 'index.html');
-  const foot     = `<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0"><p style="font-size:11px;color:#aaa;margin:0">Rhenus Logistics · Safety Department</p>`;
+  const foot     = `<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0"><p style="font-size:11px;color:#aaa;margin:0">Rhenus Automotive · Engineering Department</p>`;
 
   if (type === 'test') return {
     subject: 'Email System Test — Rhenus SDS Label Generator',
@@ -1256,7 +1285,7 @@ function dtBuildTemplate() {
   };
 
   if (type === 'invite') return {
-    subject: "You've been added to the Rhenus SDS Label Generator",
+    subject: "You have been invited to use the Easy SDS safety label generator",
     html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
   <div style="background:#1a3a5c;padding:24px 28px;border-radius:6px 6px 0 0">
     <h1 style="color:#fff;margin:0;font-size:20px">Rhenus SDS Label Generator</h1>
@@ -1265,10 +1294,10 @@ function dtBuildTemplate() {
     <p>Hi,</p>
     <p>You've been added to the <strong>Rhenus SDS Label Generator</strong> for <strong>${facility}</strong>.</p>
     <p>Click below and use <strong>"First time or forgot password"</strong> to set your password for <strong>${toEmail}</strong>.</p>
-    <p style="text-align:center;margin:28px 0">
-      <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:13px 28px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Label Generator →</a>
+    <p style="text-align:center;margin:40px 0">
+      <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:14px 32px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Label Generator →</a>
     </p>
-    <p style="font-size:12px;color:#888">If you did not expect this invitation, you can ignore this email.</p>
+    <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
     ${foot}
   </div>
 </div>`
@@ -1283,6 +1312,7 @@ function dtBuildTemplate() {
   <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
     <p>Your submission for <strong>${product}</strong> at <strong>${facility}</strong> has been <strong>approved</strong>.</p>
     <p>It is now available in the chemical library for your facility.</p>
+    <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
     ${foot}
   </div>
 </div>`
@@ -1296,7 +1326,10 @@ function dtBuildTemplate() {
   </div>
   <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
     <p>Your submission for <strong>${product}</strong> at <strong>${facility}</strong> was <strong>not approved</strong>.</p>
-    <p>Please contact your safety officer or engineer for more information.</p>
+    ${reason
+      ? `<div style="background:#fff3f3;border-left:4px solid #cc0000;padding:12px 16px;margin:16px 0;border-radius:0 4px 4px 0"><div style="font-size:11px;font-weight:700;color:#cc0000;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Reason</div><div style="font-size:13px;color:#333">${reason.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div></div>`
+      : ''}
+    <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
     ${foot}
   </div>
 </div>`
@@ -2327,27 +2360,52 @@ async function doApprove(idx) {
   }
 }
 
+// ── Reject reason modal ─────────────────────────────────
+let _rejectCallback = null;
+
+function openRejectModal(product, facilityCode, callback) {
+  document.getElementById('reject-modal-sub').textContent = `"${product}" — ${facilityCode}`;
+  document.getElementById('reject-reason-input').value = '';
+  document.getElementById('reject-modal-confirm').disabled = false;
+  document.getElementById('reject-modal-confirm').textContent = '✕ Reject';
+  _rejectCallback = callback;
+  document.getElementById('reject-modal').classList.add('open');
+  setTimeout(() => document.getElementById('reject-reason-input').focus(), 50);
+}
+
+function closeRejectModal() {
+  document.getElementById('reject-modal').classList.remove('open');
+  _rejectCallback = null;
+}
+
+async function confirmReject() {
+  const reason = document.getElementById('reject-reason-input').value.trim();
+  const btn = document.getElementById('reject-modal-confirm');
+  btn.disabled = true;
+  btn.textContent = 'Rejecting…';
+  if (_rejectCallback) await _rejectCallback(reason || null);
+  closeRejectModal();
+}
+
 async function doReject(idx) {
   const p = pendingApprovals[idx];
   if (!p) return;
-  if (!confirm(`Reject "${p.product || 'this chemical'}" from ${p.facilityCode}?\nIt will be permanently removed.`)) return;
-  const row = document.getElementById('appr-row-' + idx);
-  if (row) row.querySelectorAll('button').forEach(b => { b.disabled = true; });
-  const rejectBtn = row?.querySelector('.appr-reject');
-  if (rejectBtn) rejectBtn.textContent = 'Rejecting…';
-  try {
-    await window.FB.rejectChemical(p.facilityCode, p._id);
-    logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
-    window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName).catch(() => {});
-    pendingApprovals.splice(idx, 1);
-    renderApprovals();
-    updateApprovalsBadge();
-  } catch (e) {
-    console.error(e);
-    if (row) row.querySelectorAll('button').forEach(b => { b.disabled = false; });
-    if (rejectBtn) rejectBtn.textContent = '✕ Reject';
-    showBanner('appr-banner', 'Rejection failed — check console.', 'error');
-  }
+  openRejectModal(p.product || 'this chemical', p.facilityCode, async (reason) => {
+    const row = document.getElementById('appr-row-' + idx);
+    if (row) row.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    try {
+      await window.FB.rejectChemical(p.facilityCode, p._id);
+      logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
+      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(() => {});
+      pendingApprovals.splice(idx, 1);
+      renderApprovals();
+      updateApprovalsBadge();
+    } catch (e) {
+      console.error(e);
+      if (row) row.querySelectorAll('button').forEach(b => { b.disabled = false; });
+      showBanner('appr-banner', 'Rejection failed — check console.', 'error');
+    }
+  });
 }
 
 // -------------------------------------------------------
@@ -2466,30 +2524,31 @@ async function approveFromReview() {
   }
 }
 
-async function rejectFromReview() {
+function rejectFromReview() {
   if (reviewIdx === null) return;
   const p = pendingApprovals[reviewIdx];
-  if (!confirm(`Reject "${p.product || 'this chemical'}" from ${p.facilityCode}?\nIt will be permanently removed.`)) return;
-  const footer = document.querySelectorAll('#review-modal .review-footer button');
-  footer.forEach(b => b.disabled = true);
-  const rejectBtn = document.querySelector('#review-modal .appr-reject');
-  if (rejectBtn) rejectBtn.textContent = 'Rejecting…';
-  try {
-    await window.FB.rejectChemical(p.facilityCode, p._id);
-    logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
-    window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName).catch(() => {});
-    const i = reviewIdx;
-    closeReview();
-    pendingApprovals.splice(i, 1);
-    populateApprovalsFacilityFilter();
-    renderApprovals();
-    updateApprovalsBadge();
-  } catch (e) {
-    console.error(e);
-    footer.forEach(b => b.disabled = false);
-    if (rejectBtn) rejectBtn.textContent = '✕ Reject';
-    showBanner('review-banner', 'Rejection failed — check console.', 'error');
-  }
+  openRejectModal(p.product || 'this chemical', p.facilityCode, async (reason) => {
+    const footer = document.querySelectorAll('#review-modal .review-footer button');
+    footer.forEach(b => b.disabled = true);
+    const rejectBtn = document.querySelector('#review-modal .appr-reject');
+    if (rejectBtn) rejectBtn.textContent = 'Rejecting…';
+    try {
+      await window.FB.rejectChemical(p.facilityCode, p._id);
+      logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
+      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(() => {});
+      const i = reviewIdx;
+      closeReview();
+      pendingApprovals.splice(i, 1);
+      populateApprovalsFacilityFilter();
+      renderApprovals();
+      updateApprovalsBadge();
+    } catch (e) {
+      console.error(e);
+      footer.forEach(b => b.disabled = false);
+      if (rejectBtn) rejectBtn.textContent = '✕ Reject';
+      showBanner('review-banner', 'Rejection failed — check console.', 'error');
+    }
+  });
 }
 
 function updateApprovalsBadge() {
@@ -2501,6 +2560,20 @@ function updateApprovalsBadge() {
     : 'Approvals';
 }
 </script>
+
+<!-- ===== REJECT REASON MODAL ===== -->
+<div id="reject-modal" onclick="if(event.target===this)closeRejectModal()">
+  <div class="reject-card">
+    <h3>Reject Submission</h3>
+    <div class="reject-sub" id="reject-modal-sub"></div>
+    <label for="reject-reason-input">Reason (optional — will be included in the notification email)</label>
+    <textarea id="reject-reason-input" class="reject-reason-input" placeholder="e.g. Chemical is already on the approved list under a different name…"></textarea>
+    <div class="reject-footer">
+      <button class="reject-cancel" onclick="closeRejectModal()">Cancel</button>
+      <button class="reject-confirm" id="reject-modal-confirm" onclick="confirmReject()">✕ Reject</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== REVIEW MODAL ===== -->
 <div id="review-modal" onclick="if(event.target===this)closeReview()">
@@ -2658,6 +2731,11 @@ function updateApprovalsBadge() {
           <label class="dt-label">Product Name</label>
           <input type="text" id="dt-product" class="dt-input" placeholder="e.g. Acetone" oninput="dtRefreshAll()">
         </div>
+      </div>
+
+      <div id="dt-var-reason" style="display:none;margin-top:8px">
+        <label class="dt-label">Rejection Reason (optional)</label>
+        <textarea id="dt-reason" class="dt-textarea" rows="2" placeholder="e.g. Already listed under a different name…" oninput="dtRefreshAll()"></textarea>
       </div>
 
       <div>

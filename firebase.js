@@ -640,15 +640,15 @@ window.FB = {
           <p>Hi,</p>
           <p>You've been added to the <strong>Rhenus SDS Label Generator</strong> for <strong>${facilityName}</strong>.</p>
           <p>To get started, click the button below and use <strong>"First time or forgot password"</strong> on the login page to set up your password with this email address (<strong>${email}</strong>).</p>
-          <p style="text-align:center;margin:28px 0">
-            <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:13px 28px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Label Generator →</a>
+          <p style="text-align:center;margin:40px 0">
+            <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:14px 32px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Label Generator →</a>
           </p>
-          <p style="font-size:12px;color:#888">If you did not expect this invitation, you can ignore this email.</p>
+          <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
           <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
-          <p style="font-size:11px;color:#aaa;margin:0">Rhenus Logistics · Safety Department</p>
+          <p style="font-size:11px;color:#aaa;margin:0">Rhenus Automotive · Engineering Department</p>
         </div>
       </div>`;
-    await window.FB.sendEmail(email, 'You\'ve been added to the Rhenus SDS Label Generator', html);
+    await window.FB.sendEmail(email, 'You have been invited to use the Easy SDS safety label generator', html);
   },
 
   async sendApprovalEmail(submittedByEmail, productName, facilityName) {
@@ -661,15 +661,24 @@ window.FB = {
         <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
           <p>Your submission for <strong>${productName}</strong> at <strong>${facilityName}</strong> has been <strong>approved</strong>.</p>
           <p>It is now available in the chemical library for your facility.</p>
+          <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
           <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
-          <p style="font-size:11px;color:#aaa;margin:0">Rhenus Logistics · Safety Department</p>
+          <p style="font-size:11px;color:#aaa;margin:0">Rhenus Automotive · Engineering Department</p>
         </div>
       </div>`;
     await window.FB.sendEmail(submittedByEmail, `"${productName}" approved`, html);
   },
 
-  async sendRejectionEmail(submittedByEmail, productName, facilityName) {
+  async sendRejectionEmail(submittedByEmail, productName, facilityName, reason = null) {
     if (!submittedByEmail) return;
+    const safeReason = reason ? reason.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>') : null;
+    const disclaimer = `<p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>`;
+    const reasonBlock = safeReason
+      ? `<div style="background:#fff3f3;border-left:4px solid #cc0000;padding:12px 16px;margin:16px 0;border-radius:0 4px 4px 0">
+           <div style="font-size:11px;font-weight:700;color:#cc0000;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Reason</div>
+           <div style="font-size:13px;color:#333">${safeReason}</div>
+         </div>${disclaimer}`
+      : disclaimer;
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
         <div style="background:#8b1a1a;padding:24px 28px;border-radius:6px 6px 0 0">
@@ -677,9 +686,9 @@ window.FB = {
         </div>
         <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
           <p>Your submission for <strong>${productName}</strong> at <strong>${facilityName}</strong> was <strong>not approved</strong>.</p>
-          <p>Please contact your safety officer or engineer for more information.</p>
+          ${reasonBlock}
           <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
-          <p style="font-size:11px;color:#aaa;margin:0">Rhenus Logistics · Safety Department</p>
+          <p style="font-size:11px;color:#aaa;margin:0">Rhenus Automotive · Engineering Department</p>
         </div>
       </div>`;
     await window.FB.sendEmail(submittedByEmail, `"${productName}" submission not approved`, html);
