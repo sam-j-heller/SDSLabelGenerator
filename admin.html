@@ -703,6 +703,15 @@ nav {
           <button onclick="addWorker()" style="width:100%;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">Send Invite →</button>
           <div id="worker-add-status" style="font-size:11px;min-height:18px;margin-top:8px"></div>
         </div>
+
+        <div class="card">
+          <h2>Email System Test</h2>
+          <p style="font-size:11px;color:#666;margin-bottom:12px">Send a test email to verify SendGrid delivery is working.</p>
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">Send To</label>
+          <input type="email" id="test-email-input" class="edit-input" placeholder="your@email.com" autocomplete="off" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')sendTestEmail()">
+          <button onclick="sendTestEmail()" id="test-email-btn" style="width:100%;padding:9px;background:#5a3a8c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">Send Test Email →</button>
+          <div id="test-email-status" style="font-size:11px;min-height:18px;margin-top:8px"></div>
+        </div>
       </div>
 
       <!-- RIGHT: Worker list -->
@@ -1056,6 +1065,7 @@ function renderWorkers() {
         ${w.status === 'inactive'
           ? `<button onclick="reactivateWorker(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #a8dcbc;border-radius:3px;color:#1a5c33;cursor:pointer;font-weight:600">Reactivate</button>`
           : `<button onclick="deactivateWorker(${i})"  style="font-size:10px;padding:3px 8px;background:none;border:1px solid #f5b8b8;border-radius:3px;color:#8b1a1a;cursor:pointer;font-weight:600">Deactivate</button>`}
+        <button onclick="deleteWorkerBtn(${i})" style="font-size:10px;padding:3px 8px;background:#8b1a1a;border:none;border-radius:3px;color:#fff;cursor:pointer;font-weight:600">Delete</button>
       </div>
     </div>`;
   }).join('');
@@ -1074,7 +1084,7 @@ async function addWorker() {
     document.getElementById('worker-email-input').value = '';
     document.getElementById('worker-fac-select').value  = '';
     logActivity('Added worker: ' + email + ' → ' + facCode, 'add');
-    workerList = await window.FB.listWorkers();
+    workerList = await window.FB.listWorkers((document.getElementById('show-admins-chk') || {}).checked);
     renderWorkers();
   } catch (e) {
     console.error(e);
@@ -1092,7 +1102,7 @@ async function assignWorkerFacility(idx) {
   try {
     await window.FB.updateWorkerFacility(w.uid, facCode);
     logActivity('Assigned ' + w.email + ' → ' + facCode, 'add');
-    workerList = await window.FB.listWorkers();
+    workerList = await window.FB.listWorkers((document.getElementById('show-admins-chk') || {}).checked);
     renderWorkers();
   } catch (e) { console.error(e); }
 }
@@ -1103,7 +1113,7 @@ async function deactivateWorker(idx) {
   try {
     await window.FB.deactivateWorker(w.uid);
     logActivity('Deactivated worker: ' + w.email, 'del');
-    workerList = await window.FB.listWorkers();
+    workerList = await window.FB.listWorkers((document.getElementById('show-admins-chk') || {}).checked);
     renderWorkers();
   } catch (e) { console.error(e); }
 }
@@ -1113,7 +1123,7 @@ async function reactivateWorker(idx) {
   try {
     await window.FB.reactivateWorker(w.uid);
     logActivity('Reactivated worker: ' + w.email, 'add');
-    workerList = await window.FB.listWorkers();
+    workerList = await window.FB.listWorkers((document.getElementById('show-admins-chk') || {}).checked);
     renderWorkers();
   } catch (e) { console.error(e); }
 }
@@ -1128,7 +1138,19 @@ async function setRole(idx, role) {
   try {
     await window.FB.setWorkerRole(w.uid, role);
     logActivity(`${label}: ${w.email}`, role === 'admin' ? 'add' : 'del');
-    workerList = await window.FB.listWorkers();
+    workerList = await window.FB.listWorkers((document.getElementById('show-admins-chk') || {}).checked);
+    renderWorkers();
+  } catch (e) { console.error(e); }
+}
+
+async function deleteWorkerBtn(idx) {
+  const w = workerList[idx];
+  if (!confirm(`Permanently delete ${w.email}?\n\nThis removes their access immediately. This cannot be undone.`)) return;
+  try {
+    await window.FB.deleteWorkerAccount(w.uid);
+    logActivity('Deleted account: ' + w.email, 'del');
+    workerList = await window.FB.listWorkers((document.getElementById('show-admins-chk') || {}).checked);
+    populateWorkerFacilityFilter();
     renderWorkers();
   } catch (e) { console.error(e); }
 }
@@ -1139,6 +1161,41 @@ async function resendWorkerInvite(idx) {
     await window.FB.resendWorkerInvite(w.email);
     logActivity('Resent invite to: ' + w.email, 'add');
   } catch (e) { console.error(e); }
+}
+
+async function sendTestEmail() {
+  const input  = document.getElementById('test-email-input');
+  const status = document.getElementById('test-email-status');
+  const btn    = document.getElementById('test-email-btn');
+  const email  = (input || {}).value || '';
+  if (!email) { if (status) status.innerHTML = '<span style="color:#c00">Enter an email address.</span>'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Sending…';
+  if (status) status.textContent = '';
+
+  try {
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
+        <div style="background:#5a3a8c;padding:24px 28px;border-radius:6px 6px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:20px">Email System Test</h1>
+        </div>
+        <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
+          <p>This is a test email from the <strong>Rhenus SDS Label Generator</strong> admin panel.</p>
+          <p>If you received this, your email delivery pipeline (Firebase Trigger Email + SendGrid) is working correctly.</p>
+          <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
+          <p style="font-size:11px;color:#aaa;margin:0">Sent ${new Date().toLocaleString()} · Rhenus Logistics · Safety Department</p>
+        </div>
+      </div>`;
+    await window.FB.sendEmail(email, 'Email System Test — Rhenus SDS Label Generator', html);
+    if (status) status.innerHTML = '<span style="color:#2e7d32">✓ Test email queued — check your inbox.</span>';
+    logActivity('Test email sent to: ' + email, 'add');
+  } catch (e) {
+    console.error(e);
+    if (status) status.innerHTML = '<span style="color:#c00">Failed to queue email — check console.</span>';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Send Test Email →';
 }
 
 // -------------------------------------------------------

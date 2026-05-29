@@ -88,7 +88,14 @@ window.FB = {
   // Returns true on success, false on bad credentials.
   async adminLogin(email, password) {
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      // Upsert a /users doc so this admin appears in the Workers tab.
+      // merge:true means it won't overwrite role if already set (e.g. promoted worker).
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        email:  email.trim().toLowerCase(),
+        role:   'admin',
+        status: 'active'
+      }, { merge: true });
       return true;
     } catch (e) {
       console.error('Firebase adminLogin error:', e);
@@ -592,6 +599,13 @@ window.FB = {
 
   async setWorkerRole(uid, role) {
     await setDoc(doc(db, 'users', uid), { role }, { merge: true });
+  },
+
+  async deleteWorkerAccount(uid) {
+    // Deletes the Firestore profile — immediately blocks all access.
+    // The Firebase Auth account remains but onAuthChange returns null with no profile,
+    // so the user cannot log in. Full Auth deletion requires the Admin SDK.
+    await deleteDoc(doc(db, 'users', uid));
   },
 
   async resendWorkerInvite(email) {
