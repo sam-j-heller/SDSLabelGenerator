@@ -272,15 +272,22 @@ body {
 
 /* ---------- Zone 2: NFPA 704 (dominant, left) ---------- */
 .nfpa-zone {
+  position: relative;
   border-right: 2px solid #000;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.08in 0.08in 0.1in;
+  padding: 0.36in 0.08in 0.1in;
   gap: 4px;
 }
 .nfpa-zone .nlabel {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 0.32in;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12pt; font-weight: 900; letter-spacing: 3px;
 }
 .nfpa-svg {
@@ -856,12 +863,13 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
 }
 #facility-bar button:hover { background: rgba(255,255,255,0.25); }
 #admin-fac-switcher {
-  display: none; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);
-  color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 3px;
-  cursor: pointer; font-family: inherit; margin-left: 10px; font-weight: 600;
-  max-width: 160px;
+  display: none; background: transparent; border: none;
+  color: #fff; font-size: 13px; padding: 0;
+  cursor: pointer; font-family: inherit; font-weight: 800;
+  flex: 1; min-width: 0; letter-spacing: 0.3px;
 }
 #admin-fac-switcher option { background: #222; color: #fff; }
+#facility-bar:has(#admin-fac-switcher[style*="inline"]) .fac-name { display: none; }
 </style>
 <script type="module" src="firebase.js"></script>
 </head>
@@ -2030,6 +2038,45 @@ const saveLibrary = lib => localStorage.setItem(LIB_KEY, JSON.stringify(lib));
 
 let selectedLibIdx  = null;
 let comboFocusIdx   = -1;
+let _dupWarnCallback = null;
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m + 1}, (_, i) => Array.from({length: n + 1}, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function findSimilarChemicals(name, lib) {
+  const norm = name.trim().toLowerCase();
+  return lib
+    .map(c => (c.product || '').trim().toLowerCase())
+    .filter(n => {
+      if (!n || n === norm) return false;
+      const maxLen = Math.max(norm.length, n.length);
+      const threshold = Math.max(2, Math.floor(maxLen * 0.2));
+      if (levenshtein(norm, n) <= threshold) return true;
+      if (norm.length >= 5 && n.includes(norm)) return true;
+      if (n.length >= 5 && norm.includes(n)) return true;
+      return false;
+    });
+}
+
+function showDuplicateWarning(productName, similarNames, onConfirm) {
+  _dupWarnCallback = onConfirm;
+  const list = document.getElementById('dup-warn-list');
+  if (list) list.innerHTML = similarNames.map(n => `<li><strong>${n}</strong></li>`).join('');
+  const btn = document.getElementById('dup-warn-override');
+  if (btn) btn.onclick = () => { closeDupWarn(); if (_dupWarnCallback) _dupWarnCallback(); };
+  document.getElementById('dup-warn-modal').style.display = 'flex';
+}
+
+function closeDupWarn() {
+  document.getElementById('dup-warn-modal').style.display = 'none';
+  _dupWarnCallback = null;
+}
 
 function libSorted() {
   const lib = getLibrary();
@@ -2143,6 +2190,14 @@ async function saveToLibrary() {
     );
     if (alreadyPending) {
       showSaveBanners(`"${data.product}" is already waiting for approval — an engineer will review it soon.`, 'warn');
+      return;
+    }
+    const similar = findSimilarChemicals(data.product, lib);
+    if (similar.length > 0) {
+      showDuplicateWarning(data.product, similar, async () => {
+        await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
+        showSubmitConfirm(data.product);
+      });
       return;
     }
     await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
@@ -2423,6 +2478,21 @@ function closeSubmitConfirm() {
   document.getElementById('submit-confirm-modal').style.display = 'none';
 }
 </script>
+
+<!-- ── Duplicate warning modal ── -->
+<div id="dup-warn-modal" onclick="if(event.target===this)closeDupWarn()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:8px;padding:28px 32px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.25)">
+    <div style="font-size:30px;text-align:center;margin-bottom:10px">⚠️</div>
+    <h2 style="margin:0 0 8px;font-size:17px;color:#333;text-align:center">Possible Duplicate</h2>
+    <p style="margin:0 0 14px;font-size:13px;color:#555;text-align:center">The library already contains chemical(s) with a similar name:</p>
+    <ul id="dup-warn-list" style="margin:0 0 16px;padding:0 0 0 20px;font-size:13px;color:#333;line-height:1.9"></ul>
+    <p style="margin:0 0 22px;font-size:12px;color:#888;text-align:center">Make sure this isn't already covered before submitting a new entry.</p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="closeDupWarn()" style="background:#eee;color:#333;border:none;border-radius:4px;padding:9px 22px;font-size:13px;font-weight:600;cursor:pointer">Go Back</button>
+      <button id="dup-warn-override" style="background:#c0392b;color:#fff;border:none;border-radius:4px;padding:9px 22px;font-size:13px;font-weight:700;cursor:pointer">Submit Anyway</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── Submission confirmation modal ── -->
 <div id="submit-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center">

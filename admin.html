@@ -880,7 +880,10 @@ nav {
           <option value="">All Facilities</option>
         </select>
       </div>
-      <button class="cc-reload" onclick="loadApprovals()">↻ Refresh</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="appr-refresh-stamp" style="font-size:11px;color:#aaa"></span>
+        <button class="cc-reload" onclick="loadApprovals()">↻ Refresh</button>
+      </div>
     </div>
     <div id="appr-banner" class="inline-banner" style="margin:0 0 8px"></div>
     <div id="appr-list">
@@ -1076,8 +1079,9 @@ function switchTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
+  if (_approvalRefreshTimer) { clearInterval(_approvalRefreshTimer); _approvalRefreshTimer = null; }
   if (name === 'company')   loadCompanyChemicals();
-  if (name === 'approvals') loadApprovals();
+  if (name === 'approvals') { loadApprovals(); startApprovalAutoRefresh(); }
   if (name === 'workers')   loadWorkers();
   if (name === 'history')   loadHistory();
 }
@@ -2310,6 +2314,7 @@ function showBanner(id, msg, type, duration) {
 //  Approvals
 // -------------------------------------------------------
 let pendingApprovals = [];
+let _approvalRefreshTimer = null;
 
 async function loadApprovals() {
   const list = document.getElementById('appr-list');
@@ -2318,6 +2323,29 @@ async function loadApprovals() {
   populateApprovalsFacilityFilter();
   renderApprovals();
   updateApprovalsBadge();
+  updateApprovalRefreshStamp();
+}
+
+function updateApprovalRefreshStamp() {
+  const el = document.getElementById('appr-refresh-stamp');
+  if (el) el.textContent = 'Refreshed ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function startApprovalAutoRefresh() {
+  if (_approvalRefreshTimer) clearInterval(_approvalRefreshTimer);
+  _approvalRefreshTimer = setInterval(async () => {
+    try {
+      const prev = pendingApprovals.length;
+      pendingApprovals = await window.FB.getAllPending();
+      populateApprovalsFacilityFilter();
+      renderApprovals();
+      updateApprovalsBadge();
+      updateApprovalRefreshStamp();
+      if (pendingApprovals.length > prev) {
+        showBanner('appr-banner', `${pendingApprovals.length - prev} new submission(s) received.`, 'success');
+      }
+    } catch (e) { /* silent */ }
+  }, 60000);
 }
 
 function populateApprovalsFacilityFilter() {
