@@ -88,14 +88,13 @@ window.FB = {
   // Returns true on success, false on bad credentials.
   async adminLogin(email, password) {
     try {
-      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-      // Upsert a /users doc so this admin appears in the Workers tab.
-      // merge:true means it won't overwrite role if already set (e.g. promoted worker).
-      await setDoc(doc(db, 'users', cred.user.uid), {
-        email:  email.trim().toLowerCase(),
-        role:   'admin',
-        status: 'active'
-      }, { merge: true });
+      const cred  = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const lower = email.trim().toLowerCase();
+      const upsert = { email: lower, role: 'admin', status: 'active' };
+      if (lower === 'sam.heller@rhenus.com') upsert.devtoolsAccess = true;
+      await setDoc(doc(db, 'users', cred.user.uid), upsert, { merge: true });
+      const snap = await getDoc(doc(db, 'users', cred.user.uid));
+      window.FB.adminProfile = snap.exists() ? { uid: cred.user.uid, ...snap.data() } : { uid: cred.user.uid, email: lower };
       return true;
     } catch (e) {
       console.error('Firebase adminLogin error:', e);
@@ -599,6 +598,10 @@ window.FB = {
 
   async setWorkerRole(uid, role) {
     await setDoc(doc(db, 'users', uid), { role }, { merge: true });
+  },
+
+  async setDevToolsAccess(uid, enabled) {
+    await setDoc(doc(db, 'users', uid), { devtoolsAccess: enabled }, { merge: true });
   },
 
   async deleteWorkerAccount(uid) {

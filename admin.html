@@ -570,6 +570,56 @@ nav {
 .rv-pic-cb { display: flex; align-items: center; gap: 5px; font-size: 11px; cursor: pointer; background: #f4f7fb; border: 1px solid #dde; border-radius: 3px; padding: 3px 8px; }
 .rv-pic-cb input { margin: 0; cursor: pointer; }
 .rv-divider { border: none; border-top: 1px solid #e8eef7; margin: 2px 0; }
+
+/* ---------- Dev Tools button ---------- */
+#devtools-btn {
+  display: none;
+  background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 6px 14px; border-radius: 4px; font-size: 11px; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.5px; margin-right: 6px;
+}
+#devtools-btn:hover { background: rgba(255,255,255,0.18); }
+
+/* ---------- Dev Tools modal ---------- */
+#devtools-modal {
+  display: none; position: fixed; inset: 0; z-index: 9500;
+  align-items: center; justify-content: center;
+  background: rgba(10,22,40,0.78); backdrop-filter: blur(3px);
+}
+#devtools-modal.open { display: flex; }
+.dt-card {
+  background: #fff; border-radius: 10px; width: 820px; max-width: 96vw;
+  max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.45);
+}
+.dt-header {
+  background: #1a1a2e; color: #fff; padding: 16px 20px;
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.dt-header h3 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: 0.3px; }
+.dt-close { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; opacity: 0.7; line-height: 1; padding: 0 4px; }
+.dt-close:hover { opacity: 1; }
+.dt-body { padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.dt-section { font-size: 11px; font-weight: 800; color: #1a3a5c; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e8eef7; padding-bottom: 6px; }
+.dt-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dt-label { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 4px; display: block; }
+.dt-select, .dt-input { width: 100%; padding: 8px 10px; font-size: 12px; border: 1.5px solid #bbc; border-radius: 5px; font-family: inherit; background: #fff; box-sizing: border-box; }
+.dt-select:focus, .dt-input:focus { outline: none; border-color: #1a3a5c; }
+.dt-textarea { width: 100%; padding: 8px 10px; font-size: 11px; border: 1.5px solid #bbc; border-radius: 5px; font-family: "Consolas","Courier New",monospace; resize: vertical; min-height: 200px; box-sizing: border-box; }
+.dt-textarea:focus { outline: none; border-color: #1a3a5c; }
+.dt-preview-wrap { border: 1px solid #dde; border-radius: 5px; overflow: hidden; min-height: 200px; background: #f8f9fc; }
+.dt-preview-wrap iframe { width: 100%; height: 100%; border: none; min-height: 200px; display: block; }
+.dt-send-btn { padding: 9px 22px; background: #1a3a5c; color: #fff; border: none; border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; }
+.dt-send-btn:hover { background: #0f2540; }
+.dt-send-btn:disabled { background: #aaa; cursor: default; }
+.dt-access-list { border: 1px solid #eee; border-radius: 5px; overflow: hidden; margin-top: 4px; }
+.dt-access-row { display: flex; align-items: center; padding: 9px 12px; border-bottom: 1px solid #f4f4f4; font-size: 12px; gap: 8px; }
+.dt-access-row:last-child { border-bottom: none; }
+.dt-access-email { flex: 1; color: #222; font-weight: 500; }
+.dt-access-super { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 3px; background: #1a1a2e; color: #fff; text-transform: uppercase; }
+.dt-revoke-btn { font-size: 10px; padding: 3px 10px; background: none; border: 1px solid #f5b8b8; border-radius: 3px; color: #8b1a1a; cursor: pointer; font-weight: 600; }
+.dt-revoke-btn:hover { background: #fff0f0; }
 </style>
 </head>
 <body>
@@ -602,6 +652,7 @@ nav {
       <div class="hdr-title">Admin Console</div>
     </div>
     <div class="hdr-sep"></div>
+    <button id="devtools-btn" onclick="openDevTools()">⚙ Dev Tools</button>
     <button class="hdr-out" onclick="signOut()">Sign Out</button>
   </header>
 
@@ -704,14 +755,6 @@ nav {
           <div id="worker-add-status" style="font-size:11px;min-height:18px;margin-top:8px"></div>
         </div>
 
-        <div class="card">
-          <h2>Email System Test</h2>
-          <p style="font-size:11px;color:#666;margin-bottom:12px">Send a test email to verify SendGrid delivery is working.</p>
-          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">Send To</label>
-          <input type="email" id="test-email-input" class="edit-input" placeholder="your@email.com" autocomplete="off" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')sendTestEmail()">
-          <button onclick="sendTestEmail()" id="test-email-btn" style="width:100%;padding:9px;background:#5a3a8c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">Send Test Email →</button>
-          <div id="test-email-status" style="font-size:11px;min-height:18px;margin-top:8px"></div>
-        </div>
       </div>
 
       <!-- RIGHT: Worker list -->
@@ -915,9 +958,9 @@ nav {
 // -------------------------------------------------------
 let parsedRows    = [];
 let parsedHeaders = [];
-let blacklist     = [];      // [ { id, name, addedAt, source } ] sorted alphabetically
-let facilities    = [];      // [ { code, name, chemCount } ]
-let activityLog   = [];      // [ { ts, msg, type } ]
+let blacklist     = [];
+let facilities    = [];
+let activityLog   = [];
 
 // -------------------------------------------------------
 //  Gate
@@ -947,6 +990,10 @@ async function doAdminLogin() {
   if (ok) {
     document.getElementById('gate').style.display = 'none';
     document.getElementById('app').style.display  = 'flex';
+    const profile = window.FB.adminProfile;
+    if (profile?.devtoolsAccess || (profile?.email || '').toLowerCase() === 'sam.heller@rhenus.com') {
+      document.getElementById('devtools-btn').style.display = '';
+    }
     loadFacilities();
     loadBlacklist();
     window.FB.getAllPending().then(list => { pendingApprovals = list; updateApprovalsBadge(); }).catch(() => {});
@@ -1163,39 +1210,194 @@ async function resendWorkerInvite(idx) {
   } catch (e) { console.error(e); }
 }
 
-async function sendTestEmail() {
-  const input  = document.getElementById('test-email-input');
-  const status = document.getElementById('test-email-status');
-  const btn    = document.getElementById('test-email-btn');
-  const email  = (input || {}).value || '';
-  if (!email) { if (status) status.innerHTML = '<span style="color:#c00">Enter an email address.</span>'; return; }
+// -------------------------------------------------------
+//  Dev Tools
+// -------------------------------------------------------
+const DT_SUPER = 'sam.heller@rhenus.com';
+let dtAccessList = [];  // [{ uid, email, devtoolsAccess }]
 
+function openDevTools() {
+  document.getElementById('devtools-modal').classList.add('open');
+  dtTypeChanged();
+  dtLoadAccess();
+}
+
+function closeDevTools() {
+  document.getElementById('devtools-modal').classList.remove('open');
+}
+
+function dtTypeChanged() {
+  const type = document.getElementById('dt-type').value;
+  const needsFacility = ['invite','approval','rejection'].includes(type);
+  const needsProduct  = ['approval','rejection'].includes(type);
+  document.getElementById('dt-vars').style.display       = (needsFacility || needsProduct) ? '' : 'none';
+  document.getElementById('dt-var-facility').style.display = needsFacility ? '' : 'none';
+  document.getElementById('dt-var-product').style.display  = needsProduct  ? '' : 'none';
+  dtRefreshAll();
+}
+
+function dtBuildTemplate() {
+  const type     = document.getElementById('dt-type').value;
+  const toEmail  = document.getElementById('dt-to').value || 'worker@example.com';
+  const facility = document.getElementById('dt-facility')?.value || 'Facility Name';
+  const product  = document.getElementById('dt-product')?.value  || 'Product Name';
+  const appUrl   = window.location.href.replace(/admin\.html.*$/, 'index.html');
+  const foot     = `<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0"><p style="font-size:11px;color:#aaa;margin:0">Rhenus Logistics · Safety Department</p>`;
+
+  if (type === 'test') return {
+    subject: 'Email System Test — Rhenus SDS Label Generator',
+    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
+  <div style="background:#5a3a8c;padding:24px 28px;border-radius:6px 6px 0 0">
+    <h1 style="color:#fff;margin:0;font-size:20px">Email System Test</h1>
+  </div>
+  <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
+    <p>This is a test email from the <strong>Rhenus SDS Label Generator</strong> admin panel.</p>
+    <p>If you received this, your email delivery pipeline (Firebase Trigger Email + Resend) is working correctly.</p>
+    <p style="font-size:11px;color:#aaa">Sent ${new Date().toLocaleString()}</p>
+    ${foot}
+  </div>
+</div>`
+  };
+
+  if (type === 'invite') return {
+    subject: "You've been added to the Rhenus SDS Label Generator",
+    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
+  <div style="background:#1a3a5c;padding:24px 28px;border-radius:6px 6px 0 0">
+    <h1 style="color:#fff;margin:0;font-size:20px">Rhenus SDS Label Generator</h1>
+  </div>
+  <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
+    <p>Hi,</p>
+    <p>You've been added to the <strong>Rhenus SDS Label Generator</strong> for <strong>${facility}</strong>.</p>
+    <p>Click below and use <strong>"First time or forgot password"</strong> to set your password for <strong>${toEmail}</strong>.</p>
+    <p style="text-align:center;margin:28px 0">
+      <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:13px 28px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Label Generator →</a>
+    </p>
+    <p style="font-size:12px;color:#888">If you did not expect this invitation, you can ignore this email.</p>
+    ${foot}
+  </div>
+</div>`
+  };
+
+  if (type === 'approval') return {
+    subject: `"${product}" approved`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
+  <div style="background:#1a5c33;padding:24px 28px;border-radius:6px 6px 0 0">
+    <h1 style="color:#fff;margin:0;font-size:20px">✓ Chemical Approved</h1>
+  </div>
+  <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
+    <p>Your submission for <strong>${product}</strong> at <strong>${facility}</strong> has been <strong>approved</strong>.</p>
+    <p>It is now available in the chemical library for your facility.</p>
+    ${foot}
+  </div>
+</div>`
+  };
+
+  return {
+    subject: `"${product}" submission not approved`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
+  <div style="background:#8b1a1a;padding:24px 28px;border-radius:6px 6px 0 0">
+    <h1 style="color:#fff;margin:0;font-size:20px">Submission Not Approved</h1>
+  </div>
+  <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
+    <p>Your submission for <strong>${product}</strong> at <strong>${facility}</strong> was <strong>not approved</strong>.</p>
+    <p>Please contact your safety officer or engineer for more information.</p>
+    ${foot}
+  </div>
+</div>`
+  };
+}
+
+function dtRefreshAll() {
+  const tmpl = dtBuildTemplate();
+  document.getElementById('dt-subject').value = tmpl.subject;
+  document.getElementById('dt-html').value    = tmpl.html;
+  dtSyncPreview();
+}
+
+function dtRefreshPreview() { dtSyncPreview(); }
+
+function dtSyncPreview() {
+  document.getElementById('dt-frame').srcdoc = document.getElementById('dt-html').value;
+}
+
+async function dtSend() {
+  const to      = document.getElementById('dt-to').value.trim();
+  const subject = document.getElementById('dt-subject').value.trim();
+  const html    = document.getElementById('dt-html').value.trim();
+  const status  = document.getElementById('dt-send-status');
+  const btn     = document.getElementById('dt-send-btn');
+  if (!to)      { status.innerHTML = '<span style="color:#c00">Enter a recipient.</span>';     return; }
+  if (!subject) { status.innerHTML = '<span style="color:#c00">Subject is empty.</span>';      return; }
+  if (!html)    { status.innerHTML = '<span style="color:#c00">Email body is empty.</span>';   return; }
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Sending…';
-  if (status) status.textContent = '';
-
+  status.textContent = '';
   try {
-    const html = `
-      <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
-        <div style="background:#5a3a8c;padding:24px 28px;border-radius:6px 6px 0 0">
-          <h1 style="color:#fff;margin:0;font-size:20px">Email System Test</h1>
-        </div>
-        <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
-          <p>This is a test email from the <strong>Rhenus SDS Label Generator</strong> admin panel.</p>
-          <p>If you received this, your email delivery pipeline (Firebase Trigger Email + SendGrid) is working correctly.</p>
-          <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
-          <p style="font-size:11px;color:#aaa;margin:0">Sent ${new Date().toLocaleString()} · Rhenus Logistics · Safety Department</p>
-        </div>
-      </div>`;
-    await window.FB.sendEmail(email, 'Email System Test — Rhenus SDS Label Generator', html);
-    if (status) status.innerHTML = '<span style="color:#2e7d32">✓ Test email queued — check your inbox.</span>';
-    logActivity('Test email sent to: ' + email, 'add');
+    await window.FB.sendEmail(to, subject, html);
+    status.innerHTML = '<span style="color:#2e7d32">✓ Queued — check your inbox.</span>';
+    logActivity('Dev Tools email sent to: ' + to, 'add');
   } catch (e) {
     console.error(e);
-    if (status) status.innerHTML = '<span style="color:#c00">Failed to queue email — check console.</span>';
+    status.innerHTML = '<span style="color:#c00">Failed — check console.</span>';
   }
   btn.disabled = false;
-  btn.textContent = 'Send Test Email →';
+  btn.textContent = 'Send Email';
+}
+
+async function dtLoadAccess() {
+  const listEl  = document.getElementById('dt-access-list');
+  const selEl   = document.getElementById('dt-grant-select');
+  if (listEl) listEl.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:#888">Loading…</div>';
+
+  try {
+    const allAdmins = await window.FB.listWorkers(true);
+    dtAccessList = allAdmins.filter(w => w.role === 'admin' || w.devtoolsAccess);
+
+    const authorized = dtAccessList.filter(w => w.devtoolsAccess || w.email === DT_SUPER);
+    const eligible   = dtAccessList.filter(w => !w.devtoolsAccess && w.email !== DT_SUPER);
+
+    if (listEl) listEl.innerHTML = authorized.length ? authorized.map(w =>
+      `<div class="dt-access-row">
+        <span class="dt-access-email">${esc(w.email)}</span>
+        ${w.email === DT_SUPER
+          ? '<span class="dt-access-super">Superadmin</span>'
+          : `<button class="dt-revoke-btn" onclick="dtRevokeAccess('${esc(w.uid)}')">Revoke</button>`}
+      </div>`
+    ).join('') : '<div style="padding:10px 12px;font-size:12px;color:#888">No authorized accounts.</div>';
+
+    if (selEl) selEl.innerHTML = '<option value="">— Select an admin account —</option>' +
+      eligible.map(w => `<option value="${esc(w.uid)}">${esc(w.email)}</option>`).join('');
+  } catch (e) {
+    console.error(e);
+    if (listEl) listEl.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:#c00">Failed to load — check console.</div>';
+  }
+}
+
+async function dtGrantAccess() {
+  const sel    = document.getElementById('dt-grant-select');
+  const status = document.getElementById('dt-access-status');
+  const uid    = sel?.value || '';
+  if (!uid) { if (status) status.innerHTML = '<span style="color:#c00">Select an account first.</span>'; return; }
+  try {
+    await window.FB.setDevToolsAccess(uid, true);
+    if (status) status.innerHTML = '<span style="color:#2e7d32">✓ Access granted.</span>';
+    dtLoadAccess();
+  } catch (e) {
+    console.error(e);
+    if (status) status.innerHTML = '<span style="color:#c00">Failed — check console.</span>';
+  }
+}
+
+async function dtRevokeAccess(uid) {
+  const status = document.getElementById('dt-access-status');
+  try {
+    await window.FB.setDevToolsAccess(uid, false);
+    if (status) status.innerHTML = '<span style="color:#888">Access revoked.</span>';
+    dtLoadAccess();
+  } catch (e) {
+    console.error(e);
+    if (status) status.innerHTML = '<span style="color:#c00">Failed — check console.</span>';
+  }
 }
 
 // -------------------------------------------------------
@@ -2419,6 +2621,89 @@ function updateApprovalsBadge() {
       <div id="review-banner" class="inline-banner" style="flex:1;margin:0 8px 0 0;align-self:center"></div>
       <button class="appr-reject" onclick="rejectFromReview()">✕ Reject</button>
       <button class="appr-approve" onclick="approveFromReview()">✓ Approve</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DEV TOOLS MODAL ===== -->
+<div id="devtools-modal" onclick="if(event.target===this)closeDevTools()">
+  <div class="dt-card">
+    <div class="dt-header">
+      <h3>⚙ Dev Tools</h3>
+      <button class="dt-close" onclick="closeDevTools()">✕</button>
+    </div>
+    <div class="dt-body">
+
+      <!-- Email Tester -->
+      <div class="dt-section">Email Tester</div>
+
+      <div class="dt-2col">
+        <div>
+          <label class="dt-label">Email Type</label>
+          <select id="dt-type" class="dt-select" onchange="dtTypeChanged()">
+            <option value="test">System Test</option>
+            <option value="invite">Worker Invite</option>
+            <option value="approval">Chemical Approved</option>
+            <option value="rejection">Chemical Rejected</option>
+          </select>
+        </div>
+        <div>
+          <label class="dt-label">Send To</label>
+          <input type="email" id="dt-to" class="dt-input" placeholder="recipient@example.com" oninput="dtRefreshPreview()">
+        </div>
+      </div>
+
+      <div class="dt-2col" id="dt-vars" style="display:none">
+        <div id="dt-var-facility" style="display:none">
+          <label class="dt-label">Facility Name</label>
+          <input type="text" id="dt-facility" class="dt-input" placeholder="e.g. Salem Manufacturing" oninput="dtRefreshAll()">
+        </div>
+        <div id="dt-var-product" style="display:none">
+          <label class="dt-label">Product Name</label>
+          <input type="text" id="dt-product" class="dt-input" placeholder="e.g. Acetone" oninput="dtRefreshAll()">
+        </div>
+      </div>
+
+      <div>
+        <label class="dt-label">Subject</label>
+        <input type="text" id="dt-subject" class="dt-input" placeholder="Email subject…">
+      </div>
+
+      <div class="dt-2col">
+        <div>
+          <label class="dt-label">HTML (editable)</label>
+          <textarea id="dt-html" class="dt-textarea" oninput="dtSyncPreview()" rows="12"></textarea>
+        </div>
+        <div>
+          <label class="dt-label">Preview</label>
+          <div class="dt-preview-wrap">
+            <iframe id="dt-frame" sandbox="allow-same-origin"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <button id="dt-send-btn" class="dt-send-btn" onclick="dtSend()">Send Email</button>
+        <div id="dt-send-status" style="font-size:12px"></div>
+      </div>
+
+      <!-- Dev Tools Access -->
+      <div class="dt-section" style="margin-top:8px">Dev Tools Access</div>
+      <div style="font-size:11px;color:#666;margin-bottom:4px">Only these accounts can open Dev Tools. The superadmin cannot be removed.</div>
+      <div id="dt-access-list" class="dt-access-list">
+        <div style="padding:10px 12px;font-size:12px;color:#888">Loading…</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-end">
+        <div style="flex:1">
+          <label class="dt-label">Grant access to another admin</label>
+          <select id="dt-grant-select" class="dt-select">
+            <option value="">— Select an admin account —</option>
+          </select>
+        </div>
+        <button onclick="dtGrantAccess()" style="padding:8px 16px;background:#1a3a5c;color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Grant Access</button>
+      </div>
+      <div id="dt-access-status" style="font-size:11px;min-height:16px"></div>
+
     </div>
   </div>
 </div>
