@@ -486,13 +486,19 @@ window.FB = {
     const cred    = await signInWithEmailAndPassword(auth, email.trim(), password);
     const profile = await window.FB.getWorkerProfile(cred.user.uid);
 
-    if (!profile || profile.role !== 'worker') {
-      await fbSignOut(auth);
-      throw new Error('not-a-worker');
-    }
-    if (profile.status === 'inactive') {
+    if (profile && profile.status === 'inactive') {
       await fbSignOut(auth);
       throw new Error('inactive');
+    }
+
+    // No /users doc = admin account. Let them through; index.html will
+    // show a facility picker so they can choose which site to work in.
+    if (!profile || profile.role !== 'worker') {
+      window.FB.workerProfile = { uid: cred.user.uid, email: cred.user.email, role: 'admin', facilityCode: null };
+      window.FB.facilityCode  = null;
+      window.FB.facilityName  = null;
+      window.FB.facilityLogo  = null;
+      return window.FB.workerProfile;
     }
 
     window.FB.workerProfile = profile;
@@ -589,7 +595,13 @@ window.FB = {
       if (!user) { callback(null); return; }
       try {
         const profile = await window.FB.getWorkerProfile(user.uid);
-        if (!profile || profile.role !== 'worker') { callback(null); return; }
+        // Admin accounts have no /users doc — pass through with role:'admin'
+        if (!profile || profile.role !== 'worker') {
+          const adminProfile = { uid: user.uid, email: user.email, role: 'admin', facilityCode: null };
+          window.FB.workerProfile = adminProfile;
+          callback(adminProfile);
+          return;
+        }
         if (profile.status === 'inactive') { callback(null); return; }
         window.FB.workerProfile = profile;
         if (profile.facilityCode) {

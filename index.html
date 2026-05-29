@@ -892,6 +892,17 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
       <button class="gate-link" style="margin-top:8px" onclick="showGatePanel('signin')">← Back to sign in</button>
     </div>
 
+    <!-- Admin facility picker -->
+    <div id="gate-admin" style="display:none">
+      <div class="gate-label">Select Facility</div>
+      <select id="gate-admin-fac" class="gate-input" style="font-size:13px;padding:9px 10px;cursor:pointer">
+        <option value="">— Loading facilities… —</option>
+      </select>
+      <div id="gate-admin-error" class="gate-error"></div>
+      <button id="gate-admin-btn" class="gate-btn" style="margin-top:8px" onclick="adminPickFacility()">Enter →</button>
+      <button class="gate-link" style="margin-top:8px" onclick="workerSignOut()">Sign out</button>
+    </div>
+
     <!-- Pending facility assignment message -->
     <div id="gate-pending" style="display:none">
       <div class="gate-pending">
@@ -1846,6 +1857,7 @@ function init() {
   if (window.FB) {
     window.FB.onAuthChange(profile => {
       if (!profile) { showGatePanel('signin'); return; }
+      if (profile.role === 'admin') { showAdminFacilityPicker(); return; }
       if (!profile.facilityCode) { showGatePanel('pending'); return; }
       onWorkerReady(profile);
     });
@@ -2203,7 +2215,7 @@ function clearForm() {
 
 /* ── Worker Auth Gate ───────────────────────────────────────── */
 function showGatePanel(panel) {
-  ['signin', 'register', 'pending'].forEach(p => {
+  ['signin', 'register', 'pending', 'admin'].forEach(p => {
     const el = $('gate-' + p);
     if (el) el.style.display = p === panel ? '' : 'none';
   });
@@ -2252,6 +2264,7 @@ async function workerSignIn() {
   try {
     const profile = await window.FB.workerLogin(email, password);
     btn.disabled = false; btn.textContent = 'Sign In →';
+    if (profile.role === 'admin') { await showAdminFacilityPicker(); return; }
     if (!profile.facilityCode) { showGatePanel('pending'); return; }
     onWorkerReady(profile);
   } catch (e) {
@@ -2289,6 +2302,39 @@ async function workerRegister() {
               : 'Registration failed — please try again.';
     if (err) err.textContent = msg;
   }
+}
+
+async function showAdminFacilityPicker() {
+  showGatePanel('admin');
+  const sel = $('gate-admin-fac');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Loading… —</option>';
+  try {
+    const facs = await window.FB.listFacilities();
+    sel.innerHTML = '<option value="">— Select a facility —</option>' +
+      facs.map(f => `<option value="${f.code}">${f.code} — ${f.name}</option>`).join('');
+  } catch (e) {
+    sel.innerHTML = '<option value="">Failed to load facilities</option>';
+  }
+}
+
+async function adminPickFacility() {
+  const sel = $('gate-admin-fac');
+  const err = $('gate-admin-error');
+  const btn = $('gate-admin-btn');
+  const code = sel ? sel.value : '';
+  if (!code) { if (err) err.textContent = 'Please select a facility.'; return; }
+  btn.disabled = true; btn.textContent = 'Loading…';
+  if (err) err.textContent = '';
+  const name = await window.FB.login(code);
+  btn.disabled = false; btn.textContent = 'Enter →';
+  if (!name) { if (err) err.textContent = 'Could not load facility.'; return; }
+  applyLogo(window.FB.facilityLogo);
+  hideFacilityGate();
+  updateFacilityBar();
+  selectedLibIdx = null;
+  filterCombo();
+  loadFavorites();
 }
 
 async function workerSignOut() {
