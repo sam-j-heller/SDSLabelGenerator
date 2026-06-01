@@ -609,9 +609,8 @@ body[data-mode="sheet"] .mode-btn[data-mode="sticker"] { background: #e6a000; bo
 }
 .sheet-sub-btn.active { background: #e6a000; border-color: #e6a000; color: #000; }
 /* Paper size toggle — only shown in full label mode */
-.paper-toggle-bar { display: none; gap: 4px; margin-top: 4px; align-items: center; }
+.paper-toggle-bar { display: none; gap: 4px; margin-top: 8px; }
 body[data-mode="full"] .paper-toggle-bar { display: flex; }
-.paper-toggle-label { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
 .paper-btn {
   flex: 1; padding: 4px; font-size: 10px; font-weight: 700;
   cursor: pointer; border-radius: 3px;
@@ -979,7 +978,6 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
         <button class="sheet-sub-btn"        id="sub-sheet"  onclick="setMode('sheet')">Sheet 4×</button>
       </div>
       <div class="paper-toggle-bar">
-        <span class="paper-toggle-label">Paper:</span>
         <button class="paper-btn active" id="paper-btn-letter" onclick="setPaper('letter')">Letter</button>
         <button class="paper-btn"        id="paper-btn-a4"     onclick="setPaper('a4')">A4</button>
         <button class="paper-btn"        id="paper-btn-sra3"   onclick="setPaper('sra3')">SRA3</button>
@@ -1817,6 +1815,8 @@ function setPaper(paper) {
     ps.textContent = `@media print { @page { size: ${size}; margin: 0.15in; } }`;
   }
   scheduleFit();
+  setTimeout(scheduleFit, 50);
+  setTimeout(scheduleFit, 200);
   update();
 }
 
