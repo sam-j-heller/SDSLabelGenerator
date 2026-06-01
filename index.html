@@ -1804,7 +1804,7 @@ let currentPaper = 'letter';
 
 function setPaper(paper) {
   currentPaper = paper;
-  document.body.dataset.paper = paper === 'a4' ? 'a4' : '';
+  document.body.dataset.paper = paper === 'letter' ? '' : paper;
   document.querySelectorAll('.paper-btn').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById('paper-btn-' + paper);
   if (btn) btn.classList.add('active');
