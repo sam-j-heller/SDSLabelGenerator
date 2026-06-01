@@ -627,7 +627,36 @@ body[data-paper="sra3"] .label-outer {
   aspect-ratio: 17.7 / 11.7;
 }
 body[data-paper="sra3"] .label-wrap { width: 17.7in; height: 11.7in; }
-body[data-paper="sra3"] .label      { width: 17.7in; height: 11.7in; grid-template-rows: 0.55in 7in 1.55in 1fr; }
+body[data-paper="sra3"] .label      { width: 17.7in; height: 11.7in; grid-template-rows: 0.55in 7in 2.2in 1fr; }
+
+/* SRA3 content scaling (~1.5× all sizes to suit large-format sticker) */
+body[data-paper="sra3"] .nfpa-svg          { max-width: 5.5in; max-height: 5.5in; }
+body[data-paper="sra3"] .nfpa-zone         { padding-top: 0.55in; }
+body[data-paper="sra3"] .nfpa-zone .nlabel { height: 0.5in; font-size: 18pt; }
+body[data-paper="sra3"] .pic-zone          { padding-top: 0.55in; }
+body[data-paper="sra3"] .pic-edge-label    { height: 0.5in; font-size: 18pt; }
+body[data-paper="sra3"] .signal-zone .slabel { font-size: 12pt; }
+body[data-paper="sra3"] .signal-zone .sword  { font-size: 42pt; }
+body[data-paper="sra3"] .hmis-zone .hd      { font-size: 13pt; letter-spacing: 5px; padding: 5px 0; }
+body[data-paper="sra3"] .hmis-row           { flex: none; height: 1.1in; }
+body[data-paper="sra3"] .hmis-zone          { justify-content: center; }
+body[data-paper="sra3"] .hmis-row .lab      { font-size: 11pt; }
+body[data-paper="sra3"] .hmis-row .val      { font-size: 28pt; width: 75px; }
+body[data-paper="sra3"] .nfpa-col-head      { font-size: 13pt; }
+body[data-paper="sra3"] .nfpa-col-head span { font-size: 10pt; }
+body[data-paper="sra3"] .nfpa-row           { font-size: 11pt; line-height: 1.5; }
+body[data-paper="sra3"] .key-note           { font-size: 10pt; }
+body[data-paper="sra3"] .ghs-shown-line     { min-height: 0.35in; }
+body[data-paper="sra3"] .ghs-shown-line .klabel,
+body[data-paper="sra3"] .ghs-shown-line .ktext { font-size: 11pt; }
+body[data-paper="sra3"] .hp-info h4,
+body[data-paper="sra3"] .fa-box h4,
+body[data-paper="sra3"] .supplier-info h4   { font-size: 14pt; }
+body[data-paper="sra3"] .hp-info .htxt,
+body[data-paper="sra3"] .hp-info .ptxt,
+body[data-paper="sra3"] .fa-box .fatxt      { font-size: 11pt; }
+body[data-paper="sra3"] .supplier-info .srow { font-size: 12pt; }
+body[data-paper="sra3"] .zone-product .plabel { font-size: 17pt; }
 
 /* ============================================================
    STICKER LABEL (3 × 4 in, portrait)
@@ -1551,12 +1580,12 @@ function buildPicList() {
    Apply cluster sizing (must run once after DOM is ready)
    ============================================================ */
 function sizeCluster() {
+  const side = currentPaper === 'sra3' ? 330 : SIDE;
+  const fp   = Math.round(side * Math.SQRT2);
   const outer = document.getElementById('pic-cluster-outer');
   const inner = document.getElementById('pic-cluster');
-  outer.style.width  = FOOTPRINT + 'px';
-  outer.style.height = FOOTPRINT + 'px';
-  inner.style.width  = SIDE + 'px';
-  inner.style.height = SIDE + 'px';
+  if (outer) { outer.style.width = fp + 'px'; outer.style.height = fp + 'px'; }
+  if (inner) { inner.style.width = side + 'px'; inner.style.height = side + 'px'; }
 }
 
 function sizeSticker() {
@@ -1814,6 +1843,7 @@ function setPaper(paper) {
     const size = paper === 'a4' ? 'A4 landscape' : paper === 'sra3' ? '18in 12in' : 'letter landscape';
     ps.textContent = `@media print { @page { size: ${size}; margin: 0.15in; } }`;
   }
+  sizeCluster();
   scheduleFit();
   setTimeout(scheduleFit, 50);
   setTimeout(scheduleFit, 200);
