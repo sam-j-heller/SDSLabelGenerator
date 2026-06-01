@@ -235,7 +235,7 @@ body {
   border: 4px solid #000;
   display: grid;
   /* product | middle (NFPA/GHS/Signal+HMIS) | NFPA rating guide | bottom */
-  grid-template-rows: 0.55in 1fr 1.55in 1.25in;
+  grid-template-rows: 0.55in 3fr 1.55in 1fr;
   font-family: Arial, Helvetica, sans-serif;
   color: #000;
   box-shadow: 0 6px 24px rgba(0,0,0,0.35);
@@ -785,7 +785,10 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
     position: static !important;
     width: auto !important; height: auto !important; transform: none !important;
   }
-  body:not([data-mode="sticker"]):not([data-mode="sheet"]) .label { margin: 0; box-shadow: none !important; page-break-inside: avoid; }
+  body:not([data-mode="sticker"]):not([data-mode="sheet"]) .label {
+    margin: 0; box-shadow: none !important; page-break-inside: avoid;
+    width: 100vw; height: 100vh;
+  }
   /* Sticker print */
   body[data-mode="sticker"] .label-outer { display: none !important; }
   body[data-mode="sticker"] .sticker-outer {
