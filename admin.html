@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Easy SDS — Admin Console</title>
+<title>Easy SDS â€” Admin Console</title>
 <script type="module" src="firebase.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; }
@@ -696,10 +696,10 @@ nav {
     <div class="gate-pw-wrap">
       <input type="password" id="gate-input" class="gate-input" placeholder="Password"
              autocomplete="current-password" onkeydown="if(event.key==='Enter')doAdminLogin()">
-      <button type="button" class="pw-toggle" onclick="togglePw()" title="Show / hide">👁</button>
+      <button type="button" class="pw-toggle" onclick="togglePw()" title="Show / hide">ðŸ‘</button>
     </div>
     <div id="gate-error"></div>
-    <button id="gate-btn" class="gate-btn" onclick="doAdminLogin()">Sign In →</button>
+    <button id="gate-btn" class="gate-btn" onclick="doAdminLogin()">Sign In â†’</button>
   </div>
 </div>
 
@@ -712,7 +712,7 @@ nav {
       <div class="hdr-title">Admin Console</div>
     </div>
     <div class="hdr-sep"></div>
-    <button id="devtools-btn" onclick="openDevTools()">⚙ Dev Tools</button>
+    <button id="devtools-btn" onclick="openDevTools()">âš™ Dev Tools</button>
     <button class="hdr-out" onclick="signOut()">Sign Out</button>
   </header>
 
@@ -738,7 +738,7 @@ nav {
           <div class="dash-card-title">Facilities</div>
           <div class="dash-card-desc">Add and manage plant locations and their facility codes.</div>
         </div>
-        <div class="dash-arrow">→</div>
+        <div class="dash-arrow">â†’</div>
       </div>
 
       <div class="dash-card" onclick="navToTab('workers')">
@@ -747,7 +747,7 @@ nav {
           <div class="dash-card-title">Workers</div>
           <div class="dash-card-desc">Invite workers and manage account access by facility.</div>
         </div>
-        <div class="dash-arrow">→</div>
+        <div class="dash-arrow">â†’</div>
       </div>
 
       <div class="dash-card" onclick="navToTab('approvals')">
@@ -756,7 +756,7 @@ nav {
           <div class="dash-card-title">Pending Approvals <span id="dash-appr-count" class="dash-count" style="display:none"></span></div>
           <div class="dash-card-desc">Review and approve or reject chemical submissions from workers.</div>
         </div>
-        <div class="dash-arrow">→</div>
+        <div class="dash-arrow">â†’</div>
       </div>
 
       <div class="dash-card" onclick="navToTab('history')">
@@ -765,7 +765,7 @@ nav {
           <div class="dash-card-title">Submission History</div>
           <div class="dash-card-desc">View a log of all approved and rejected chemical submissions.</div>
         </div>
-        <div class="dash-arrow">→</div>
+        <div class="dash-arrow">â†’</div>
       </div>
 
       <div class="dash-card" onclick="navToTab('company')">
@@ -774,7 +774,7 @@ nav {
           <div class="dash-card-title">Company Chemicals</div>
           <div class="dash-card-desc">Manage the global approved chemical library shared across all facilities.</div>
         </div>
-        <div class="dash-arrow">→</div>
+        <div class="dash-arrow">â†’</div>
       </div>
 
       <div class="dash-card" onclick="navToTab('blacklist')">
@@ -783,7 +783,7 @@ nav {
           <div class="dash-card-title">Chemical Blacklist</div>
           <div class="dash-card-desc">Manage restricted substances that cannot be submitted by workers.</div>
         </div>
-        <div class="dash-arrow">→</div>
+        <div class="dash-arrow">â†’</div>
       </div>
 
     </div>
@@ -798,20 +798,20 @@ nav {
 
         <!-- Migration Notice (hidden until legacy format detected) -->
         <div class="migrate-notice" id="migrate-notice" style="display:none">
-          <h2>⚠ Migration Required</h2>
+          <h2>âš  Migration Required</h2>
           <p id="migrate-msg">Blacklist is stored in legacy format.</p>
-          <button class="migrate-btn" id="migrate-btn" onclick="doMigration()">Migrate to New Format →</button>
+          <button class="migrate-btn" id="migrate-btn" onclick="doMigration()">Migrate to New Format â†’</button>
           <div id="migrate-status" style="font-size:11px;margin-top:6px;min-height:14px"></div>
         </div>
 
         <!-- CSV Upload -->
         <div class="card">
           <h2>Upload from CSV</h2>
-          <p>Export your Excel file as CSV UTF-8, then drop it here or click to browse. New chemicals are merged in — existing ones are skipped.</p>
+          <p>Export your Excel file as CSV UTF-8, then drop it here or click to browse. New chemicals are merged in â€” existing ones are skipped.</p>
           <div id="drop-zone"
                onclick="document.getElementById('file-input').click()"
                ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">
-            <div class="dz-icon">📄</div>
+            <div class="dz-icon">ðŸ“„</div>
             <div class="dz-label">Drop CSV here or click to browse</div>
             <div class="dz-sub">All columns detected automatically</div>
           </div>
@@ -852,9 +852,9 @@ nav {
       <div class="bl-right">
         <div class="card">
           <h2>Current Blacklist</h2>
-          <input type="text" id="bl-search" placeholder="Search chemicals…" oninput="renderBlacklist()">
-          <div id="bl-count">Loading…</div>
-          <div id="bl-list"><div id="bl-empty">Loading…</div></div>
+          <input type="text" id="bl-search" placeholder="Search chemicalsâ€¦" oninput="renderBlacklist()">
+          <div id="bl-count">Loadingâ€¦</div>
+          <div id="bl-list"><div id="bl-empty">Loadingâ€¦</div></div>
         </div>
       </div>
 
@@ -874,9 +874,9 @@ nav {
           <input type="email" id="worker-email-input" class="edit-input" placeholder="worker@rhenus.com" autocomplete="off" style="margin-bottom:10px">
           <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">Assign Facility</label>
           <select id="worker-fac-select" class="col-select" style="width:100%;padding:8px 10px;font-size:12px;margin-bottom:12px">
-            <option value="">— Select facility —</option>
+            <option value="">â€” Select facility â€”</option>
           </select>
-          <button onclick="addWorker()" style="width:100%;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">Send Invite →</button>
+          <button onclick="addWorker()" style="width:100%;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">Send Invite â†’</button>
           <div id="worker-add-status" style="font-size:11px;min-height:18px;margin-top:8px"></div>
         </div>
 
@@ -928,9 +928,9 @@ nav {
 
         <!-- Facility migration notice (hidden until legacy format detected) -->
         <div class="migrate-notice" id="fac-migrate-notice" style="display:none">
-          <h2>⚠ Migration Required</h2>
+          <h2>âš  Migration Required</h2>
           <p id="fac-migrate-msg">Some facilities store chemicals in the legacy format.</p>
-          <button class="migrate-btn" id="fac-migrate-btn" onclick="migrateAllFacilities()">Migrate All Facilities →</button>
+          <button class="migrate-btn" id="fac-migrate-btn" onclick="migrateAllFacilities()">Migrate All Facilities â†’</button>
           <div id="fac-migrate-status" style="font-size:11px;margin-top:6px;min-height:14px"></div>
         </div>
 
@@ -946,13 +946,13 @@ nav {
       <div class="fac-right">
         <div class="card">
           <h2>All Facilities</h2>
-          <div id="fac-count">Loading…</div>
+          <div id="fac-count">Loadingâ€¦</div>
           <div id="fac-banner" class="inline-banner"></div>
           <div id="fac-list">
             <div class="fac-list-header">
               <span>Code</span><span>Name</span><span>Chemicals</span><span></span><span></span><span></span>
             </div>
-            <div id="fac-empty">Loading…</div>
+            <div id="fac-empty">Loadingâ€¦</div>
           </div>
         </div>
       </div>
@@ -971,7 +971,7 @@ nav {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span id="appr-refresh-stamp" style="font-size:11px;color:#aaa"></span>
-        <button class="cc-reload" onclick="loadApprovals()">↻ Refresh</button>
+        <button class="cc-reload" onclick="loadApprovals()">â†» Refresh</button>
       </div>
     </div>
     <div id="appr-banner" class="inline-banner" style="margin:0 0 8px"></div>
@@ -1005,11 +1005,11 @@ nav {
   <div id="tab-company" class="tab-panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h2 style="margin:0">Company-Wide Chemicals</h2>
-      <button class="cc-reload" onclick="loadCompanyChemicals()">↻ Refresh</button>
+      <button class="cc-reload" onclick="loadCompanyChemicals()">â†» Refresh</button>
     </div>
     <div class="cc-stats" id="cc-stats"></div>
     <input class="cc-search" id="cc-search" type="text"
-      placeholder="Search by chemical name or facility code…" oninput="filterCompanyChems()">
+      placeholder="Search by chemical name or facility codeâ€¦" oninput="filterCompanyChems()">
     <div class="cc-list" id="cc-list">
       <div style="padding:16px;color:#888;font-size:13px">Open this tab to load chemicals.</div>
     </div>
@@ -1020,7 +1020,7 @@ nav {
   <div class="transfer-card">
     <div class="transfer-header">
       <h3>Transfer Chemicals Between Facilities</h3>
-      <button class="transfer-close" onclick="closeTransfer()">✕</button>
+      <button class="transfer-close" onclick="closeTransfer()">âœ•</button>
     </div>
     <div class="transfer-body">
       <div class="transfer-row">
@@ -1033,7 +1033,7 @@ nav {
           <select id="transfer-to" class="transfer-select" onchange="resetTransferList()"></select>
         </div>
       </div>
-      <button id="transfer-load-btn" onclick="loadTransferChemicals()">Load Chemicals from Source →</button>
+      <button id="transfer-load-btn" onclick="loadTransferChemicals()">Load Chemicals from Source â†’</button>
       <div id="transfer-chem-wrap" style="display:none">
         <label class="transfer-select-all">
           <input type="checkbox" id="transfer-select-all" onchange="toggleSelectAll(this.checked)">
@@ -1059,14 +1059,14 @@ nav {
   <div class="edit-card">
     <div class="edit-header">
       <h3>Edit Facility</h3>
-      <button class="edit-close" onclick="closeEdit()">✕</button>
+      <button class="edit-close" onclick="closeEdit()">âœ•</button>
     </div>
     <div class="edit-body">
       <div class="edit-field-label">Facility Code</div>
       <input type="text" id="edit-code" class="edit-input edit-code-input"
              maxlength="10" autocomplete="off"
              oninput="this.value=this.value.toUpperCase()">
-      <div class="edit-code-note">⚠ Changing the code creates a new document and deletes the old one — users will need to enter the new code.</div>
+      <div class="edit-code-note">âš  Changing the code creates a new document and deletes the old one â€” users will need to enter the new code.</div>
 
       <div class="edit-field-label" style="margin-top:14px">Facility Name</div>
       <input type="text" id="edit-name" class="edit-input" autocomplete="off">
@@ -1088,7 +1088,7 @@ nav {
         <span class="edit-chem-badge"><span id="edit-chem-count">0</span> chemicals</span>
       </div>
       <div id="edit-chem-list">
-        <div class="edit-chem-empty">Loading…</div>
+        <div class="edit-chem-empty">Loadingâ€¦</div>
       </div>
     </div>
     <div id="edit-status"></div>
@@ -1130,7 +1130,7 @@ async function doAdminLogin() {
   if (!pass.trim())  { err.textContent = 'Enter your password.'; return; }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Signing in…';
+  btn.innerHTML = '<span class="spinner"></span>Signing inâ€¦';
   err.textContent = '';
 
   if (!window.FB) await new Promise(r => setTimeout(r, 800));
@@ -1141,11 +1141,11 @@ async function doAdminLogin() {
     document.getElementById('app').style.display  = 'flex';
     loadFacilities();
     loadBlacklist();
-    window.FB.getAllPending().then(list => { pendingApprovals = list; updateApprovalsBadge(); }).catch(() => {});
+    window.FB.getAllPending().then(list => { pendingApprovals = list; updateApprovalsBadge(); }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
   } else {
     err.textContent = 'Incorrect email or password.';
     btn.disabled    = false;
-    btn.textContent = 'Sign In →';
+    btn.textContent = 'Sign In â†’';
     input.value     = '';
     input.focus();
   }
@@ -1188,7 +1188,7 @@ let workerList = [];
 
 async function loadWorkers() {
   const wrap = document.getElementById('worker-list-wrap');
-  if (wrap) wrap.innerHTML = '<div style="color:#888;font-size:13px;padding:12px 0">Loading…</div>';
+  if (wrap) wrap.innerHTML = '<div style="color:#888;font-size:13px;padding:12px 0">Loadingâ€¦</div>';
   populateWorkerFacilitySelect();
   const showAdmins = (document.getElementById('show-admins-chk') || {}).checked || false;
   workerList = await window.FB.listWorkers(showAdmins);
@@ -1204,7 +1204,7 @@ function populateWorkerFacilityFilter() {
   sel.innerHTML = '<option value="">All Facilities</option>' +
     codes.map(c => {
       const fac = facilities.find(f => f.code === c);
-      return `<option value="${esc(c)}">${esc(c)}${fac ? ' — ' + esc(fac.name) : ''}</option>`;
+      return `<option value="${esc(c)}">${esc(c)}${fac ? ' â€” ' + esc(fac.name) : ''}</option>`;
     }).join('');
   sel.value = current;
 }
@@ -1212,8 +1212,8 @@ function populateWorkerFacilityFilter() {
 function populateWorkerFacilitySelect() {
   const sel = document.getElementById('worker-fac-select');
   if (!sel) return;
-  sel.innerHTML = '<option value="">— Select facility —</option>' +
-    facilities.map(f => `<option value="${esc(f.code)}">${esc(f.code)} — ${esc(f.name)}</option>`).join('');
+  sel.innerHTML = '<option value="">â€” Select facility â€”</option>' +
+    facilities.map(f => `<option value="${esc(f.code)}">${esc(f.code)} â€” ${esc(f.name)}</option>`).join('');
 }
 
 function renderWorkers() {
@@ -1245,14 +1245,14 @@ function renderWorkers() {
           ${isAdmin ? '<span style="font-size:9px;font-weight:700;color:#fff;background:#1a3a5c;padding:1px 5px;border-radius:2px;margin-left:5px;vertical-align:middle">ADMIN</span>' : ''}
         </div>
         <div style="font-size:11px;color:#888;margin-top:2px">
-          ${statusLabel(w.status)} &nbsp;·&nbsp;
-          ${w.facilityCode ? `<b>${esc(w.facilityCode)}</b> — ${esc(w.facilityName || '')}` : 'No facility assigned'}
+          ${statusLabel(w.status)} &nbsp;Â·&nbsp;
+          ${w.facilityCode ? `<b>${esc(w.facilityCode)}</b> â€” ${esc(w.facilityName || '')}` : 'No facility assigned'}
         </div>
         ${!isAdmin && (w.status === 'pending-facility' || !w.facilityCode) ? `
           <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
             <select id="assign-fac-${i}" class="col-select" style="font-size:11px;padding:3px 6px">
-              <option value="">— Assign facility —</option>
-              ${facilities.map(f => `<option value="${esc(f.code)}">${esc(f.code)} — ${esc(f.name)}</option>`).join('')}
+              <option value="">â€” Assign facility â€”</option>
+              ${facilities.map(f => `<option value="${esc(f.code)}">${esc(f.code)} â€” ${esc(f.name)}</option>`).join('')}
             </select>
             <button onclick="assignWorkerFacility(${i})" style="font-size:11px;padding:3px 10px;background:#1a3a5c;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:600">Assign</button>
           </div>` : ''}
@@ -1277,19 +1277,19 @@ async function addWorker() {
   const status = document.getElementById('worker-add-status');
   if (!email) { if (status) status.innerHTML = '<span style="color:#c00">Enter an email address.</span>'; return; }
   if (!facCode) { if (status) status.innerHTML = '<span style="color:#c00">Select a facility.</span>'; return; }
-  if (status) status.textContent = 'Creating account…';
+  if (status) status.textContent = 'Creating accountâ€¦';
   try {
     await window.FB.createWorkerAccount(email, facCode);
-    if (status) status.innerHTML = `<span style="color:#2e7d32">✓ Invite sent to ${esc(email)}</span>`;
+    if (status) status.innerHTML = `<span style="color:#2e7d32">âœ“ Invite sent to ${esc(email)}</span>`;
     document.getElementById('worker-email-input').value = '';
     document.getElementById('worker-fac-select').value  = '';
-    logActivity('Added worker: ' + email + ' → ' + facCode, 'add');
+    logActivity('Added worker: ' + email + ' â†’ ' + facCode, 'add');
     workerList = await window.FB.listWorkers((document.getElementById('show-admins-chk') || {}).checked);
     renderWorkers();
   } catch (e) {
     console.error(e);
     const msg = e.code === 'auth/email-already-in-use' ? 'An account with this email already exists.'
-              : 'Failed to create account — check console.';
+              : 'Failed to create account â€” check console.';
     if (status) status.innerHTML = `<span style="color:#c00">${esc(msg)}</span>`;
   }
 }
@@ -1301,7 +1301,7 @@ async function assignWorkerFacility(idx) {
   if (!facCode) return;
   try {
     await window.FB.updateWorkerFacility(w.uid, facCode);
-    logActivity('Assigned ' + w.email + ' → ' + facCode, 'add');
+    logActivity('Assigned ' + w.email + ' â†’ ' + facCode, 'add');
     workerList = await window.FB.listWorkers((document.getElementById('show-admins-chk') || {}).checked);
     renderWorkers();
   } catch (e) { console.error(e); }
@@ -1398,10 +1398,10 @@ function dtBuildTemplate() {
   const product  = document.getElementById('dt-product')?.value  || 'Product Name';
   const reason   = document.getElementById('dt-reason')?.value.trim() || '';
   const appUrl   = window.location.href.replace(/admin\.html.*$/, 'index.html');
-  const foot     = `<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0"><p style="font-size:11px;color:#aaa;margin:0">Rhenus Automotive · Engineering Department</p>`;
+  const foot     = `<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0"><p style="font-size:11px;color:#aaa;margin:0">Rhenus Automotive Â· Engineering Department</p>`;
 
   if (type === 'test') return {
-    subject: 'Email System Test — Easy SDS',
+    subject: 'Email System Test â€” Easy SDS',
     html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
   <div style="background:#5a3a8c;padding:24px 28px;border-radius:6px 6px 0 0">
     <h1 style="color:#fff;margin:0;font-size:20px">Email System Test</h1>
@@ -1426,7 +1426,7 @@ function dtBuildTemplate() {
     <p>You've been added to <strong>Easy SDS</strong> for <strong>${facility}</strong>.</p>
     <p>Click below and use <strong>"First time or forgot password"</strong> to set your password for <strong>${toEmail}</strong>.</p>
     <p style="text-align:center;margin:40px 0">
-      <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:14px 32px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Easy SDS →</a>
+      <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:14px 32px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Easy SDS â†’</a>
     </p>
     <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
     ${foot}
@@ -1438,7 +1438,7 @@ function dtBuildTemplate() {
     subject: `"${product}" approved`,
     html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
   <div style="background:#1a5c33;padding:24px 28px;border-radius:6px 6px 0 0">
-    <h1 style="color:#fff;margin:0;font-size:20px">✓ Chemical Approved</h1>
+    <h1 style="color:#fff;margin:0;font-size:20px">âœ“ Chemical Approved</h1>
   </div>
   <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
     <p>Your submission for <strong>${product}</strong> at <strong>${facility}</strong> has been <strong>approved</strong>.</p>
@@ -1490,15 +1490,15 @@ async function dtSend() {
   if (!subject) { status.innerHTML = '<span style="color:#c00">Subject is empty.</span>';      return; }
   if (!html)    { status.innerHTML = '<span style="color:#c00">Email body is empty.</span>';   return; }
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Sending…';
+  btn.innerHTML = '<span class="spinner"></span>Sendingâ€¦';
   status.textContent = '';
   try {
     await window.FB.sendEmail(to, subject, html);
-    status.innerHTML = '<span style="color:#2e7d32">✓ Queued — check your inbox.</span>';
+    status.innerHTML = '<span style="color:#2e7d32">âœ“ Queued â€” check your inbox.</span>';
     logActivity('Dev Tools email sent to: ' + to, 'add');
   } catch (e) {
     console.error(e);
-    status.innerHTML = '<span style="color:#c00">Failed — check console.</span>';
+    status.innerHTML = '<span style="color:#c00">Failed â€” check console.</span>';
   }
   btn.disabled = false;
   btn.textContent = 'Send Email';
@@ -1507,7 +1507,7 @@ async function dtSend() {
 async function dtLoadAccess() {
   const listEl  = document.getElementById('dt-access-list');
   const selEl   = document.getElementById('dt-grant-select');
-  if (listEl) listEl.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:#888">Loading…</div>';
+  if (listEl) listEl.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:#888">Loadingâ€¦</div>';
 
   try {
     const allAdmins = await window.FB.listWorkers(true);
@@ -1525,11 +1525,11 @@ async function dtLoadAccess() {
       </div>`
     ).join('') : '<div style="padding:10px 12px;font-size:12px;color:#888">No authorized accounts.</div>';
 
-    if (selEl) selEl.innerHTML = '<option value="">— Select an admin account —</option>' +
+    if (selEl) selEl.innerHTML = '<option value="">â€” Select an admin account â€”</option>' +
       eligible.map(w => `<option value="${esc(w.uid)}">${esc(w.email)}</option>`).join('');
   } catch (e) {
     console.error(e);
-    if (listEl) listEl.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:#c00">Failed to load — check console.</div>';
+    if (listEl) listEl.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:#c00">Failed to load â€” check console.</div>';
   }
 }
 
@@ -1540,11 +1540,11 @@ async function dtGrantAccess() {
   if (!uid) { if (status) status.innerHTML = '<span style="color:#c00">Select an account first.</span>'; return; }
   try {
     await window.FB.setDevToolsAccess(uid, true);
-    if (status) status.innerHTML = '<span style="color:#2e7d32">✓ Access granted.</span>';
+    if (status) status.innerHTML = '<span style="color:#2e7d32">âœ“ Access granted.</span>';
     dtLoadAccess();
   } catch (e) {
     console.error(e);
-    if (status) status.innerHTML = '<span style="color:#c00">Failed — check console.</span>';
+    if (status) status.innerHTML = '<span style="color:#c00">Failed â€” check console.</span>';
   }
 }
 
@@ -1556,7 +1556,7 @@ async function dtRevokeAccess(uid) {
     dtLoadAccess();
   } catch (e) {
     console.error(e);
-    if (status) status.innerHTML = '<span style="color:#c00">Failed — check console.</span>';
+    if (status) status.innerHTML = '<span style="color:#c00">Failed â€” check console.</span>';
   }
 }
 
@@ -1615,7 +1615,7 @@ function readCSVFile(file) {
   reader.onload = ev => {
     const rows = parseCSV(ev.target.result);
     if (rows.length < 2) {
-      showBanner('csv-banner', 'CSV appears empty — make sure you exported correctly.', 'error');
+      showBanner('csv-banner', 'CSV appears empty â€” make sure you exported correctly.', 'error');
       return;
     }
     parsedHeaders = rows[0];
@@ -1632,7 +1632,7 @@ function readCSVFile(file) {
     });
 
     document.getElementById('drop-zone').querySelector('.dz-label').textContent =
-      '✓ ' + file.name + ' (' + parsedRows.length + ' rows)';
+      'âœ“ ' + file.name + ' (' + parsedRows.length + ' rows)';
     document.getElementById('col-selector').style.display = 'block';
     updatePreview();
   };
@@ -1682,7 +1682,7 @@ function updatePreview() {
 }
 
 // -------------------------------------------------------
-//  Upload — MERGE (add new, skip existing)
+//  Upload â€” MERGE (add new, skip existing)
 // -------------------------------------------------------
 
 // Convert a CSV column header into a safe Firestore field name.
@@ -1714,7 +1714,7 @@ async function uploadBlacklist() {
   const btn    = document.getElementById('upload-bl-btn');
   const status = document.getElementById('upload-status');
 
-  // Build a name→id map from the current local blacklist
+  // Build a nameâ†’id map from the current local blacklist
   const existingMap = new Map(blacklist.map(c => [c.name.toLowerCase(), c.id]));
 
   const newChems    = chemicals.filter(c => !existingMap.has(c.name.toLowerCase()));
@@ -1740,21 +1740,21 @@ async function uploadBlacklist() {
   if (!confirm(confirmMsg)) return;
 
   btn.disabled  = true;
-  btn.innerHTML = '<span class="spinner"></span>Uploading…';
+  btn.innerHTML = '<span class="spinner"></span>Uploadingâ€¦';
   status.textContent = '';
 
   try {
     if (newCount)    await window.FB.addManyToBlacklist(newChems, 'csv-upload');
     if (updateCount) await window.FB.updateManyBlacklistMeta(updateChems);
     await loadBlacklist();
-    status.innerHTML = '<span class="status-ok">✓ ' +
+    status.innerHTML = '<span class="status-ok">âœ“ ' +
       (newCount    ? newCount    + ' added'   : '') +
       (newCount && updateCount ? ', ' : '') +
       (updateCount ? updateCount + ' updated' : '') + '.</span>';
     logActivity('CSV upload: +' + newCount + ' added, ' + updateCount + ' metadata updated', 'upload');
   } catch (e) {
     console.error(e);
-    status.innerHTML = '<span class="status-err">Upload failed — check console.</span>';
+    status.innerHTML = '<span class="status-err">Upload failed â€” check console.</span>';
     logActivity('CSV upload failed: ' + e.message, 'del');
   }
   btn.disabled  = false;
@@ -1781,7 +1781,7 @@ async function manualAdd() {
     input.value = '';
     input.focus();
   } catch (e) {
-    showBanner('bl-banner', 'Failed to save — check console.', 'error');
+    showBanner('bl-banner', 'Failed to save â€” check console.', 'error');
     console.error(e);
   }
 }
@@ -1799,7 +1799,7 @@ async function deleteFromBlacklist(id) {
     renderBlacklist();
     logActivity('Removed: ' + name, 'del');
   } catch (e) {
-    showBanner('bl-banner', 'Failed to save — check console.', 'error');
+    showBanner('bl-banner', 'Failed to save â€” check console.', 'error');
     console.error(e);
   }
 }
@@ -1808,7 +1808,7 @@ async function deleteFromBlacklist(id) {
 //  Load + render blacklist
 // -------------------------------------------------------
 async function loadBlacklist() {
-  document.getElementById('bl-count').textContent = 'Loading…';
+  document.getElementById('bl-count').textContent = 'Loadingâ€¦';
   const result = await window.FB.getBlacklist();
   blacklist = result.chemicals;
   blacklist.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -1816,14 +1816,14 @@ async function loadBlacklist() {
   const notice  = document.getElementById('migrate-notice');
   const msgEl   = document.getElementById('migrate-msg');
   if (result.needsMigration) {
-    msgEl.textContent = result.migrationCount + ' chemicals are in legacy format — migrate to enable per-chemical timestamps and faster lookups.';
+    msgEl.textContent = result.migrationCount + ' chemicals are in legacy format â€” migrate to enable per-chemical timestamps and faster lookups.';
     notice.style.display = 'block';
   } else {
     notice.style.display = 'none';
   }
 
   renderBlacklist();
-  logActivity('Blacklist loaded — ' + blacklist.length + ' chemicals', 'upload');
+  logActivity('Blacklist loaded â€” ' + blacklist.length + ' chemicals', 'upload');
 }
 
 function renderBlacklist() {
@@ -1851,7 +1851,7 @@ function renderBlacklist() {
     const srcLbl  = c.source === 'csv-upload' ? 'csv' : (c.source || '');
     const dateStr = c.addedAt ? fmtDate(c.addedAt) : '';
     const subParts = [c.cas_no, c.substance_group, c.examples_of_occurrence, c.hazard].filter(Boolean);
-    const subInfo  = subParts.join(' · ');
+    const subInfo  = subParts.join(' Â· ');
     return (
       '<div class="bl-item">' +
         '<div class="bl-name-wrap">' +
@@ -1862,7 +1862,7 @@ function renderBlacklist() {
           (srcLbl  ? '<span class="bl-source bl-src-' + esc(c.source) + '">' + srcLbl + '</span>' : '') +
           (dateStr ? '<span class="bl-date">' + dateStr + '</span>' : '') +
         '</span>' +
-        '<button class="bl-del" data-id="' + esc(c.id) + '" title="Remove from blacklist" onclick="deleteFromBlacklist(this.dataset.id)">✕</button>' +
+        '<button class="bl-del" data-id="' + esc(c.id) + '" title="Remove from blacklist" onclick="deleteFromBlacklist(this.dataset.id)">âœ•</button>' +
       '</div>'
     );
   }).join('');
@@ -1872,7 +1872,7 @@ function renderBlacklist() {
 //  Facilities
 // -------------------------------------------------------
 async function loadFacilities() {
-  document.getElementById('fac-count').textContent = 'Loading…';
+  document.getElementById('fac-count').textContent = 'Loadingâ€¦';
   facilities = await window.FB.listFacilities();
   facilities.sort((a, b) => a.code.localeCompare(b.code));
   renderFacilities();
@@ -1897,7 +1897,7 @@ function renderFacilities() {
 
   const hdr = '<div class="fac-list-header"><span>Code</span><span>Name</span><span>Chemicals</span><span></span><span></span><span></span></div>';
   if (!facilities.length) {
-    listEl.innerHTML = hdr + '<div id="fac-empty">No facilities yet — create one on the left.</div>';
+    listEl.innerHTML = hdr + '<div id="fac-empty">No facilities yet â€” create one on the left.</div>';
     return;
   }
   listEl.innerHTML = hdr +
@@ -1932,7 +1932,7 @@ async function createFacility() {
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Creating…';
+  btn.innerHTML = '<span class="spinner"></span>Creatingâ€¦';
   statusEl.textContent = '';
 
   try {
@@ -1940,14 +1940,14 @@ async function createFacility() {
     facilities.push({ code, name, chemCount: 0 });
     facilities.sort((a, b) => a.code.localeCompare(b.code));
     renderFacilities();
-    logActivity('Created facility: ' + code + ' — ' + name, 'add');
-    statusEl.innerHTML = '<span class="status-ok">✓ ' + code + ' created.</span>';
+    logActivity('Created facility: ' + code + ' â€” ' + name, 'add');
+    statusEl.innerHTML = '<span class="status-ok">âœ“ ' + code + ' created.</span>';
     codeEl.value = '';
     nameEl.value = '';
     codeEl.focus();
   } catch (e) {
     console.error(e);
-    statusEl.innerHTML = '<span class="status-err">Failed — check console.</span>';
+    statusEl.innerHTML = '<span class="status-err">Failed â€” check console.</span>';
   }
   btn.disabled = false;
   btn.textContent = '+ Create Facility';
@@ -1968,9 +1968,9 @@ async function deleteFacility(code) {
     await window.FB.deleteFacility(code);
     facilities = facilities.filter(f => f.code !== code);
     renderFacilities();
-    logActivity('Deleted facility: ' + code + ' — ' + name, 'del');
+    logActivity('Deleted facility: ' + code + ' â€” ' + name, 'del');
   } catch (e) {
-    showBanner('fac-banner', 'Failed to delete — check console.', 'error');
+    showBanner('fac-banner', 'Failed to delete â€” check console.', 'error');
     console.error(e);
   }
 }
@@ -1988,8 +1988,8 @@ async function openEdit(code) {
   document.getElementById('edit-code').value  = code;
   document.getElementById('edit-name').value  = fac ? fac.name : '';
   document.getElementById('edit-status').textContent = '';
-  document.getElementById('edit-chem-list').innerHTML = '<div class="edit-chem-empty">Loading…</div>';
-  document.getElementById('edit-chem-count').textContent = '…';
+  document.getElementById('edit-chem-list').innerHTML = '<div class="edit-chem-empty">Loadingâ€¦</div>';
+  document.getElementById('edit-chem-count').textContent = 'â€¦';
   document.getElementById('edit-save-btn').disabled = true;
   editLogoChange = undefined;
   setEditLogoPreview(null);
@@ -2060,7 +2060,7 @@ function renderEditChemicals() {
       '<span class="edit-chem-name" title="' + esc(c.product || c.name || '') + '">' +
         esc(c.product || c.name || '(unnamed)') +
       '</span>' +
-      '<button class="edit-chem-del" data-idx="' + i + '" title="Remove from library" onclick="removeEditChem(parseInt(this.dataset.idx))">✕</button>' +
+      '<button class="edit-chem-del" data-idx="' + i + '" title="Remove from library" onclick="removeEditChem(parseInt(this.dataset.idx))">âœ•</button>' +
     '</div>'
   ).join('');
 }
@@ -2091,7 +2091,7 @@ async function saveEdit() {
   }
 
   saveBtn.disabled  = true;
-  saveBtn.innerHTML = '<span class="spinner"></span>Saving…';
+  saveBtn.innerHTML = '<span class="spinner"></span>Savingâ€¦';
   statusEl.textContent = '';
 
   try {
@@ -2101,13 +2101,13 @@ async function saveEdit() {
       await window.FB.deleteFacility(editOriginalCode);
       facilities = facilities.filter(f => f.code !== editOriginalCode);
       facilities.push({ code: newCode, name: newName, chemCount: editChemicals.length });
-      logActivity('Renamed: ' + editOriginalCode + ' → ' + newCode + ' (' + newName + ')', 'add');
+      logActivity('Renamed: ' + editOriginalCode + ' â†’ ' + newCode + ' (' + newName + ')', 'add');
     } else {
       await window.FB.updateFacilityName(newCode, newName);
       await window.FB.setFacilityChemicals(newCode, editChemicals);
       const fac = facilities.find(f => f.code === newCode);
       if (fac) { fac.name = newName; fac.chemCount = editChemicals.length; }
-      logActivity('Updated facility: ' + newCode + ' — ' + newName + ' (' + editChemicals.length + ' chemicals)', 'add');
+      logActivity('Updated facility: ' + newCode + ' â€” ' + newName + ' (' + editChemicals.length + ' chemicals)', 'add');
     }
     if (editLogoChange !== undefined) {
       await window.FB.setFacilityLogo(newCode, editLogoChange);
@@ -2117,20 +2117,20 @@ async function saveEdit() {
     closeEdit();
   } catch (e) {
     console.error(e);
-    statusEl.innerHTML = '<span class="status-err">Failed to save — check console.</span>';
+    statusEl.innerHTML = '<span class="status-err">Failed to save â€” check console.</span>';
     saveBtn.disabled  = false;
     saveBtn.textContent = 'Save Changes';
   }
 }
 
 // -------------------------------------------------------
-//  Facility migration (array → subcollections)
+//  Facility migration (array â†’ subcollections)
 // -------------------------------------------------------
 async function migrateAllFacilities() {
   const btn    = document.getElementById('fac-migrate-btn');
   const status = document.getElementById('fac-migrate-status');
   btn.disabled  = true;
-  btn.innerHTML = '<span class="spinner" style="border-color:#fff;border-top-color:transparent"></span>Migrating…';
+  btn.innerHTML = '<span class="spinner" style="border-color:#fff;border-top-color:transparent"></span>Migratingâ€¦';
   status.textContent = '';
 
   const toMigrate = facilities.filter(f => f.needsMigration);
@@ -2141,7 +2141,7 @@ async function migrateAllFacilities() {
       const result = await window.FB.migrateFacilityChemicals(fac.code);
       totalMoved += result.count || 0;
       fac.needsMigration = false;
-      logActivity('Migrated ' + fac.code + ': ' + (result.count || 0) + ' chemicals → subcollection', 'upload');
+      logActivity('Migrated ' + fac.code + ': ' + (result.count || 0) + ' chemicals â†’ subcollection', 'upload');
     } catch (e) {
       console.error('Migration failed for ' + fac.code, e);
       errors++;
@@ -2152,9 +2152,9 @@ async function migrateAllFacilities() {
   await loadFacilities();  // reload to get updated chemCounts and needsMigration flags
 
   if (errors) {
-    status.innerHTML = '<span class="status-err">' + errors + ' failed — check console.</span>';
+    status.innerHTML = '<span class="status-err">' + errors + ' failed â€” check console.</span>';
   } else {
-    status.innerHTML = '<span class="status-ok">✓ ' + toMigrate.length + ' facilit' +
+    status.innerHTML = '<span class="status-ok">âœ“ ' + toMigrate.length + ' facilit' +
       (toMigrate.length !== 1 ? 'ies' : 'y') + ' migrated (' + totalMoved + ' chemicals).</span>';
   }
 }
@@ -2170,7 +2170,7 @@ function openTransfer(preselectedCode) {
 
   // Populate both dropdowns with all facilities
   const opts = facilities.map(f =>
-    '<option value="' + esc(f.code) + '">' + esc(f.code) + ' — ' + esc(f.name) + '</option>'
+    '<option value="' + esc(f.code) + '">' + esc(f.code) + ' â€” ' + esc(f.name) + '</option>'
   ).join('');
   fromSel.innerHTML = opts;
   toSel.innerHTML   = opts;
@@ -2200,7 +2200,7 @@ function resetTransferList() {
   document.getElementById('transfer-move-btn').disabled = true;
   document.getElementById('transfer-copy-btn').disabled = true;
   document.getElementById('transfer-load-btn').disabled = false;
-  document.getElementById('transfer-load-btn').textContent = 'Load Chemicals from Source →';
+  document.getElementById('transfer-load-btn').textContent = 'Load Chemicals from Source â†’';
 }
 
 async function loadTransferChemicals() {
@@ -2214,14 +2214,14 @@ async function loadTransferChemicals() {
 
   const btn = document.getElementById('transfer-load-btn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner" style="border-color:#1a3a5c;border-top-color:transparent"></span>Loading…';
+  btn.innerHTML = '<span class="spinner" style="border-color:#1a3a5c;border-top-color:transparent"></span>Loadingâ€¦';
   document.getElementById('transfer-status').textContent = '';
 
   transferSourceChemicals = await window.FB.getFacilityChemicals(fromCode);
 
   if (!transferSourceChemicals.length) {
     btn.disabled = false;
-    btn.textContent = 'Load Chemicals from Source →';
+    btn.textContent = 'Load Chemicals from Source â†’';
     document.getElementById('transfer-status').innerHTML =
       '<span class="status-err" style="padding:0 20px">No chemicals in this facility\'s library.</span>';
     return;
@@ -2298,16 +2298,16 @@ async function doTransfer(move) {
     const action = move ? 'Moved' : 'Copied';
     const skipped = selected.length - newForDest.length;
     statusEl.innerHTML =
-      '<span class="status-ok" style="padding:0 20px">✓ ' + action + ' ' + newForDest.length +
+      '<span class="status-ok" style="padding:0 20px">âœ“ ' + action + ' ' + newForDest.length +
       ' chemical' + (newForDest.length !== 1 ? 's' : '') + ' to ' + toCode +
       (skipped ? '. ' + skipped + ' already existed.' : '.') + '</span>';
-    logActivity(action + ' ' + newForDest.length + ' chemicals: ' + fromCode + ' → ' + toCode +
+    logActivity(action + ' ' + newForDest.length + ' chemicals: ' + fromCode + ' â†’ ' + toCode +
       (skipped ? ' (' + skipped + ' skipped)' : ''), 'upload');
 
     if (move) closeTransfer();
   } catch (e) {
     console.error(e);
-    statusEl.innerHTML = '<span class="status-err" style="padding:0 20px">Transfer failed — check console.</span>';
+    statusEl.innerHTML = '<span class="status-err" style="padding:0 20px">Transfer failed â€” check console.</span>';
     moveBtn.disabled = copyBtn.disabled = false;
   }
 }
@@ -2319,19 +2319,19 @@ async function doMigration() {
   const btn    = document.getElementById('migrate-btn');
   const status = document.getElementById('migrate-status');
   btn.disabled  = true;
-  btn.innerHTML = '<span class="spinner" style="border-color:#fff;border-top-color:transparent"></span>Migrating…';
+  btn.innerHTML = '<span class="spinner" style="border-color:#fff;border-top-color:transparent"></span>Migratingâ€¦';
   status.textContent = '';
 
   try {
     const result = await window.FB.migrateBlacklist();
     logActivity('Migration: ' + result.count + ' chemicals converted to new format', 'upload');
     await loadBlacklist();  // hides notice if successful, refreshes list
-    status.innerHTML = '<span class="status-ok">✓ Migrated ' + result.count + ' chemicals.</span>';
+    status.innerHTML = '<span class="status-ok">âœ“ Migrated ' + result.count + ' chemicals.</span>';
   } catch (e) {
     console.error(e);
-    status.innerHTML = '<span class="status-err">Migration failed — check console.</span>';
+    status.innerHTML = '<span class="status-err">Migration failed â€” check console.</span>';
     btn.disabled  = false;
-    btn.textContent = 'Migrate to New Format →';
+    btn.textContent = 'Migrate to New Format â†’';
   }
 }
 
@@ -2351,7 +2351,7 @@ let companyChems = [];
 async function loadCompanyChemicals() {
   const list  = document.getElementById('cc-list');
   const stats = document.getElementById('cc-stats');
-  if (list)  list.innerHTML  = '<div style="padding:16px;color:#888;font-size:13px">Loading…</div>';
+  if (list)  list.innerHTML  = '<div style="padding:16px;color:#888;font-size:13px">Loadingâ€¦</div>';
   if (stats) stats.innerHTML = '';
   companyChems = await window.FB.getAllChemicals();
   renderCompanyChemicals(companyChems);
@@ -2413,7 +2413,7 @@ let _approvalRefreshTimer = null;
 
 async function loadApprovals() {
   const list = document.getElementById('appr-list');
-  if (list) list.innerHTML = '<div style="padding:16px;color:#888;font-size:13px">Loading…</div>';
+  if (list) list.innerHTML = '<div style="padding:16px;color:#888;font-size:13px">Loadingâ€¦</div>';
   pendingApprovals = await window.FB.getAllPending();
   populateApprovalsFacilityFilter();
   renderApprovals();
@@ -2451,7 +2451,7 @@ function populateApprovalsFacilityFilter() {
   sel.innerHTML = '<option value="">All Facilities</option>' +
     codes.map(code => {
       const fac = pendingApprovals.find(p => p.facilityCode === code);
-      return `<option value="${esc(code)}">${esc(code)} — ${esc(fac?.facilityName || code)}</option>`;
+      return `<option value="${esc(code)}">${esc(code)} â€” ${esc(fac?.facilityName || code)}</option>`;
     }).join('');
   if (codes.includes(current)) sel.value = current;
 }
@@ -2471,20 +2471,20 @@ function renderApprovals() {
   }
   list.innerHTML = filtered.map((p, i) => {
     const realIdx  = pendingApprovals.indexOf(p);
-    const when = p.submittedAt?.toDate ? p.submittedAt.toDate().toLocaleString() : '—';
+    const when = p.submittedAt?.toDate ? p.submittedAt.toDate().toLocaleString() : 'â€”';
     return `
     <div class="appr-row" id="appr-row-${realIdx}">
       <div class="appr-info">
         <div class="appr-product">${esc(p.product || '(unnamed)')}</div>
         <div class="appr-meta">
           <span class="appr-fac">${esc(p.facilityCode)}</span>${esc(p.facilityName)}
-          · Submitted ${esc(when)}
-          ${p.supplier?.preparedBy ? ' · <strong>' + esc(p.supplier.preparedBy) + '</strong>' : ''}
+          Â· Submitted ${esc(when)}
+          ${p.supplier?.preparedBy ? ' Â· <strong>' + esc(p.supplier.preparedBy) + '</strong>' : ''}
         </div>
       </div>
       <div class="appr-actions">
-        <button class="appr-review" onclick="openReview(${realIdx})">Review →</button>
-        <button class="appr-reject" onclick="doReject(${realIdx})">✕ Reject</button>
+        <button class="appr-review" onclick="openReview(${realIdx})">Review â†’</button>
+        <button class="appr-reject" onclick="doReject(${realIdx})">âœ• Reject</button>
       </div>
     </div>`;
   }).join('');
@@ -2496,17 +2496,17 @@ async function doApprove(idx) {
   const row = document.getElementById('appr-row-' + idx);
   if (row) row.querySelectorAll('button').forEach(b => { b.disabled = true; });
   const approveBtn = row?.querySelector('.appr-approve');
-  if (approveBtn) approveBtn.textContent = 'Approving…';
+  if (approveBtn) approveBtn.textContent = 'Approvingâ€¦';
   try {
     const ok = await window.FB.approveChemical(p.facilityCode, p._id);
     if (ok) {
       logActivity(`Approved "${p.product}" for ${p.facilityCode}`, 'add');
-      window.FB.sendApprovalEmail(p.submittedByEmail, p.product, p.facilityName).catch(() => {});
+      window.FB.sendApprovalEmail(p.submittedByEmail, p.product, p.facilityName).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
       window.FB.logSubmissionHistory(p.facilityCode, {
         product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
         submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
         reviewedBy: window.FB.adminProfile?.email || null, outcome: 'approved', reason: null
-      }).catch(() => {});
+      }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
       pendingApprovals.splice(idx, 1);
       populateApprovalsFacilityFilter();
       renderApprovals();
@@ -2515,19 +2515,19 @@ async function doApprove(idx) {
   } catch (e) {
     console.error(e);
     if (row) row.querySelectorAll('button').forEach(b => { b.disabled = false; });
-    if (approveBtn) approveBtn.textContent = '✓ Approve';
-    showBanner('appr-banner', 'Approval failed — check console.', 'error');
+    if (approveBtn) approveBtn.textContent = 'âœ“ Approve';
+    showBanner('appr-banner', 'Approval failed â€” check console.', 'error');
   }
 }
 
-// ── Reject reason modal ─────────────────────────────────
+// â”€â”€ Reject reason modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _rejectCallback = null;
 
 function openRejectModal(product, facilityCode, callback) {
-  document.getElementById('reject-modal-sub').textContent = `"${product}" — ${facilityCode}`;
+  document.getElementById('reject-modal-sub').textContent = `"${product}" â€” ${facilityCode}`;
   document.getElementById('reject-reason-input').value = '';
   document.getElementById('reject-modal-confirm').disabled = false;
-  document.getElementById('reject-modal-confirm').textContent = '✕ Reject';
+  document.getElementById('reject-modal-confirm').textContent = 'âœ• Reject';
   _rejectCallback = callback;
   document.getElementById('reject-modal').classList.add('open');
   setTimeout(() => document.getElementById('reject-reason-input').focus(), 50);
@@ -2542,7 +2542,7 @@ async function confirmReject() {
   const reason = document.getElementById('reject-reason-input').value.trim();
   const btn = document.getElementById('reject-modal-confirm');
   btn.disabled = true;
-  btn.textContent = 'Rejecting…';
+  btn.textContent = 'Rejectingâ€¦';
   if (_rejectCallback) await _rejectCallback(reason || null);
   closeRejectModal();
 }
@@ -2556,19 +2556,19 @@ async function doReject(idx) {
     try {
       await window.FB.rejectChemical(p.facilityCode, p._id);
       logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
-      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(() => {});
+      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
       window.FB.logSubmissionHistory(p.facilityCode, {
         product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
         submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
         reviewedBy: window.FB.adminProfile?.email || null, outcome: 'rejected', reason: reason || null
-      }).catch(() => {});
+      }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
       pendingApprovals.splice(idx, 1);
       renderApprovals();
       updateApprovalsBadge();
     } catch (e) {
       console.error(e);
       if (row) row.querySelectorAll('button').forEach(b => { b.disabled = false; });
-      showBanner('appr-banner', 'Rejection failed — check console.', 'error');
+      showBanner('appr-banner', 'Rejection failed â€” check console.', 'error');
     }
   });
 }
@@ -2589,10 +2589,10 @@ function openReview(idx) {
   const p = pendingApprovals[idx];
   if (!p) return;
 
-  const when = p.submittedAt?.toDate ? p.submittedAt.toDate().toLocaleString() : '—';
+  const when = p.submittedAt?.toDate ? p.submittedAt.toDate().toLocaleString() : 'â€”';
   document.getElementById('rv-meta').textContent =
-    `${p.facilityCode} — ${p.facilityName}  ·  Submitted ${when}` +
-    (p.supplier?.preparedBy ? `  ·  ${p.supplier.preparedBy}` : '');
+    `${p.facilityCode} â€” ${p.facilityName}  Â·  Submitted ${when}` +
+    (p.supplier?.preparedBy ? `  Â·  ${p.supplier.preparedBy}` : '');
 
   document.getElementById('rv-product').value  = p.product  || '';
   document.getElementById('rv-hazard').value   = p.hazard   || '';
@@ -2668,18 +2668,18 @@ async function approveFromReview() {
   const footer = document.querySelectorAll('#review-modal .review-footer button');
   footer.forEach(b => b.disabled = true);
   const approveBtn = document.querySelector('#review-modal .appr-approve');
-  if (approveBtn) approveBtn.textContent = 'Approving…';
+  if (approveBtn) approveBtn.textContent = 'Approvingâ€¦';
   try {
     const ok = await window.FB.approveChemical(p.facilityCode, p._id, editedData);
     if (ok) {
       const approvedProduct = editedData.product || p.product;
       logActivity(`Approved "${approvedProduct}" for ${p.facilityCode}`, 'add');
-      window.FB.sendApprovalEmail(p.submittedByEmail, approvedProduct, p.facilityName).catch(() => {});
+      window.FB.sendApprovalEmail(p.submittedByEmail, approvedProduct, p.facilityName).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
       window.FB.logSubmissionHistory(p.facilityCode, {
         product: approvedProduct, facilityCode: p.facilityCode, facilityName: p.facilityName,
         submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
         reviewedBy: window.FB.adminProfile?.email || null, outcome: 'approved', reason: null
-      }).catch(() => {});
+      }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
       const i = reviewIdx;
       closeReview();
       pendingApprovals.splice(i, 1);
@@ -2690,8 +2690,8 @@ async function approveFromReview() {
   } catch (e) {
     console.error(e);
     footer.forEach(b => b.disabled = false);
-    if (approveBtn) approveBtn.textContent = '✓ Approve';
-    showBanner('review-banner', 'Approval failed — check console.', 'error');
+    if (approveBtn) approveBtn.textContent = 'âœ“ Approve';
+    showBanner('review-banner', 'Approval failed â€” check console.', 'error');
   }
 }
 
@@ -2702,16 +2702,16 @@ function rejectFromReview() {
     const footer = document.querySelectorAll('#review-modal .review-footer button');
     footer.forEach(b => b.disabled = true);
     const rejectBtn = document.querySelector('#review-modal .appr-reject');
-    if (rejectBtn) rejectBtn.textContent = 'Rejecting…';
+    if (rejectBtn) rejectBtn.textContent = 'Rejectingâ€¦';
     try {
       await window.FB.rejectChemical(p.facilityCode, p._id);
       logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
-      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(() => {});
+      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
       window.FB.logSubmissionHistory(p.facilityCode, {
         product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
         submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
         reviewedBy: window.FB.adminProfile?.email || null, outcome: 'rejected', reason: reason || null
-      }).catch(() => {});
+      }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
       const i = reviewIdx;
       closeReview();
       pendingApprovals.splice(i, 1);
@@ -2721,8 +2721,8 @@ function rejectFromReview() {
     } catch (e) {
       console.error(e);
       footer.forEach(b => b.disabled = false);
-      if (rejectBtn) rejectBtn.textContent = '✕ Reject';
-      showBanner('review-banner', 'Rejection failed — check console.', 'error');
+      if (rejectBtn) rejectBtn.textContent = 'âœ• Reject';
+      showBanner('review-banner', 'Rejection failed â€” check console.', 'error');
     }
   });
 }
@@ -2750,7 +2750,7 @@ let submissionHistory = [];
 
 async function loadHistory() {
   const list = document.getElementById('hist-list');
-  if (list) list.innerHTML = '<div style="padding:16px;color:#888;font-size:13px">Loading…</div>';
+  if (list) list.innerHTML = '<div style="padding:16px;color:#888;font-size:13px">Loadingâ€¦</div>';
   submissionHistory = await window.FB.getAllSubmissionHistory();
   populateHistoryFacilityFilter();
   renderHistory();
@@ -2764,7 +2764,7 @@ function populateHistoryFacilityFilter() {
   sel.innerHTML = '<option value="">All Facilities</option>' +
     codes.map(code => {
       const h = submissionHistory.find(h => h.facilityCode === code);
-      return `<option value="${esc(code)}">${esc(code)} — ${esc(h?.facilityName || code)}</option>`;
+      return `<option value="${esc(code)}">${esc(code)} â€” ${esc(h?.facilityName || code)}</option>`;
     }).join('');
   if (codes.includes(current)) sel.value = current;
 }
@@ -2786,11 +2786,11 @@ function renderHistory() {
   }
 
   list.innerHTML = filtered.map(h => {
-    const reviewedAt = h.reviewedAt?.toDate ? h.reviewedAt.toDate().toLocaleString() : '—';
-    const submittedAt = h.submittedAt?.toDate ? h.submittedAt.toDate().toLocaleDateString() : '—';
+    const reviewedAt = h.reviewedAt?.toDate ? h.reviewedAt.toDate().toLocaleString() : 'â€”';
+    const submittedAt = h.submittedAt?.toDate ? h.submittedAt.toDate().toLocaleDateString() : 'â€”';
     const badge = h.outcome === 'approved'
-      ? `<span class="hist-badge-approved">✓ Approved</span>`
-      : `<span class="hist-badge-rejected">✕ Rejected</span>`;
+      ? `<span class="hist-badge-approved">âœ“ Approved</span>`
+      : `<span class="hist-badge-rejected">âœ• Rejected</span>`;
     const reason = h.reason
       ? `<div class="hist-reason"><strong>Reason:</strong> ${esc(h.reason)}</div>`
       : '';
@@ -2803,7 +2803,7 @@ function renderHistory() {
       </div>
       <div class="hist-meta">
         Submitted ${esc(submittedAt)}${h.submittedByEmail ? ' by <strong>' + esc(h.submittedByEmail) + '</strong>' : ''}
-        &nbsp;·&nbsp; Reviewed ${esc(reviewedAt)}${h.reviewedBy ? ' by <strong>' + esc(h.reviewedBy) + '</strong>' : ''}
+        &nbsp;Â·&nbsp; Reviewed ${esc(reviewedAt)}${h.reviewedBy ? ' by <strong>' + esc(h.reviewedBy) + '</strong>' : ''}
       </div>
       ${reason}
     </div>`;
@@ -2816,11 +2816,11 @@ function renderHistory() {
   <div class="reject-card">
     <h3>Reject Submission</h3>
     <div class="reject-sub" id="reject-modal-sub"></div>
-    <label for="reject-reason-input">Reason (optional — will be included in the notification email)</label>
-    <textarea id="reject-reason-input" class="reject-reason-input" placeholder="e.g. Chemical is already on the approved list under a different name…"></textarea>
+    <label for="reject-reason-input">Reason (optional â€” will be included in the notification email)</label>
+    <textarea id="reject-reason-input" class="reject-reason-input" placeholder="e.g. Chemical is already on the approved list under a different nameâ€¦"></textarea>
     <div class="reject-footer">
       <button class="reject-cancel" onclick="closeRejectModal()">Cancel</button>
-      <button class="reject-confirm" id="reject-modal-confirm" onclick="confirmReject()">✕ Reject</button>
+      <button class="reject-confirm" id="reject-modal-confirm" onclick="confirmReject()">âœ• Reject</button>
     </div>
   </div>
 </div>
@@ -2833,7 +2833,7 @@ function renderHistory() {
         <h3>Review SDS Submission</h3>
         <div class="review-header-meta" id="rv-meta"></div>
       </div>
-      <button class="review-close" onclick="closeReview()">✕</button>
+      <button class="review-close" onclick="closeReview()">âœ•</button>
     </div>
     <div class="review-body">
 
@@ -2878,7 +2878,7 @@ function renderHistory() {
             <div class="rv-col"><span class="rv-sublabel">Instability</span>
               <select id="rv-n-inst" class="rv-select"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
             <div class="rv-col"><span class="rv-sublabel">Special</span>
-              <select id="rv-n-spec" class="rv-select"><option value="">—</option><option>OX</option><option>W</option><option>SA</option></select></div>
+              <select id="rv-n-spec" class="rv-select"><option value="">â€”</option><option>OX</option><option>W</option><option>SA</option></select></div>
           </div>
         </div>
         <div class="rv-group">
@@ -2892,7 +2892,7 @@ function renderHistory() {
               <select id="rv-h-react" class="rv-select"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
             <div class="rv-col"><span class="rv-sublabel">PPE</span>
               <select id="rv-h-ppe" class="rv-select">
-                <option value="NONE">—</option>
+                <option value="NONE">â€”</option>
                 <option>A</option><option>B</option><option>C</option><option>D</option>
                 <option>E</option><option>F</option><option>G</option><option>H</option>
                 <option>I</option><option>J</option><option>K</option>
@@ -2938,8 +2938,8 @@ function renderHistory() {
     </div>
     <div class="review-footer">
       <div id="review-banner" class="inline-banner" style="flex:1;margin:0 8px 0 0;align-self:center"></div>
-      <button class="appr-reject" onclick="rejectFromReview()">✕ Reject</button>
-      <button class="appr-approve" onclick="approveFromReview()">✓ Approve</button>
+      <button class="appr-reject" onclick="rejectFromReview()">âœ• Reject</button>
+      <button class="appr-approve" onclick="approveFromReview()">âœ“ Approve</button>
     </div>
   </div>
 </div>
@@ -2948,8 +2948,8 @@ function renderHistory() {
 <div id="devtools-modal" onclick="if(event.target===this)closeDevTools()">
   <div class="dt-card">
     <div class="dt-header">
-      <h3>⚙ Dev Tools</h3>
-      <button class="dt-close" onclick="closeDevTools()">✕</button>
+      <h3>âš™ Dev Tools</h3>
+      <button class="dt-close" onclick="closeDevTools()">âœ•</button>
     </div>
     <div class="dt-body">
 
@@ -2985,12 +2985,12 @@ function renderHistory() {
 
       <div id="dt-var-reason" style="display:none;margin-top:8px">
         <label class="dt-label">Rejection Reason (optional)</label>
-        <textarea id="dt-reason" class="dt-textarea" rows="2" placeholder="e.g. Already listed under a different name…" oninput="dtRefreshAll()"></textarea>
+        <textarea id="dt-reason" class="dt-textarea" rows="2" placeholder="e.g. Already listed under a different nameâ€¦" oninput="dtRefreshAll()"></textarea>
       </div>
 
       <div>
         <label class="dt-label">Subject</label>
-        <input type="text" id="dt-subject" class="dt-input" placeholder="Email subject…">
+        <input type="text" id="dt-subject" class="dt-input" placeholder="Email subjectâ€¦">
       </div>
 
       <div class="dt-2col">
@@ -3015,13 +3015,13 @@ function renderHistory() {
       <div class="dt-section" style="margin-top:8px">Dev Tools Access</div>
       <div style="font-size:11px;color:#666;margin-bottom:4px">Only these accounts can open Dev Tools. The superadmin cannot be removed.</div>
       <div id="dt-access-list" class="dt-access-list">
-        <div style="padding:10px 12px;font-size:12px;color:#888">Loading…</div>
+        <div style="padding:10px 12px;font-size:12px;color:#888">Loadingâ€¦</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-end">
         <div style="flex:1">
           <label class="dt-label">Grant access to another admin</label>
           <select id="dt-grant-select" class="dt-select">
-            <option value="">— Select an admin account —</option>
+            <option value="">â€” Select an admin account â€”</option>
           </select>
         </div>
         <button onclick="dtGrantAccess()" style="padding:8px 16px;background:#1a3a5c;color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Grant Access</button>
@@ -3034,3 +3034,4 @@ function renderHistory() {
 
 </body>
 </html>
+

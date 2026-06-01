@@ -450,7 +450,7 @@ window.FB = {
       try {
         const snap = await getDocs(collection(db, 'facilities', fac.code, 'submission-history'));
         snap.docs.forEach(d => results.push({ ...d.data(), _id: d.id, facilityCode: fac.code, facilityName: fac.name }));
-      } catch (e) { /* no history yet */ }
+      } catch (e) { console.error('[EasySDS] getAllSubmissionHistory failed for', fac.code, e); }
     }));
     return results.sort((a, b) => (b.reviewedAt?.seconds || 0) - (a.reviewedAt?.seconds || 0));
   },
