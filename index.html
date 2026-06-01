@@ -208,35 +208,38 @@ body {
 .pic-list input { margin-right: 4px; }
 
 /* ============================================================
-   LABEL PREVIEW (Letter landscape — 11in × 8.5in)
-   .label-outer is sized by JS to the *scaled* footprint so the
-   preview panel can center it correctly via flex.
+   LABEL PREVIEW
+   Default: Letter landscape effective print area (10.7 × 8.2in)
+   = 11in paper minus 0.15in margins each side.
+   A4 landscape effective: 11.39 × 7.97in.
    Print uses size:landscape + 100vw/100vh to fill any paper.
    ============================================================ */
 .label-outer {
   position: relative;
-  /* Fit the label inside the preview panel while keeping the
-     Letter landscape aspect ratio (11 × 8.5).
-     100cqi/100cqb are the panel's content-area width/height. */
-  width: min(calc(100cqi - 16px), calc((100cqb - 16px) * 11 / 8.5));
-  aspect-ratio: 11 / 8.5;
+  /* Letter landscape (default) */
+  width: min(calc(100cqi - 16px), calc((100cqb - 16px) * 10.7 / 8.2));
+  aspect-ratio: 10.7 / 8.2;
+}
+body[data-paper="a4"] .label-outer {
+  width: min(calc(100cqi - 16px), calc((100cqb - 16px) * 11.39 / 7.97));
+  aspect-ratio: 11.39 / 7.97;
 }
 .label-wrap {
   position: absolute;
   top: 0;
   left: 0;
-  width: 11in;
-  height: 8.5in;
+  width: 10.7in;
+  height: 8.2in;
   transform-origin: top left;
 }
 .label {
-  width: 11in;
-  height: 8.5in;
+  width: 10.7in;
+  height: 8.2in;
   background: #fff;
   border: 4px solid #000;
   display: grid;
   /* product | middle (NFPA/GHS/Signal+HMIS) | NFPA rating guide | bottom */
-  grid-template-rows: 0.55in 4.75in 1.55in 1fr;
+  grid-template-rows: 0.55in 4.45in 1.55in 1fr;
   font-family: Arial, Helvetica, sans-serif;
   color: #000;
   box-shadow: 0 6px 24px rgba(0,0,0,0.35);
@@ -605,6 +608,27 @@ body[data-mode="sheet"] .mode-btn[data-mode="sticker"] { background: #e6a000; bo
   text-transform: uppercase; letter-spacing: 0.5px;
 }
 .sheet-sub-btn.active { background: #e6a000; border-color: #e6a000; color: #000; }
+/* Paper size toggle — only shown in full label mode */
+.paper-toggle-bar { display: none; gap: 4px; margin-top: 4px; align-items: center; }
+body[data-mode="full"] .paper-toggle-bar { display: flex; }
+.paper-toggle-label { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+.paper-btn {
+  flex: 1; padding: 4px; font-size: 10px; font-weight: 700;
+  cursor: pointer; border-radius: 3px;
+  border: 1.5px solid #666; background: #444; color: #999;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.paper-btn.active { background: #4a9ede; border-color: #4a9ede; color: #fff; }
+/* A4 label dimensions (effective print area: 11.39 × 7.97in) */
+body[data-paper="a4"] .label-wrap { width: 11.39in; height: 7.97in; }
+body[data-paper="a4"] .label      { width: 11.39in; height: 7.97in; grid-template-rows: 0.55in 4.2in 1.55in 1fr; }
+/* SRA3 landscape label dimensions (effective print area: 17.7 × 11.7in) */
+body[data-paper="sra3"] .label-outer {
+  width: min(calc(100cqi - 16px), calc((100cqb - 16px) * 17.7 / 11.7));
+  aspect-ratio: 17.7 / 11.7;
+}
+body[data-paper="sra3"] .label-wrap { width: 17.7in; height: 11.7in; }
+body[data-paper="sra3"] .label      { width: 17.7in; height: 11.7in; grid-template-rows: 0.55in 7in 1.55in 1fr; }
 
 /* ============================================================
    STICKER LABEL (3 × 4 in, portrait)
@@ -770,7 +794,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
   html, body { background: #fff; height: auto; overflow: visible; }
   .app { display: block; height: auto; }
   .form-panel { display: none !important; }
-  .mode-toggle-bar { display: none !important; }
+  .mode-toggle-bar, .paper-toggle-bar { display: none !important; }
   .preview-panel {
     width: 100% !important; height: auto; padding: 0;
     background: #fff; overflow: visible; display: block;
@@ -947,12 +971,18 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
     <div class="print-bar">
       <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
       <div class="mode-toggle-bar">
-        <button class="mode-btn active" data-mode="full"    onclick="setMode('full')">Full (A4)</button>
+        <button class="mode-btn active" data-mode="full"    onclick="setMode('full')">Full Label</button>
         <button class="mode-btn"        data-mode="sticker" onclick="setMode('sticker')">Sticker (3×4in)</button>
       </div>
       <div class="sheet-subopts">
         <button class="sheet-sub-btn active" id="sub-single" onclick="setMode('sticker')">Single</button>
         <button class="sheet-sub-btn"        id="sub-sheet"  onclick="setMode('sheet')">Sheet 4×</button>
+      </div>
+      <div class="paper-toggle-bar">
+        <span class="paper-toggle-label">Paper:</span>
+        <button class="paper-btn active" id="paper-btn-letter" onclick="setPaper('letter')">Letter</button>
+        <button class="paper-btn"        id="paper-btn-a4"     onclick="setPaper('a4')">A4</button>
+        <button class="paper-btn"        id="paper-btn-sra3"   onclick="setPaper('sra3')">SRA3</button>
       </div>
       <div class="export-wrap" id="export-wrap">
         <button class="export-btn" onclick="toggleFavPanel()">★ Favorites <span>▾</span></button>
@@ -1752,7 +1782,8 @@ function fitLabel() {
   const wrap  = document.getElementById('label-wrap');
   if (outer && wrap) {
     const w = outer.clientWidth;
-    if (w) wrap.style.transform = `scale(${w / 1056})`; // 1056px = 11in at 96dpi
+    const labelPx = currentPaper === 'a4' ? 1093 : currentPaper === 'sra3' ? 1699 : 1027; // 11.39 / 17.7 / 10.7in at 96dpi
+    if (w) wrap.style.transform = `scale(${w / labelPx})`;
   }
   // Sticker label (also runs off-screen in full/sheet mode for fitText measurement)
   const souter = document.getElementById('sticker-outer');
@@ -1771,6 +1802,24 @@ function fitLabel() {
 }
 
 let currentMode = 'full';
+let currentPaper = 'letter';
+
+function setPaper(paper) {
+  currentPaper = paper;
+  document.body.dataset.paper = paper === 'a4' ? 'a4' : '';
+  document.querySelectorAll('.paper-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('paper-btn-' + paper);
+  if (btn) btn.classList.add('active');
+  // Re-inject @page with correct paper size
+  const ps = document.getElementById('dynamic-print-style');
+  if (ps && currentMode === 'full') {
+    const size = paper === 'a4' ? 'A4 landscape' : paper === 'sra3' ? '18in 12in' : 'letter landscape';
+    ps.textContent = `@media print { @page { size: ${size}; margin: 0.15in; } }`;
+  }
+  scheduleFit();
+  update();
+}
+
 function setMode(mode) {
   currentMode = mode;
   document.body.dataset.mode = mode;
@@ -1789,11 +1838,12 @@ function setMode(mode) {
     ps.id = 'dynamic-print-style';
     document.head.appendChild(ps);
   }
+  const fullSize = currentPaper === 'a4' ? 'A4 landscape' : currentPaper === 'sra3' ? '18in 12in' : 'letter landscape';
   ps.textContent = mode === 'sticker'
     ? '@media print { @page { size: 3in 4in; margin: 0; } }'
     : mode === 'sheet'
     ? '@media print { @page { size: letter portrait; margin: 0; } }'
-    : '@media print { @page { size: landscape; margin: 0.15in; } }';
+    : `@media print { @page { size: ${fullSize}; margin: 0.15in; } }`;
   scheduleFit();
   update();
 }
