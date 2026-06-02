@@ -1638,7 +1638,7 @@ function fitText(el, minPt) {
   const cs = getComputedStyle(el);
   let size = parseFloat(cs.fontSize) * 0.75; // px → pt
   while (size > minPt && el.scrollHeight > constrainedH) {
-    size = Math.max(minPt, size - 0.5);
+    size = Math.max(minPt, size - 0.25);
     el.style.fontSize = size + 'pt';
   }
   const overflows = el.scrollHeight > constrainedH;
