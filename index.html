@@ -1620,59 +1620,40 @@ function fitText(el, minPt) {
   const constrainedW = el.clientWidth;
   if (constrainedH === 0 || constrainedW === 0) return false;
 
-  // Step 1 — autosize: temporarily absolute-position the element so its
-  // scrollHeight reflects actual content height, not the flex-clamped height.
-  const savedPosition = el.style.position;
-  const savedHeight   = el.style.height;
-  const savedWidth    = el.style.width;
-  el.style.position = 'absolute';
-  el.style.height   = 'auto';
-  el.style.width    = constrainedW + 'px';
-
-  let size = parseFloat(getComputedStyle(el).fontSize) * 0.75; // px → pt
-  while (size > minPt && el.scrollHeight > constrainedH) {
-    size = Math.max(minPt, size - 0.5);
-    el.style.fontSize = size + 'pt';
-  }
-
-  el.style.position = savedPosition || '';
-  el.style.height   = savedHeight   || '';
-  el.style.width    = savedWidth    || '';
-
-  // Step 2 — overflow check for the warning: the label-wrap has a CSS transform,
-  // which makes it the containing block for any position:absolute/fixed descendant,
-  // so el.scrollHeight is unreliable here. Instead, measure via a probe appended
-  // directly to document.body (no ancestor transform → scrollHeight is accurate).
+  // Probe appended to document.body — outside label-wrap's CSS transform,
+  // and not a flex child, so scrollHeight correctly reports content height.
   const cs = getComputedStyle(el);
   const probe = document.createElement('div');
-  probe.innerHTML = el.innerHTML;
+  probe.innerHTML    = el.innerHTML;
   probe.style.position   = 'fixed';
-  probe.style.top        = '-9999px';
-  probe.style.left       = '0';
+  probe.style.top        = '0';
+  probe.style.left       = '-99999px';
   probe.style.visibility = 'hidden';
+  probe.style.margin     = '0';
+  probe.style.padding    = '0';
+  probe.style.border     = 'none';
+  probe.style.boxSizing  = 'content-box';
   probe.style.width      = constrainedW + 'px';
   probe.style.height     = 'auto';
   probe.style.overflow   = 'visible';
   probe.style.fontFamily = cs.fontFamily;
-  probe.style.fontSize   = cs.fontSize; // already the shrunken size after step 1
+  probe.style.fontSize   = cs.fontSize;
   probe.style.fontWeight = cs.fontWeight;
   probe.style.lineHeight = cs.lineHeight;
   probe.style.whiteSpace = cs.whiteSpace;
   probe.style.wordBreak  = cs.wordBreak;
-  if (cs.display === 'flex' || cs.display === 'inline-flex') {
-    probe.style.display        = 'flex';
-    probe.style.flexDirection  = cs.flexDirection;
-    probe.style.gap            = cs.gap;
-    [...probe.children].forEach((child, i) => {
-      const ccs = getComputedStyle(el.children[i]);
-      child.style.flex      = ccs.flex;
-      child.style.minHeight = '0';
-    });
-  }
   document.body.appendChild(probe);
+
+  const initialPt = parseFloat(cs.fontSize) * 0.75; // px → pt
+  let size = initialPt;
+  while (size > minPt && probe.scrollHeight > constrainedH) {
+    size = Math.max(minPt, size - 0.5);
+    probe.style.fontSize = size + 'pt';
+  }
   const overflows = probe.scrollHeight > constrainedH;
   document.body.removeChild(probe);
 
+  if (size < initialPt) el.style.fontSize = size + 'pt';
   return overflows;
 }
 function fitTextLine(el, minPt) {
