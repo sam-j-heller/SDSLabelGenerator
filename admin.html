@@ -193,7 +193,7 @@ nav {
 #bl-search:focus { outline: none; border-color: #1a3a5c; }
 #bl-count { font-size: 12px; color: #666; margin-bottom: 8px; }
 #bl-list {
-  max-height: calc(100vh - 340px); min-height: 200px;
+  max-height: max(200px, calc(100vh - 340px)); min-height: 200px;
   overflow-y: auto; border: 1px solid #eee; border-radius: 5px;
 }
 .bl-item {
@@ -908,10 +908,14 @@ nav {
           <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">Email Address</label>
           <input type="email" id="worker-email-input" class="edit-input" placeholder="worker@rhenus.com" autocomplete="off" style="margin-bottom:10px">
           <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">Assign Facility</label>
-          <select id="worker-fac-select" class="col-select" style="width:100%;padding:8px 10px;font-size:12px;margin-bottom:12px">
+          <select id="worker-fac-select" class="col-select" style="width:100%;padding:8px 10px;font-size:12px;margin-bottom:10px">
             <option value="">— Select facility —</option>
           </select>
-          <button onclick="addWorker()" style="width:100%;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">Send Invite →</button>
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">
+            Password <span style="font-weight:400;color:#999">(optional — leave blank to send invite email)</span>
+          </label>
+          <input type="password" id="worker-pw-input" class="edit-input" placeholder="Set password directly" autocomplete="new-password" style="margin-bottom:12px">
+          <button onclick="addWorker()" style="width:100%;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">Add Worker →</button>
           <div id="worker-add-status" style="font-size:11px;min-height:18px;margin-top:8px"></div>
         </div>
 
@@ -1253,7 +1257,13 @@ async function loadWorkers() {
   if (wrap) wrap.innerHTML = '<div style="color:#888;font-size:13px;padding:12px 0">Loading…</div>';
   populateWorkerFacilitySelect();
   const showAdmins = (document.getElementById('show-admins-chk') || {}).checked || false;
-  workerList = await window.FB.listWorkers(showAdmins);
+  try {
+    workerList = await window.FB.listWorkers(showAdmins);
+  } catch (e) {
+    console.error('[EasySDS] loadWorkers failed:', e);
+    if (wrap) wrap.innerHTML = `<div style="color:#c00;font-size:12px;padding:12px 0">Failed to load workers — check console for details.<br><small>${esc(e.message || '')}</small></div>`;
+    return;
+  }
   populateWorkerFacilityFilter();
   renderWorkers();
 }
@@ -1288,7 +1298,10 @@ function renderWorkers() {
     : workerList;
 
   if (!filtered.length) {
-    wrap.innerHTML = `<div style="color:#888;font-size:13px;padding:12px 0">${filterCode ? 'No workers at this facility.' : 'No workers yet. Add one on the left.'}</div>`;
+    const hint = !showAdmins && !filterCode && workerList.length === 0
+      ? ' Try checking <strong>Show admins</strong> above to confirm accounts are loading, then uncheck to filter to workers only.'
+      : '';
+    wrap.innerHTML = `<div style="color:#888;font-size:13px;padding:12px 0">${filterCode ? 'No workers at this facility.' : 'No workers yet. Add one on the left.'}${hint}</div>`;
     return;
   }
 
@@ -1334,18 +1347,27 @@ function renderWorkers() {
 }
 
 async function addWorker() {
-  const email  = (document.getElementById('worker-email-input') || {}).value || '';
-  const facCode = (document.getElementById('worker-fac-select') || {}).value || '';
-  const status = document.getElementById('worker-add-status');
-  if (!email) { if (status) status.innerHTML = '<span style="color:#c00">Enter an email address.</span>'; return; }
+  const email   = (document.getElementById('worker-email-input') || {}).value || '';
+  const facCode = (document.getElementById('worker-fac-select')  || {}).value || '';
+  const pw      = (document.getElementById('worker-pw-input')    || {}).value || '';
+  const status  = document.getElementById('worker-add-status');
+  if (!email)   { if (status) status.innerHTML = '<span style="color:#c00">Enter an email address.</span>'; return; }
   if (!facCode) { if (status) status.innerHTML = '<span style="color:#c00">Select a facility.</span>'; return; }
+  if (pw && pw.length < 6) { if (status) status.innerHTML = '<span style="color:#c00">Password must be at least 6 characters.</span>'; return; }
   if (status) status.textContent = 'Creating account…';
   try {
-    await window.FB.createWorkerAccount(email, facCode);
-    if (status) status.innerHTML = `<span style="color:#2e7d32">✓ Invite sent to ${esc(email)}</span>`;
+    if (pw) {
+      await window.FB.createWorkerAccountWithPassword(email, pw, facCode);
+      if (status) status.innerHTML = `<span style="color:#2e7d32">✓ Account created for ${esc(email)} — share the password directly.</span>`;
+      logActivity('Added worker (direct password): ' + email + ' → ' + facCode, 'add');
+    } else {
+      await window.FB.createWorkerAccount(email, facCode);
+      if (status) status.innerHTML = `<span style="color:#2e7d32">✓ Invite sent to ${esc(email)}</span>`;
+      logActivity('Added worker (invite email): ' + email + ' → ' + facCode, 'add');
+    }
     document.getElementById('worker-email-input').value = '';
     document.getElementById('worker-fac-select').value  = '';
-    logActivity('Added worker: ' + email + ' → ' + facCode, 'add');
+    document.getElementById('worker-pw-input').value    = '';
     workerList = await window.FB.listWorkers((document.getElementById('show-admins-chk') || {}).checked);
     renderWorkers();
   } catch (e) {

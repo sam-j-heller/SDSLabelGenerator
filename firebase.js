@@ -413,7 +413,7 @@ window.FB = {
         snap.docs.forEach(d => {
           results.push({ ...d.data(), _id: d.id, facilityCode: fac.code, facilityName: fac.name });
         });
-      } catch (e) { /* facility may have no pending subcollection yet */ }
+      } catch (e) { console.error('[EasySDS] getAllPending failed for', fac.code, e); }
     }));
     return results.sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0));
   },
@@ -532,9 +532,24 @@ window.FB = {
       throw new Error('inactive');
     }
 
-    // No /users doc = admin account. Let them through; index.html will
-    // show a facility picker so they can choose which site to work in.
-    if (!profile || profile.role !== 'worker') {
+    // No /users doc: create a pending-facility worker profile so they show up in
+    // the admin Workers tab and can be assigned a facility. Admin accounts
+    // (role:'admin') are left as-is and passed through to the facility picker.
+    if (!profile) {
+      const newProfile = {
+        email:        cred.user.email.toLowerCase(),
+        facilityCode: null, facilityName: null,
+        role: 'worker', status: 'pending-facility',
+        createdAt: serverTimestamp()
+      };
+      await setDoc(doc(db, 'users', cred.user.uid), newProfile);
+      window.FB.workerProfile = { uid: cred.user.uid, ...newProfile };
+      window.FB.facilityCode  = null;
+      window.FB.facilityName  = null;
+      window.FB.facilityLogo  = null;
+      return window.FB.workerProfile;
+    }
+    if (profile.role !== 'worker') {
       window.FB.workerProfile = { uid: cred.user.uid, email: cred.user.email, role: 'admin', facilityCode: null };
       window.FB.facilityCode  = null;
       window.FB.facilityName  = null;
@@ -644,6 +659,24 @@ window.FB = {
 
   async resendWorkerInvite(email) {
     await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+  },
+
+  // Create a worker account with a specific password set by the admin.
+  // No invite email is sent — the admin hands the password to the worker directly.
+  async createWorkerAccountWithPassword(email, password, facilityCode) {
+    const upper   = facilityCode.trim().toUpperCase();
+    const facSnap = await getDoc(doc(db, 'facilities', upper));
+    const facilityName = facSnap.exists() ? facSnap.data().name : upper;
+    const cred = await createUserWithEmailAndPassword(workerCreationAuth, email.trim().toLowerCase(), password);
+    const uid  = cred.user.uid;
+    await setDoc(doc(db, 'users', uid), {
+      email:        email.trim().toLowerCase(),
+      facilityCode: upper, facilityName,
+      role:         'worker', status: 'active',
+      createdAt:    serverTimestamp()
+    });
+    await workerCreationAuth.signOut();
+    return uid;
   },
 
   // ── Email via Trigger Email extension ────────────────────────

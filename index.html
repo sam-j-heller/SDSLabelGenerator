@@ -148,6 +148,11 @@ body {
 .banner-success { background: #1a3d24; color: #6cd98a; border: 1px solid #2d6640; }
 .banner-error   { background: #3d1a1a; color: #f08080; border: 1px solid #6d3030; }
 .banner-warn    { background: #3d2010; color: #e08844; border: 1px solid #6d3820; }
+.field-truncation-warn {
+  font-size: 10px; font-weight: 700; line-height: 1.4;
+  color: #e08844; background: #3d2010; border: 1px solid #6d3820;
+  border-radius: 3px; padding: 5px 8px; margin-top: 4px;
+}
 .lib-save-btn {
   width: 100%; margin-top: 6px; padding: 7px; font-size: 11px; font-weight: 700;
   cursor: pointer; border-radius: 3px; border: 0;
@@ -997,7 +1002,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
       <button onclick="workerSignOut()">Sign Out</button>
     </div>
     <div class="print-bar">
-      <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+      <button class="print-btn" onclick="checkAndPrint()">Print / Save as PDF</button>
       <div class="mode-toggle-bar">
         <button class="mode-btn active" data-mode="full"    onclick="setMode('full')">Full Label</button>
         <button class="mode-btn"        data-mode="sticker" onclick="setMode('sticker')">Sticker (3×4in)</button>
@@ -1053,12 +1058,14 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
       <div class="fg">
         <h3>Hazard Information</h3>
         <textarea id="f-hazard" placeholder="e.g. H225 Highly flammable liquid and vapour."></textarea>
+        <div id="warn-hazard" class="field-truncation-warn" style="display:none">⚠ Text too long — some content will be cut off on the printed label. Shorten or split across multiple lines.</div>
       </div>
 
       <div class="fg">
         <h3>First Aid</h3>
         <label>First Aid Measures</label>
         <textarea id="f-firstaid" placeholder="If swallowed: Call Poison Center.&#10;If on skin: Wash with soap and water.&#10;If inhaled: Move to fresh air.&#10;If in eyes: Rinse cautiously."></textarea>
+        <div id="warn-firstaid" class="field-truncation-warn" style="display:none">⚠ Text too long — some content will be cut off on the printed label. Shorten or use abbreviations.</div>
       </div>
 
       <div class="fg">
@@ -1606,7 +1613,7 @@ const setText = (id, v) => { $(id).textContent = v || ''; };
    Uses the smaller of el.clientHeight / par.clientHeight so it works for
    both flex:1 constrained children and unconstrained flex-row children. */
 function fitText(el, minPt) {
-  if (!el) return;
+  if (!el) return false;
   el.style.fontSize = '';
   const limit = Math.min(el.clientHeight, el.parentElement.clientHeight);
   let size = parseFloat(window.getComputedStyle(el).fontSize) * 0.75; // px → pt
@@ -1614,6 +1621,7 @@ function fitText(el, minPt) {
     size = Math.max(minPt, size - 0.5);
     el.style.fontSize = size + 'pt';
   }
+  return size <= minPt && el.scrollHeight > limit; // true = hit floor and still overflowing
 }
 function fitTextLine(el, minPt) {
   if (!el) return;
@@ -1767,8 +1775,10 @@ function update() {
   fitTextLine($('lbl-product'),   11);
   fitText($('s-lbl-product'), 6);
   fitText($('s-lbl-hazard'),  4);
-  fitText($('lbl-hazard'),    5);
-  fitText($('lbl-firstaid'),  5);
+  const hazTrunc   = fitText($('lbl-hazard'),   5);
+  const firstTrunc = fitText($('lbl-firstaid'), 5);
+  const warnH = $('warn-hazard');   if (warnH)  warnH.style.display  = hazTrunc   ? 'block' : 'none';
+  const warnF = $('warn-firstaid'); if (warnF)  warnF.style.display  = firstTrunc ? 'block' : 'none';
 
   // GHS pictograms for sticker cluster
   document.querySelectorAll('#s-pic-cluster .pic-cell').forEach(cell => {
@@ -1878,6 +1888,41 @@ function setMode(mode) {
   scheduleFit();
   update();
 }
+function checkAndPrint() {
+  const productName = ($('f-product')?.value || '').trim();
+
+  // No product name at all — just print (blank label for testing)
+  if (!productName) { window.print(); return; }
+
+  // Check if the product name exists in the approved library
+  const lib = getLibrary();
+  const approved = lib.some(c => (c.product || '').trim().toLowerCase() === productName.toLowerCase());
+  if (approved) { window.print(); return; }
+
+  // Not in the approved library — show warning
+  const existing = $('print-guard-banner');
+  if (existing) existing.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'print-guard-banner';
+  banner.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55)';
+  banner.innerHTML = `
+    <div style="background:#fff;border-radius:8px;padding:28px 32px;max-width:420px;box-shadow:0 16px 48px rgba(0,0,0,0.4);font-family:Arial,sans-serif">
+      <div style="font-size:15px;font-weight:800;color:#8b1a1a;margin-bottom:8px">⚠ Chemical Not Approved</div>
+      <div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:20px">
+        <strong>${productName.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</strong> has not been approved and is not in the facility library.<br><br>
+        Labels should only be printed for approved chemicals. Submit it for approval first, or load an approved chemical from the library.
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button onclick="document.getElementById('print-guard-banner').remove()"
+          style="padding:8px 20px;background:#1a3a5c;border:none;border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;color:#fff">
+          OK
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(banner);
+}
+
 function scheduleFit() {
   if (fitScheduled) return;
   fitScheduled = true;
