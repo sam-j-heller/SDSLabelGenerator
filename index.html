@@ -1562,8 +1562,7 @@ const PIC_ORDER = [
    Sized to fit within the 40% GHS column minus the diagonal-
    label gutter on the left.
    ------------------------------------------------------------ */
-const SIDE      = 215;                       // un-rotated grid side, px
-const FOOTPRINT = Math.round(SIDE * Math.SQRT2);  // rotated bounding box ≈ 304px
+const SIDE        = 215;                            // un-rotated grid side, px
 const S_SIDE      = 95;
 const S_FOOTPRINT = Math.round(S_SIDE * Math.SQRT2);
 
@@ -2251,7 +2250,14 @@ function populateLibrarySelect() { /* no-op: combo reads live from library on op
 async function saveToLibrary() {
   const data = getCurrentFormData();
   if (!data.product.trim()) { showSaveBanners('Enter a Product Identifier before saving.', 'warn'); return; }
-  const blocked = await window.FB.isBlacklisted(data.product);
+  let blocked = false;
+  try {
+    blocked = await window.FB.isBlacklisted(data.product);
+  } catch (e) {
+    console.error('[EasySDS] blacklist check failed:', e);
+    window.FB.logClientEvent(window.FB.facilityCode, 'warning', 'blacklist',
+      `Blacklist check failed for "${data.product}" — chemical may have bypassed restriction`, e.message);
+  }
   if (blocked) {
     showSaveBanners(`"${data.product}" is on the restricted substances list and cannot be added.`, 'error');
     return;
@@ -2283,13 +2289,27 @@ async function saveToLibrary() {
     const similar = findSimilarChemicals(data.product, lib);
     if (similar.length > 0) {
       showDuplicateWarning(data.product, similar, async () => {
-        await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
-        showSubmitConfirm(data.product);
+        try {
+          await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
+          showSubmitConfirm(data.product);
+        } catch (e) {
+          console.error('[EasySDS] submitForApproval failed:', e);
+          window.FB.logClientEvent(window.FB.facilityCode, 'error', 'submission',
+            `Submission failed for "${data.product}"`, e.message);
+          showSaveBanners('Submission failed — please try again or contact your administrator.', 'error');
+        }
       });
       return;
     }
-    await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
-    showSubmitConfirm(data.product);
+    try {
+      await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
+      showSubmitConfirm(data.product);
+    } catch (e) {
+      console.error('[EasySDS] submitForApproval failed:', e);
+      window.FB.logClientEvent(window.FB.facilityCode, 'error', 'submission',
+        `Submission failed for "${data.product}"`, e.message);
+      showSaveBanners('Submission failed — please try again or contact your administrator.', 'error');
+    }
   }
 }
 
@@ -2456,6 +2476,10 @@ async function workerSignIn() {
                                                ? 'Incorrect email or password.'
               : 'Sign-in failed — please try again.';
     if (err) err.textContent = msg;
+    if (e.message === 'inactive') {
+      window.FB.logClientEvent(null, 'warning', 'auth',
+        `Deactivated account login attempt: ${email}`, null);
+    }
   }
 }
 
@@ -2540,7 +2564,7 @@ async function sendForgotPassword() {
   if (!email) { if (msg) { msg.style.color = '#c00'; msg.textContent = 'Enter your email address.'; } return; }
   btn.disabled = true; btn.textContent = 'Sending…';
   try {
-    await window.FB.sendPasswordReset(email);
+    await window.FB.resendWorkerInvite(email);
     if (msg) { msg.style.color = '#2e7d32'; msg.textContent = 'Reset link sent — check your inbox (and spam folder).'; }
   } catch (e) {
     if (msg) { msg.style.color = '#c00'; msg.textContent = 'Could not send reset email. Check the address and try again.'; }

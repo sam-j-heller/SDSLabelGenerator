@@ -631,6 +631,40 @@ nav {
 .rv-pic-cb input { margin: 0; cursor: pointer; }
 .rv-divider { border: none; border-top: 1px solid #e8eef7; margin: 2px 0; }
 
+/* ---------- Toast notifications ---------- */
+#toast-container {
+  position: fixed; bottom: 20px; right: 20px; z-index: 9998;
+  display: flex; flex-direction: column-reverse; gap: 8px;
+  pointer-events: none; max-width: 340px;
+}
+.toast {
+  background: #1a1a2e; color: #fff; border-radius: 6px;
+  padding: 12px 16px; font-size: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  border-left: 4px solid #666; pointer-events: all;
+  animation: toast-in 0.2s ease-out;
+}
+.toast.toast-error   { border-left-color: #e74c3c; }
+.toast.toast-warning { border-left-color: #f39c12; }
+.toast-title { font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+.toast-error   .toast-title { color: #e74c3c; }
+.toast-warning .toast-title { color: #f39c12; }
+.toast-msg  { color: #ccc; line-height: 1.4; }
+.toast-meta { font-size: 10px; color: #555; margin-top: 4px; }
+@keyframes toast-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Events tab ---------- */
+.ev-row { background: #fff; border: 1px solid #e0e4ec; border-left: 4px solid #ccc; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; }
+.ev-row.ev-error   { border-left-color: #e74c3c; }
+.ev-row.ev-warning { border-left-color: #f39c12; }
+.ev-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 5px; }
+.ev-badge-error   { display: inline-block; background: #fde8e8; color: #8b1a1a; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+.ev-badge-warning { display: inline-block; background: #fff3cd; color: #856404; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+.ev-badge-cat { display: inline-block; background: #f0f2f6; color: #555; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
+.ev-msg { font-size: 13px; font-weight: 600; color: #222; margin-bottom: 3px; }
+.ev-detail { font-size: 11px; color: #999; font-family: "Consolas","Courier New",monospace; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-meta { font-size: 11px; color: #888; margin-top: 4px; }
+
 /* ---------- Dev Tools button ---------- */
 #devtools-btn {
   display: inline-block;
@@ -722,6 +756,7 @@ nav {
     <button class="tab-btn" onclick="switchTab('workers', this)">Workers</button>
     <button class="tab-btn" onclick="switchTab('approvals', this)" id="tab-btn-approvals">Approvals</button>
     <button class="tab-btn" onclick="switchTab('history', this)">History</button>
+    <button class="tab-btn" onclick="switchTab('events', this)" id="tab-btn-events">Events</button>
     <button class="tab-btn" onclick="switchTab('company', this)">Company Chemicals</button>
     <button class="tab-btn" onclick="switchTab('blacklist', this)">Chemical Blacklist</button>
   </nav>
@@ -1001,6 +1036,30 @@ nav {
     </div>
   </div>
 
+  <!-- ===== EVENTS TAB ===== -->
+  <div id="tab-events" class="tab-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 style="margin:0 0 3px">Client Events</h2>
+        <div style="font-size:12px;color:#888">Errors and warnings sent from the label generator in real time.</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="ev-type-filter" class="col-select" style="font-size:11px;padding:5px 8px" onchange="renderEvents()">
+          <option value="">All Types</option>
+          <option value="error">Errors only</option>
+          <option value="warning">Warnings only</option>
+        </select>
+        <select id="ev-fac-filter" class="col-select" style="font-size:11px;padding:5px 8px" onchange="renderEvents()">
+          <option value="">All Facilities</option>
+        </select>
+        <button onclick="loadEvents()" style="padding:6px 14px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer">Refresh</button>
+      </div>
+    </div>
+    <div id="ev-list">
+      <div class="appr-empty">Open this tab to load events.</div>
+    </div>
+  </div>
+
   <!-- ===== COMPANY CHEMICALS TAB ===== -->
   <div id="tab-company" class="tab-panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -1141,7 +1200,8 @@ async function doAdminLogin() {
     document.getElementById('app').style.display  = 'flex';
     loadFacilities();
     loadBlacklist();
-    window.FB.getAllPending().then(list => { pendingApprovals = list; updateApprovalsBadge(); }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
+    window.FB.getAllPending().then(list => { pendingApprovals = list; updateApprovalsBadge(); }).catch(e => console.error('[EasySDS] getAllPending on login failed:', e));
+    subscribeToEvents();
   } else {
     err.textContent = 'Incorrect email or password.';
     btn.disabled    = false;
@@ -1152,6 +1212,7 @@ async function doAdminLogin() {
 }
 
 async function signOut() {
+  unsubscribeEvents();
   await window.FB.adminSignOut();
   document.getElementById('gate').style.display  = 'flex';
   document.getElementById('app').style.display   = 'none';
@@ -1173,6 +1234,7 @@ function switchTab(name, btn) {
   if (name === 'approvals') { loadApprovals(); startApprovalAutoRefresh(); }
   if (name === 'workers')   loadWorkers();
   if (name === 'history')   loadHistory();
+  if (name === 'events')    { loadEvents(); }
 }
 
 function navToTab(name) {
@@ -1473,8 +1535,6 @@ function dtRefreshAll() {
   document.getElementById('dt-html').value    = tmpl.html;
   dtSyncPreview();
 }
-
-function dtRefreshPreview() { dtSyncPreview(); }
 
 function dtSyncPreview() {
   document.getElementById('dt-frame').srcdoc = document.getElementById('dt-html').value;
@@ -2439,7 +2499,7 @@ function startApprovalAutoRefresh() {
       if (pendingApprovals.length > prev) {
         showBanner('appr-banner', `${pendingApprovals.length - prev} new submission(s) received.`, 'success');
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { console.error('[EasySDS] approval auto-refresh failed:', e); }
   }, 60000);
 }
 
@@ -2488,36 +2548,6 @@ function renderApprovals() {
       </div>
     </div>`;
   }).join('');
-}
-
-async function doApprove(idx) {
-  const p = pendingApprovals[idx];
-  if (!p) return;
-  const row = document.getElementById('appr-row-' + idx);
-  if (row) row.querySelectorAll('button').forEach(b => { b.disabled = true; });
-  const approveBtn = row?.querySelector('.appr-approve');
-  if (approveBtn) approveBtn.textContent = 'Approvingâ€¦';
-  try {
-    const ok = await window.FB.approveChemical(p.facilityCode, p._id);
-    if (ok) {
-      logActivity(`Approved "${p.product}" for ${p.facilityCode}`, 'add');
-      window.FB.sendApprovalEmail(p.submittedByEmail, p.product, p.facilityName).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
-      window.FB.logSubmissionHistory(p.facilityCode, {
-        product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
-        submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
-        reviewedBy: window.FB.adminProfile?.email || null, outcome: 'approved', reason: null
-      }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
-      pendingApprovals.splice(idx, 1);
-      populateApprovalsFacilityFilter();
-      renderApprovals();
-      updateApprovalsBadge();
-    }
-  } catch (e) {
-    console.error(e);
-    if (row) row.querySelectorAll('button').forEach(b => { b.disabled = false; });
-    if (approveBtn) approveBtn.textContent = 'âœ“ Approve';
-    showBanner('appr-banner', 'Approval failed â€” check console.', 'error');
-  }
 }
 
 // â”€â”€ Reject reason modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2741,6 +2771,117 @@ function updateApprovalsBadge() {
     dashCount.textContent = count;
     dashCount.style.display = count > 0 ? 'inline-block' : 'none';
   }
+}
+
+// -------------------------------------------------------
+//  Client Events (real-time error/warning feed from index.html)
+// -------------------------------------------------------
+let clientEvents      = [];
+let _eventsUnsubscribe = null;
+let _eventsUnread      = 0;
+
+function subscribeToEvents() {
+  if (_eventsUnsubscribe) _eventsUnsubscribe();
+  _eventsUnsubscribe = window.FB.subscribeClientEvents(ev => {
+    clientEvents.unshift(ev);
+    showToast(ev);
+    _eventsUnread++;
+    updateEventsBadge();
+    if (document.getElementById('tab-events')?.classList.contains('active')) {
+      renderEvents();
+      _eventsUnread = 0;
+      updateEventsBadge();
+    }
+  });
+}
+
+function unsubscribeEvents() {
+  if (_eventsUnsubscribe) { _eventsUnsubscribe(); _eventsUnsubscribe = null; }
+}
+
+function updateEventsBadge() {
+  const btn = document.getElementById('tab-btn-events');
+  if (btn) btn.innerHTML = _eventsUnread > 0
+    ? `Events <span class="appr-badge" style="background:#e07b00">${_eventsUnread}</span>`
+    : 'Events';
+}
+
+async function loadEvents() {
+  const list = document.getElementById('ev-list');
+  if (list) list.innerHTML = '<div style="padding:16px;color:#888;font-size:13px">Loading…</div>';
+  clientEvents = await window.FB.getAllClientEvents(200);
+  populateEventsFacilityFilter();
+  renderEvents();
+  _eventsUnread = 0;
+  updateEventsBadge();
+}
+
+function populateEventsFacilityFilter() {
+  const sel = document.getElementById('ev-fac-filter');
+  if (!sel) return;
+  const current = sel.value;
+  const codes = [...new Set(clientEvents.map(e => e.facilityCode).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All Facilities</option>' +
+    codes.map(code => {
+      const ev = clientEvents.find(e => e.facilityCode === code);
+      return `<option value="${esc(code)}">${esc(code)}${ev?.facilityName ? ' — ' + esc(ev.facilityName) : ''}</option>`;
+    }).join('');
+  if (codes.includes(current)) sel.value = current;
+}
+
+function renderEvents() {
+  const typeFilter = document.getElementById('ev-type-filter')?.value || '';
+  const facFilter  = document.getElementById('ev-fac-filter')?.value  || '';
+  const list = document.getElementById('ev-list');
+  if (!list) return;
+
+  const filtered = clientEvents.filter(e =>
+    (!typeFilter || e.type === typeFilter) &&
+    (!facFilter  || e.facilityCode === facFilter)
+  );
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="appr-empty">No events yet. Errors and warnings from the label generator will appear here in real time.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(e => {
+    const ts = e.timestamp?.toDate ? e.timestamp.toDate().toLocaleString() : '—';
+    const typeBadge = e.type === 'error'
+      ? '<span class="ev-badge-error">Error</span>'
+      : '<span class="ev-badge-warning">Warning</span>';
+    const catBadge  = e.category  ? `<span class="ev-badge-cat">${esc(e.category)}</span>` : '';
+    const facBadge  = e.facilityCode ? `<span class="appr-fac">${esc(e.facilityCode)}</span>` : '';
+    return `
+    <div class="ev-row ev-${esc(e.type || 'warning')}">
+      <div class="ev-badges">${typeBadge}${catBadge}${facBadge}</div>
+      <div class="ev-msg">${esc(e.message || '(no message)')}</div>
+      ${e.detail ? `<div class="ev-detail">${esc(e.detail)}</div>` : ''}
+      <div class="ev-meta">
+        ${esc(ts)}${e.userEmail ? ' · <strong>' + esc(e.userEmail) + '</strong>' : ''}${e.facilityName ? ' · ' + esc(e.facilityName) : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showToast(ev) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${ev.type || 'warning'}`;
+  const icon = ev.type === 'error' ? '⚠' : '⚡';
+  const cat  = ev.category ? ` · ${ev.category}` : '';
+  const fac  = ev.facilityCode ? ` [${ev.facilityCode}]` : '';
+  toast.innerHTML =
+    `<div class="toast-title">${icon} ${ev.type || 'warning'}${cat}</div>` +
+    `<div class="toast-msg">${esc(ev.message || '')}</div>` +
+    `<div class="toast-meta">${fac}${ev.userEmail ? ' · ' + esc(ev.userEmail) : ''}</div>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.transition = 'opacity 0.3s';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 6000);
 }
 
 // -------------------------------------------------------
@@ -2968,7 +3109,7 @@ function renderHistory() {
         </div>
         <div>
           <label class="dt-label">Send To</label>
-          <input type="email" id="dt-to" class="dt-input" placeholder="recipient@example.com" oninput="dtRefreshPreview()">
+          <input type="email" id="dt-to" class="dt-input" placeholder="recipient@example.com" oninput="dtSyncPreview()">
         </div>
       </div>
 
@@ -3032,6 +3173,7 @@ function renderHistory() {
   </div>
 </div>
 
+<div id="toast-container"></div>
 </body>
 </html>
 

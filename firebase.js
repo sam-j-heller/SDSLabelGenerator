@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, addDoc, writeBatch, serverTimestamp, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, addDoc, writeBatch, serverTimestamp, query, where, onSnapshot, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut as fbSignOut, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -56,6 +56,8 @@ window.FB = {
       await window.FB.setFacilityChemicals(window.FB.facilityCode, lib);
     } catch (e) {
       console.error('Firebase push error:', e);
+      window.FB.logClientEvent(window.FB.facilityCode, 'error', 'sync',
+        'Library sync to Firestore failed', e.message).catch(() => {});
     }
   },
 
@@ -294,20 +296,19 @@ window.FB = {
 
   // Replace the entire chemicals subcollection for a facility.
   // Strips internal _id / savedAt fields before writing, then updates chemCount.
+  // Write-first strategy: new docs are committed before old ones are deleted so a
+  // mid-operation network failure leaves existing data intact (worst case: brief
+  // duplicates until the next save, never permanent data loss).
   async setFacilityChemicals(code, chemicals) {
     const upper   = code.trim().toUpperCase();
     const collRef = collection(db, 'facilities', upper, 'chemicals');
     const BATCH_SIZE = 500;
 
-    // Delete all existing subcollection docs
+    // 1. Snapshot existing doc IDs before writing anything
     const existing = await getDocs(collRef);
-    for (let i = 0; i < existing.docs.length; i += BATCH_SIZE) {
-      const batch = writeBatch(db);
-      existing.docs.slice(i, i + BATCH_SIZE).forEach(d => batch.delete(d.ref));
-      await batch.commit();
-    }
+    const oldIds   = new Set(existing.docs.map(d => d.id));
 
-    // Write new docs
+    // 2. Write new docs first — if this fails, old docs are still intact
     for (let i = 0; i < chemicals.length; i += BATCH_SIZE) {
       const batch = writeBatch(db);
       chemicals.slice(i, i + BATCH_SIZE).forEach(chem => {
@@ -315,6 +316,14 @@ window.FB = {
         const ref = doc(collRef);
         batch.set(ref, { ...rest, savedAt: serverTimestamp() });
       });
+      await batch.commit();
+    }
+
+    // 3. Delete only the pre-existing docs (new ones are excluded by ID set)
+    const toDelete = existing.docs.filter(d => oldIds.has(d.id));
+    for (let i = 0; i < toDelete.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      toDelete.slice(i, i + BATCH_SIZE).forEach(d => batch.delete(d.ref));
       await batch.commit();
     }
 
@@ -637,10 +646,6 @@ window.FB = {
     await sendPasswordResetEmail(auth, email.trim().toLowerCase());
   },
 
-  async sendPasswordReset(email) {
-    await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-  },
-
   // ── Email via Trigger Email extension ────────────────────────
   // Writes a document to /mail — the extension picks it up and sends via SendGrid.
 
@@ -714,6 +719,54 @@ window.FB = {
         </div>
       </div>`;
     await window.FB.sendEmail(submittedByEmail, `"${productName}" submission not approved`, html);
+  },
+
+  // ── Client event logging ─────────────────────────────────────
+  // Writes a structured event doc to /clientEvents so the admin console
+  // can surface errors and warnings from the worker-facing tool in real time.
+  // type: 'error' | 'warning'
+  // category: 'submission' | 'blacklist' | 'auth' | 'sync'
+  async logClientEvent(facilityCode, type, category, message, detail = null) {
+    try {
+      await addDoc(collection(db, 'clientEvents'), {
+        facilityCode:  (facilityCode || '').trim().toUpperCase() || null,
+        facilityName:  window.FB.facilityName || null,
+        type, category, message,
+        detail:        detail ? String(detail).slice(0, 500) : null,
+        userEmail:     window.FB.workerProfile?.email || null,
+        timestamp:     serverTimestamp()
+      });
+    } catch (e) {
+      console.error('[EasySDS] logClientEvent write failed:', e);
+    }
+  },
+
+  // Real-time subscription for admin — fires onNew(event) whenever a new
+  // clientEvent doc arrives after the call. Returns an unsubscribe function.
+  subscribeClientEvents(onNew) {
+    const since = new Date();
+    const q = query(
+      collection(db, 'clientEvents'),
+      where('timestamp', '>', since),
+      orderBy('timestamp', 'asc')
+    );
+    return onSnapshot(q, snap => {
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added') onNew({ ...change.doc.data(), _id: change.doc.id });
+      });
+    }, e => console.error('[EasySDS] clientEvents subscription error:', e));
+  },
+
+  // Fetch the most recent N client events for the history log view.
+  async getAllClientEvents(limitN = 200) {
+    try {
+      const q = query(collection(db, 'clientEvents'), orderBy('timestamp', 'desc'), limit(limitN));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+    } catch (e) {
+      console.error('[EasySDS] getAllClientEvents failed:', e);
+      return [];
+    }
   },
 
   // Subscribe to Firebase Auth state changes. Callback receives the loaded
