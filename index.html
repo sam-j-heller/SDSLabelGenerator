@@ -579,7 +579,7 @@ body[data-paper="a4"] .label-outer {
   border-bottom: 1px solid #000; padding-bottom: 2px;
 }
 .hp-info .htxt, .hp-info .ptxt, .fa-box .fatxt {
-  font-size: 7.5pt; line-height: 1.25; margin: 2px 0; white-space: pre-wrap;
+  font-size: 8.5pt; line-height: 1.25; margin: 2px 0; white-space: pre-wrap;
   flex: 1; min-height: 0; overflow: hidden;
 }
 .hp-info .htxt { display: flex; gap: 0.18in; }
@@ -659,7 +659,7 @@ body[data-paper="sra3"] .fa-box h4,
 body[data-paper="sra3"] .supplier-info h4   { font-size: 14pt; }
 body[data-paper="sra3"] .hp-info .htxt,
 body[data-paper="sra3"] .hp-info .ptxt,
-body[data-paper="sra3"] .fa-box .fatxt      { font-size: 11pt; }
+body[data-paper="sra3"] .fa-box .fatxt      { font-size: 12pt; }
 body[data-paper="sra3"] .supplier-info .srow { font-size: 12pt; }
 body[data-paper="sra3"] .zone-product .plabel { font-size: 17pt; }
 
@@ -1620,10 +1620,16 @@ function fitText(el, minPt) {
   const constrainedW = el.clientWidth;
   if (constrainedH === 0 || constrainedW === 0) return false;
 
+  // position:fixed lifts the element out of flex/grid flow and bypasses all
+  // ancestor overflow:hidden clipping, so scrollHeight reflects true content height.
   const savedPosition = el.style.position;
+  const savedTop      = el.style.top;
+  const savedLeft     = el.style.left;
   const savedHeight   = el.style.height;
   const savedWidth    = el.style.width;
-  el.style.position = 'absolute';
+  el.style.position = 'fixed';
+  el.style.top      = '-9999px';
+  el.style.left     = '0';
   el.style.height   = 'auto';
   el.style.width    = constrainedW + 'px';
 
@@ -1634,6 +1640,8 @@ function fitText(el, minPt) {
   }
 
   el.style.position = savedPosition || '';
+  el.style.top      = savedTop      || '';
+  el.style.left     = savedLeft     || '';
   el.style.height   = savedHeight   || '';
   el.style.width    = savedWidth    || '';
 
