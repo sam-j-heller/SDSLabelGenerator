@@ -451,17 +451,42 @@ window.FB = {
     });
   },
 
-  // Return all submission history across every facility, sorted newest-first.
+  // Write any admin action to the global /activityLog collection.
+  // action: 'approved'|'rejected'|'blacklist-add'|'blacklist-remove'|'blacklist-csv'
+  async logActivityHistory(action, data) {
+    await addDoc(collection(db, 'activityLog'), {
+      action,
+      ...data,
+      timestamp: serverTimestamp()
+    });
+  },
+
+  // Return all history across every facility + global activity log, sorted newest-first.
   async getAllSubmissionHistory() {
     const facs = await window.FB.listFacilities();
     const results = [];
+    // Legacy per-facility submission-history subcollections
     await Promise.all(facs.map(async fac => {
       try {
         const snap = await getDocs(collection(db, 'facilities', fac.code, 'submission-history'));
-        snap.docs.forEach(d => results.push({ ...d.data(), _id: d.id, facilityCode: fac.code, facilityName: fac.name }));
+        snap.docs.forEach(d => results.push({
+          ...d.data(), _id: d.id,
+          facilityCode: fac.code, facilityName: fac.name,
+          action: d.data().outcome   // map outcome → action for uniform rendering
+        }));
       } catch (e) { console.error('[EasySDS] getAllSubmissionHistory failed for', fac.code, e); }
     }));
-    return results.sort((a, b) => (b.reviewedAt?.seconds || 0) - (a.reviewedAt?.seconds || 0));
+    // Global activity log (blacklist changes + new approve/reject records)
+    try {
+      const snap = await getDocs(collection(db, 'activityLog'));
+      snap.docs.forEach(d => results.push({ ...d.data(), _id: d.id }));
+    } catch (e) { console.error('[EasySDS] getAllActivityLog failed:', e); }
+
+    return results.sort((a, b) => {
+      const aT = a.timestamp?.seconds || a.reviewedAt?.seconds || 0;
+      const bT = b.timestamp?.seconds || b.reviewedAt?.seconds || 0;
+      return bT - aT;
+    });
   },
 
   // One-time migration: moves a facility's legacy chemicals array into its

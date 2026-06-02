@@ -561,6 +561,9 @@ nav {
 .hist-product { font-size: 14px; font-weight: 700; color: #1a3a5c; flex: 1; min-width: 140px; }
 .hist-badge-approved { display: inline-block; background: #d4edda; color: #1a5c33; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
 .hist-badge-rejected { display: inline-block; background: #fde8e8; color: #8b1a1a; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
+.hist-badge-bl-add { display: inline-block; background: #fff3cd; color: #7a4900; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
+.hist-badge-bl-remove { display: inline-block; background: #f0f0f0; color: #555; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
+.hist-badge-bl-csv { display: inline-block; background: #e8f0fe; color: #1a4a9c; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
 .hist-meta { font-size: 11px; color: #888; margin-top: 4px; }
 .hist-reason { background: #fff3f3; border-left: 3px solid #cc0000; padding: 8px 12px; margin-top: 8px; border-radius: 0 3px 3px 0; font-size: 12px; color: #333; }
 
@@ -988,15 +991,18 @@ nav {
   <!-- ===== HISTORY TAB ===== -->
   <div id="tab-history" class="tab-panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-      <h2 style="margin:0">Submission History</h2>
+      <h2 style="margin:0">Activity History</h2>
       <div style="display:flex;gap:8px;align-items:center">
         <select id="hist-fac-filter" class="col-select" style="width:auto;min-width:160px;font-size:12px;padding:6px 10px" onchange="renderHistory()">
           <option value="">All Facilities</option>
         </select>
-        <select id="hist-outcome-filter" class="col-select" style="width:auto;min-width:140px;font-size:12px;padding:6px 10px" onchange="renderHistory()">
-          <option value="">All Outcomes</option>
+        <select id="hist-outcome-filter" class="col-select" style="width:auto;min-width:160px;font-size:12px;padding:6px 10px" onchange="renderHistory()">
+          <option value="">All Types</option>
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
+          <option value="blacklist-add">Blacklist Added</option>
+          <option value="blacklist-remove">Blacklist Removed</option>
+          <option value="blacklist-csv">Blacklist CSV Upload</option>
         </select>
         <button onclick="loadHistory()" style="padding:6px 14px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer">Refresh</button>
       </div>
@@ -1773,6 +1779,9 @@ async function uploadBlacklist() {
       (newCount && updateCount ? ', ' : '') +
       (updateCount ? updateCount + ' updated' : '') + '.</span>';
     logActivity('CSV upload: +' + newCount + ' added, ' + updateCount + ' metadata updated', 'upload');
+    if (newCount) window.FB.logActivityHistory('blacklist-csv', {
+      count: newCount, actedBy: window.FB.adminProfile?.email || null
+    }).catch(e => console.error('[EasySDS] logActivityHistory failed:', e));
   } catch (e) {
     console.error(e);
     status.innerHTML = '<span class="status-err">Upload failed — check console.</span>';
@@ -1799,6 +1808,9 @@ async function manualAdd() {
       .sort((a, b) => a.name.localeCompare(b.name));
     renderBlacklist();
     logActivity('Added: ' + name, 'add');
+    window.FB.logActivityHistory('blacklist-add', {
+      chemical: name, actedBy: window.FB.adminProfile?.email || null, source: 'manual'
+    }).catch(e => console.error('[EasySDS] logActivityHistory failed:', e));
     input.value = '';
     input.focus();
   } catch (e) {
@@ -1819,6 +1831,9 @@ async function deleteFromBlacklist(id) {
     blacklist = blacklist.filter(c => c.id !== id);
     renderBlacklist();
     logActivity('Removed: ' + name, 'del');
+    window.FB.logActivityHistory('blacklist-remove', {
+      chemical: name, actedBy: window.FB.adminProfile?.email || null
+    }).catch(e => console.error('[EasySDS] logActivityHistory failed:', e));
   } catch (e) {
     showBanner('bl-banner', 'Failed to save — check console.', 'error');
     console.error(e);
@@ -2553,6 +2568,11 @@ async function doReject(idx) {
         submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
         reviewedBy: window.FB.adminProfile?.email || null, outcome: 'rejected', reason: reason || null
       }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
+      window.FB.logActivityHistory('rejected', {
+        product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
+        submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
+        reviewedBy: window.FB.adminProfile?.email || null, reason: reason || null
+      }).catch(e => console.error('[EasySDS] logActivityHistory failed:', e));
       pendingApprovals.splice(idx, 1);
       renderApprovals();
       updateApprovalsBadge();
@@ -2622,6 +2642,12 @@ function closeReview() {
   reviewIdx = null;
 }
 
+function openLabelPreview() {
+  const data = getReviewFormData();
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  window.open('index.html?preview=' + encoded, '_blank');
+}
+
 function getReviewFormData() {
   return {
     product:  document.getElementById('rv-product').value,
@@ -2671,6 +2697,11 @@ async function approveFromReview() {
         submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
         reviewedBy: window.FB.adminProfile?.email || null, outcome: 'approved', reason: null
       }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
+      window.FB.logActivityHistory('approved', {
+        product: approvedProduct, facilityCode: p.facilityCode, facilityName: p.facilityName,
+        submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
+        reviewedBy: window.FB.adminProfile?.email || null
+      }).catch(e => console.error('[EasySDS] logActivityHistory failed:', e));
       const i = reviewIdx;
       closeReview();
       pendingApprovals.splice(i, 1);
@@ -2751,7 +2782,7 @@ function populateHistoryFacilityFilter() {
   const sel = document.getElementById('hist-fac-filter');
   if (!sel) return;
   const current = sel.value;
-  const codes = [...new Set(submissionHistory.map(h => h.facilityCode))].sort();
+  const codes = [...new Set(submissionHistory.map(h => h.facilityCode).filter(Boolean))].sort();
   sel.innerHTML = '<option value="">All Facilities</option>' +
     codes.map(code => {
       const h = submissionHistory.find(h => h.facilityCode === code);
@@ -2761,15 +2792,17 @@ function populateHistoryFacilityFilter() {
 }
 
 function renderHistory() {
-  const facFilter     = document.getElementById('hist-fac-filter')?.value || '';
-  const outcomeFilter = document.getElementById('hist-outcome-filter')?.value || '';
-  const list          = document.getElementById('hist-list');
+  const facFilter    = document.getElementById('hist-fac-filter')?.value || '';
+  const typeFilter   = document.getElementById('hist-outcome-filter')?.value || '';
+  const list         = document.getElementById('hist-list');
   if (!list) return;
 
-  const filtered = submissionHistory.filter(h =>
-    (!facFilter     || h.facilityCode === facFilter) &&
-    (!outcomeFilter || h.outcome === outcomeFilter)
-  );
+  const filtered = submissionHistory.filter(h => {
+    const action = h.action || h.outcome || '';
+    if (facFilter && h.facilityCode !== facFilter) return false;
+    if (typeFilter && action !== typeFilter) return false;
+    return true;
+  });
 
   if (!filtered.length) {
     list.innerHTML = '<div class="appr-empty">No history records found.</div>';
@@ -2777,25 +2810,59 @@ function renderHistory() {
   }
 
   list.innerHTML = filtered.map(h => {
-    const reviewedAt = h.reviewedAt?.toDate ? h.reviewedAt.toDate().toLocaleString() : '—';
-    const submittedAt = h.submittedAt?.toDate ? h.submittedAt.toDate().toLocaleDateString() : '—';
-    const badge = h.outcome === 'approved'
-      ? `<span class="hist-badge-approved">✓ Approved</span>`
-      : `<span class="hist-badge-rejected">✕ Rejected</span>`;
+    const action = h.action || h.outcome || '';
+    const ts = (h.timestamp || h.reviewedAt);
+    const tsStr = ts?.toDate ? ts.toDate().toLocaleString() : '—';
+    const submittedAt = h.submittedAt?.toDate ? h.submittedAt.toDate().toLocaleDateString() : null;
+
+    let badge, title, meta;
+    if (action === 'approved') {
+      badge = `<span class="hist-badge-approved">✓ Approved</span>`;
+      title = esc(h.product || '(unnamed)');
+      meta  = (submittedAt ? `Submitted ${esc(submittedAt)}` : '') +
+              (h.submittedByEmail ? ` by <strong>${esc(h.submittedByEmail)}</strong>` : '') +
+              ` &nbsp;·&nbsp; Approved ${esc(tsStr)}` +
+              (h.reviewedBy ? ` by <strong>${esc(h.reviewedBy)}</strong>` : '');
+    } else if (action === 'rejected') {
+      badge = `<span class="hist-badge-rejected">✕ Rejected</span>`;
+      title = esc(h.product || '(unnamed)');
+      meta  = (submittedAt ? `Submitted ${esc(submittedAt)}` : '') +
+              (h.submittedByEmail ? ` by <strong>${esc(h.submittedByEmail)}</strong>` : '') +
+              ` &nbsp;·&nbsp; Rejected ${esc(tsStr)}` +
+              (h.reviewedBy ? ` by <strong>${esc(h.reviewedBy)}</strong>` : '');
+    } else if (action === 'blacklist-add') {
+      badge = `<span class="hist-badge-bl-add">⊘ Blacklisted</span>`;
+      title = esc(h.chemical || '(unnamed)');
+      meta  = `Added ${esc(tsStr)}` + (h.actedBy ? ` by <strong>${esc(h.actedBy)}</strong>` : '');
+    } else if (action === 'blacklist-remove') {
+      badge = `<span class="hist-badge-bl-remove">✓ Un-blacklisted</span>`;
+      title = esc(h.chemical || '(unnamed)');
+      meta  = `Removed ${esc(tsStr)}` + (h.actedBy ? ` by <strong>${esc(h.actedBy)}</strong>` : '');
+    } else if (action === 'blacklist-csv') {
+      badge = `<span class="hist-badge-bl-csv">↑ CSV Upload</span>`;
+      title = `${h.count || '?'} chemicals added to blacklist`;
+      meta  = `Uploaded ${esc(tsStr)}` + (h.actedBy ? ` by <strong>${esc(h.actedBy)}</strong>` : '');
+    } else {
+      badge = `<span class="hist-badge-bl-remove">${esc(action)}</span>`;
+      title = esc(h.product || h.chemical || '(unnamed)');
+      meta  = esc(tsStr);
+    }
+
+    const facTag = h.facilityCode
+      ? `<span class="appr-fac">${esc(h.facilityCode)}</span>`
+      : `<span class="appr-fac" style="background:#f0f0f0;color:#888">Global</span>`;
     const reason = h.reason
       ? `<div class="hist-reason"><strong>Reason:</strong> ${esc(h.reason)}</div>`
       : '';
+
     return `
     <div class="hist-row">
       <div class="hist-row-top">
-        <div class="hist-product">${esc(h.product || '(unnamed)')}</div>
+        <div class="hist-product">${title}</div>
         ${badge}
-        <span class="appr-fac">${esc(h.facilityCode)}</span>
+        ${facTag}
       </div>
-      <div class="hist-meta">
-        Submitted ${esc(submittedAt)}${h.submittedByEmail ? ' by <strong>' + esc(h.submittedByEmail) + '</strong>' : ''}
-        &nbsp;·&nbsp; Reviewed ${esc(reviewedAt)}${h.reviewedBy ? ' by <strong>' + esc(h.reviewedBy) + '</strong>' : ''}
-      </div>
+      <div class="hist-meta">${meta}</div>
       ${reason}
     </div>`;
   }).join('');
@@ -2929,6 +2996,7 @@ function renderHistory() {
     </div>
     <div class="review-footer">
       <div id="review-banner" class="inline-banner" style="flex:1;margin:0 8px 0 0;align-self:center"></div>
+      <button onclick="openLabelPreview()" style="padding:8px 16px;background:#f0f4fa;color:#1a3a5c;border:1.5px solid #c0cfe8;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer">↗ View on Label</button>
       <button class="appr-reject" onclick="rejectFromReview()">✕ Reject</button>
       <button class="appr-approve" onclick="approveFromReview()">✓ Approve</button>
     </div>

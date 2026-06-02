@@ -1621,7 +1621,7 @@ function fitText(el, minPt) {
     size = Math.max(minPt, size - 0.5);
     el.style.fontSize = size + 'pt';
   }
-  return size <= minPt && el.scrollHeight > limit; // true = hit floor and still overflowing
+  return size <= minPt; // true = text was compressed to minimum — likely cut off on print
 }
 function fitTextLine(el, minPt) {
   if (!el) return;
@@ -1997,6 +1997,29 @@ function init() {
     const wrap = $('export-wrap');
     if (wrap && !wrap.contains(e.target)) closeFavPanel();
   });
+
+  // Preview mode — admin opened this from the approval review modal
+  const previewParam = new URLSearchParams(window.location.search).get('preview');
+  if (previewParam) {
+    try {
+      const data = JSON.parse(decodeURIComponent(escape(atob(previewParam))));
+      // Hide auth gate, hide form panel — show label only
+      const facilityGate = $('facility-gate');
+      if (facilityGate) facilityGate.style.display = 'none';
+      const formPanel = document.querySelector('.form-panel');
+      if (formPanel) formPanel.style.display = 'none';
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;text-align:center;padding:7px;letter-spacing:0.5px';
+      banner.textContent = 'PREVIEW — Approval Review · Close this tab to return';
+      document.body.prepend(banner);
+      loadFormData(data);
+      setTimeout(update, 100);
+      setTimeout(update, 400);
+    } catch (e) {
+      console.error('[EasySDS] Preview param decode failed:', e);
+    }
+    return;
+  }
 
   // Auth gate — Firebase Auth handles session persistence automatically.
   // Show the gate immediately, then hide it if the user is already signed in.
