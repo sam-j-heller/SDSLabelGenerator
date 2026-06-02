@@ -1610,18 +1610,34 @@ function sizeSticker() {
 const $ = id => document.getElementById(id);
 const setText = (id, v) => { $(id).textContent = v || ''; };
 /* Shrink el's font-size until content fits, down to minPt.
-   Uses the smaller of el.clientHeight / par.clientHeight so it works for
-   both flex:1 constrained children and unconstrained flex-row children. */
+   Temporarily lifts the element out of flex/grid flow so scrollHeight
+   reflects actual text height rather than the clamped container height. */
 function fitText(el, minPt) {
   if (!el) return false;
   el.style.fontSize = '';
-  const limit = Math.min(el.clientHeight, el.parentElement.clientHeight);
-  let size = parseFloat(window.getComputedStyle(el).fontSize) * 0.75; // px → pt
-  while (size > minPt && el.scrollHeight > limit) {
+
+  const constrainedH = el.clientHeight;
+  const constrainedW = el.clientWidth;
+  if (constrainedH === 0 || constrainedW === 0) return false;
+
+  const savedPosition = el.style.position;
+  const savedHeight   = el.style.height;
+  const savedWidth    = el.style.width;
+  el.style.position = 'absolute';
+  el.style.height   = 'auto';
+  el.style.width    = constrainedW + 'px';
+
+  let size = parseFloat(getComputedStyle(el).fontSize) * 0.75; // px → pt
+  while (size > minPt && el.scrollHeight > constrainedH) {
     size = Math.max(minPt, size - 0.5);
     el.style.fontSize = size + 'pt';
   }
-  return size <= minPt; // true = text was compressed to minimum — likely cut off on print
+
+  el.style.position = savedPosition || '';
+  el.style.height   = savedHeight   || '';
+  el.style.width    = savedWidth    || '';
+
+  return size <= minPt;
 }
 function fitTextLine(el, minPt) {
   if (!el) return;

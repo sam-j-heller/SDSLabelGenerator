@@ -1243,7 +1243,8 @@ function renderWorkers() {
     : workerList;
 
   if (!filtered.length) {
-    const hint = !showAdmins && !filterCode && workerList.length === 0
+    const adminsShown = (document.getElementById('show-admins-chk') || {}).checked || false;
+    const hint = !adminsShown && !filterCode && workerList.length === 0
       ? ' Try checking <strong>Show admins</strong> above to confirm accounts are loading, then uncheck to filter to workers only.'
       : '';
     wrap.innerHTML = `<div style="color:#888;font-size:13px;padding:12px 0">${filterCode ? 'No workers at this facility.' : 'No workers yet. Add one on the left.'}${hint}</div>`;
