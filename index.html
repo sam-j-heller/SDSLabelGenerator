@@ -1618,6 +1618,7 @@ function fitText(el, minPt) {
 
   const constrainedH = el.clientHeight;
   const constrainedW = el.clientWidth;
+  console.log('[fitText early]', el.id, 'constrainedH:', constrainedH, 'constrainedW:', constrainedW);
   if (constrainedH === 0 || constrainedW === 0) return false;
 
   // Probe appended to document.body — outside label-wrap's CSS transform,
@@ -1646,11 +1647,13 @@ function fitText(el, minPt) {
 
   const initialPt = parseFloat(cs.fontSize) * 0.75; // px → pt
   let size = initialPt;
+  console.log('[fitText]', el.id, 'constrainedH:', constrainedH, 'constrainedW:', constrainedW, 'probe.scrollH:', probe.scrollHeight, 'initialPt:', initialPt);
   while (size > minPt && probe.scrollHeight > constrainedH) {
     size = Math.max(minPt, size - 0.5);
     probe.style.fontSize = size + 'pt';
   }
   const overflows = probe.scrollHeight > constrainedH;
+  console.log('[fitText]', el.id, 'finalSize:', size, 'overflows:', overflows, 'probe.scrollH after:', probe.scrollHeight);
   document.body.removeChild(probe);
 
   if (size < initialPt) el.style.fontSize = size + 'pt';
