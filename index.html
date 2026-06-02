@@ -2201,7 +2201,7 @@ function showDuplicateWarning(productName, similarNames, onConfirm) {
   const list = document.getElementById('dup-warn-list');
   if (list) list.innerHTML = similarNames.map(n => `<li><strong>${n}</strong></li>`).join('');
   const btn = document.getElementById('dup-warn-override');
-  if (btn) btn.onclick = () => { closeDupWarn(); if (_dupWarnCallback) _dupWarnCallback(); };
+  if (btn) btn.onclick = () => { const cb = _dupWarnCallback; closeDupWarn(); if (cb) cb(); };
   document.getElementById('dup-warn-modal').style.display = 'flex';
 }
 
