@@ -547,6 +547,9 @@ body[data-paper="a4"] .label-outer {
 .zone-bottom {
   display: grid;
   grid-template-columns: 50% 25% 25%;
+  grid-auto-rows: 1fr;
+  min-height: 0;
+  overflow: hidden;
 }
 .hp-info, .supplier-info {
   padding: 0.08in 0.12in;
@@ -1618,45 +1621,33 @@ function fitText(el, minPt) {
 
   const constrainedH = el.clientHeight;
   const constrainedW = el.clientWidth;
-  console.log('[fitText early]', el.id, 'constrainedH:', constrainedH, 'constrainedW:', constrainedW);
   if (constrainedH === 0 || constrainedW === 0) return false;
 
-  // Probe appended to document.body — outside label-wrap's CSS transform,
-  // and not a flex child, so scrollHeight correctly reports content height.
+  // Pull the element out of flex flow temporarily. As a flex child with
+  // overflow:hidden, Chrome clamps scrollHeight to clientHeight. As an
+  // absolute element with height:auto, scrollHeight = actual content height.
+  const savedPos = el.style.position;
+  const savedH   = el.style.height;
+  const savedW   = el.style.width;
+  const savedOvf = el.style.overflow;
+  el.style.position = 'absolute';
+  el.style.height   = 'auto';
+  el.style.width    = constrainedW + 'px';
+  el.style.overflow = 'visible';
+
   const cs = getComputedStyle(el);
-  const probe = document.createElement('div');
-  probe.innerHTML    = el.innerHTML;
-  probe.style.position   = 'fixed';
-  probe.style.top        = '0';
-  probe.style.left       = '-99999px';
-  probe.style.visibility = 'hidden';
-  probe.style.margin     = '0';
-  probe.style.padding    = '0';
-  probe.style.border     = 'none';
-  probe.style.boxSizing  = 'content-box';
-  probe.style.width      = constrainedW + 'px';
-  probe.style.height     = 'auto';
-  probe.style.overflow   = 'visible';
-  probe.style.fontFamily = cs.fontFamily;
-  probe.style.fontSize   = cs.fontSize;
-  probe.style.fontWeight = cs.fontWeight;
-  probe.style.lineHeight = cs.lineHeight;
-  probe.style.whiteSpace = cs.whiteSpace;
-  probe.style.wordBreak  = cs.wordBreak;
-  document.body.appendChild(probe);
-
-  const initialPt = parseFloat(cs.fontSize) * 0.75; // px → pt
-  let size = initialPt;
-  console.log('[fitText]', el.id, 'constrainedH:', constrainedH, 'constrainedW:', constrainedW, 'probe.scrollH:', probe.scrollHeight, 'initialPt:', initialPt);
-  while (size > minPt && probe.scrollHeight > constrainedH) {
+  let size = parseFloat(cs.fontSize) * 0.75; // px → pt
+  while (size > minPt && el.scrollHeight > constrainedH) {
     size = Math.max(minPt, size - 0.5);
-    probe.style.fontSize = size + 'pt';
+    el.style.fontSize = size + 'pt';
   }
-  const overflows = probe.scrollHeight > constrainedH;
-  console.log('[fitText]', el.id, 'finalSize:', size, 'overflows:', overflows, 'probe.scrollH after:', probe.scrollHeight);
-  document.body.removeChild(probe);
+  const overflows = el.scrollHeight > constrainedH;
 
-  if (size < initialPt) el.style.fontSize = size + 'pt';
+  el.style.position = savedPos || '';
+  el.style.height   = savedH   || '';
+  el.style.width    = savedW   || '';
+  el.style.overflow = savedOvf || '';
+
   return overflows;
 }
 function fitTextLine(el, minPt) {
