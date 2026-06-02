@@ -85,7 +85,7 @@ nav {
 /* ---------- Two-column grid ---------- */
 .bl-grid {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: min(360px, 32%) 1fr;
   gap: 20px;
   align-items: stretch;
 }
@@ -203,7 +203,7 @@ nav {
 .bl-item:last-child { border-bottom: none; }
 .bl-item:hover { background: #fafbff; }
 .bl-name-wrap { flex: 1; min-width: 0; }
-.bl-name { color: #222; display: block; }
+.bl-name { color: #222; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bl-sub  { font-size: 10px; color: #aaa; display: block; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bl-del {
   background: none; border: none; color: #cc0000; cursor: pointer;
