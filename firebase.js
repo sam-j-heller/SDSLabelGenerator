@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, addDoc, writeBatch, serverTimestamp, query, where, onSnapshot, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc, addDoc, writeBatch, serverTimestamp, query, where, onSnapshot, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut as fbSignOut, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -488,6 +488,15 @@ window.FB = {
       const bT = b.timestamp?.seconds || b.reviewedAt?.seconds || 0;
       return bT - aT;
     });
+  },
+
+  // Update the reason field on a history entry.
+  async updateHistoryReason(source, facilityCode, id, reason) {
+    if (source === 'activityLog') {
+      await updateDoc(doc(db, 'activityLog', id), { reason: reason ?? null });
+    } else {
+      await updateDoc(doc(db, 'facilities', facilityCode.trim().toUpperCase(), 'submission-history', id), { reason: reason ?? null });
+    }
   },
 
   // Delete a single history entry. source is 'activityLog' or 'submission-history'.

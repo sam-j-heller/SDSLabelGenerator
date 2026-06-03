@@ -694,7 +694,7 @@ body[data-mode="sticker"] .label-outer   { display: none; }
   display: flex; align-items: center; gap: 0.1in; overflow: hidden;
 }
 .s-product .sp-label { font-size: 7pt; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
-.s-product .sp-value { font-size: 13pt; font-weight: 900; flex: 1; line-height: 1; word-break: break-word; }
+.s-product .sp-value { font-size: 13pt; font-weight: 900; flex: 1; line-height: 1; white-space: nowrap; overflow: hidden; }
 
 .s-middle {
   display: grid; grid-template-columns: 55% 45%;
@@ -1800,7 +1800,7 @@ function update() {
 
   // Auto-fit text in space-constrained boxes
   fitTextLine($('lbl-product'),   11);
-  fitText($('s-lbl-product'), 6);
+  fitTextLine($('s-lbl-product'), 6);
   fitText($('s-lbl-hazard'),  4);
   const hazTrunc   = fitText($('lbl-hazard'),   5);
   const firstTrunc = fitText($('lbl-firstaid'), 5);

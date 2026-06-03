@@ -560,6 +560,8 @@ nav {
 .hist-row-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .hist-del { margin-left: auto; background: none; border: none; color: #ccc; font-size: 15px; cursor: pointer; padding: 0 2px; line-height: 1; flex-shrink: 0; }
 .hist-del:hover { color: #cc0000; }
+.hist-edit-reason { background: none; border: none; color: #aaa; font-size: 12px; cursor: pointer; padding: 0 2px; line-height: 1; vertical-align: middle; }
+.hist-edit-reason:hover { color: #1a3a5c; }
 .hist-product { font-size: 14px; font-weight: 700; color: #1a3a5c; flex: 1; min-width: 140px; }
 .hist-badge-approved { display: inline-block; background: #d4edda; color: #1a5c33; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
 .hist-badge-rejected { display: inline-block; background: #fde8e8; color: #8b1a1a; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
@@ -2784,6 +2786,22 @@ function populateHistoryFacilityFilter() {
   if (codes.includes(current)) sel.value = current;
 }
 
+async function editHistoryReason(id, source, facilityCode, btn) {
+  const entry = submissionHistory.find(h => h._id === id);
+  const current = entry?.reason || '';
+  const updated = prompt('Edit rejection reason:', current);
+  if (updated === null) return; // cancelled
+  btn.disabled = true;
+  try {
+    await window.FB.updateHistoryReason(source, facilityCode, id, updated.trim() || null);
+    if (entry) entry.reason = updated.trim() || null;
+    renderHistory();
+  } catch (e) {
+    console.error('[EasySDS] editHistoryReason failed:', e);
+    btn.disabled = false;
+  }
+}
+
 async function deleteHistoryItem(id, source, facilityCode, btn) {
   if (!confirm('Delete this history record permanently?')) return;
   btn.disabled = true;
@@ -2859,12 +2877,16 @@ function renderHistory() {
     const facTag = h.facilityCode
       ? `<span class="appr-fac">${esc(h.facilityCode)}</span>`
       : `<span class="appr-fac" style="background:#f0f0f0;color:#888">Global</span>`;
-    const reason = h.reason
-      ? `<div class="hist-reason"><strong>Reason:</strong> ${esc(h.reason)}</div>`
-      : '';
     const isSuperAdmin = window.FB.adminProfile?.devtoolsAccess === true;
+    const safeId  = h._id.replace(/'/g, "\\'");
+    const safeSrc = (h._source  || '').replace(/'/g, "\\'");
+    const safeFac = (h.facilityCode || '').replace(/'/g, "\\'");
+    const canEditReason = isSuperAdmin && (action === 'rejected' || action === 'approved');
+    const reason = h.reason
+      ? `<div class="hist-reason"><strong>Reason:</strong> ${esc(h.reason)}${canEditReason ? ` <button class="hist-edit-reason" onclick="editHistoryReason('${safeId}', '${safeSrc}', '${safeFac}', this)" title="Edit reason">✎</button>` : ''}</div>`
+      : (canEditReason ? `<div class="hist-reason" style="color:#aaa"><em>No reason given</em> <button class="hist-edit-reason" onclick="editHistoryReason('${safeId}', '${safeSrc}', '${safeFac}', this)" title="Add reason">✎</button></div>` : '');
     const delBtn = isSuperAdmin
-      ? `<button class="hist-del" title="Delete record" onclick="deleteHistoryItem(${JSON.stringify(h._id)}, ${JSON.stringify(h._source)}, ${JSON.stringify(h.facilityCode || '')}, this)">✕</button>`
+      ? `<button class="hist-del" title="Delete record" onclick="deleteHistoryItem('${safeId}', '${safeSrc}', '${safeFac}', this)">✕</button>`
       : '';
 
     return `
