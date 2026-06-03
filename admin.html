@@ -558,6 +558,8 @@ nav {
 /* ---------- History tab ---------- */
 .hist-row { background: #fff; border: 1px solid #e0e6ef; border-radius: 6px; padding: 12px 16px; margin-bottom: 8px; }
 .hist-row-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hist-del { margin-left: auto; background: none; border: none; color: #ccc; font-size: 15px; cursor: pointer; padding: 0 2px; line-height: 1; flex-shrink: 0; }
+.hist-del:hover { color: #cc0000; }
 .hist-product { font-size: 14px; font-weight: 700; color: #1a3a5c; flex: 1; min-width: 140px; }
 .hist-badge-approved { display: inline-block; background: #d4edda; color: #1a5c33; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
 .hist-badge-rejected { display: inline-block; background: #fde8e8; color: #8b1a1a; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
@@ -2782,6 +2784,21 @@ function populateHistoryFacilityFilter() {
   if (codes.includes(current)) sel.value = current;
 }
 
+async function deleteHistoryItem(id, source, facilityCode, btn) {
+  if (!confirm('Delete this history record permanently?')) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    await window.FB.deleteHistoryEntry(source, facilityCode, id);
+    submissionHistory = submissionHistory.filter(h => h._id !== id);
+    renderHistory();
+  } catch (e) {
+    console.error('[EasySDS] deleteHistoryItem failed:', e);
+    btn.disabled = false;
+    btn.textContent = '✕';
+  }
+}
+
 function renderHistory() {
   const facFilter    = document.getElementById('hist-fac-filter')?.value || '';
   const typeFilter   = document.getElementById('hist-outcome-filter')?.value || '';
@@ -2845,6 +2862,10 @@ function renderHistory() {
     const reason = h.reason
       ? `<div class="hist-reason"><strong>Reason:</strong> ${esc(h.reason)}</div>`
       : '';
+    const isSuperAdmin = window.FB.adminProfile?.devtoolsAccess === true;
+    const delBtn = isSuperAdmin
+      ? `<button class="hist-del" title="Delete record" onclick="deleteHistoryItem(${JSON.stringify(h._id)}, ${JSON.stringify(h._source)}, ${JSON.stringify(h.facilityCode || '')}, this)">✕</button>`
+      : '';
 
     return `
     <div class="hist-row">
@@ -2852,6 +2873,7 @@ function renderHistory() {
         <div class="hist-product">${title}</div>
         ${badge}
         ${facTag}
+        ${delBtn}
       </div>
       <div class="hist-meta">${meta}</div>
       ${reason}

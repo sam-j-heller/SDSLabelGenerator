@@ -472,14 +472,15 @@ window.FB = {
         snap.docs.forEach(d => results.push({
           ...d.data(), _id: d.id,
           facilityCode: fac.code, facilityName: fac.name,
-          action: d.data().outcome   // map outcome → action for uniform rendering
+          action: d.data().outcome,   // map outcome → action for uniform rendering
+          _source: 'submission-history'
         }));
       } catch (e) { console.error('[EasySDS] getAllSubmissionHistory failed for', fac.code, e); }
     }));
     // Global activity log (blacklist changes + new approve/reject records)
     try {
       const snap = await getDocs(collection(db, 'activityLog'));
-      snap.docs.forEach(d => results.push({ ...d.data(), _id: d.id }));
+      snap.docs.forEach(d => results.push({ ...d.data(), _id: d.id, _source: 'activityLog' }));
     } catch (e) { console.error('[EasySDS] getAllActivityLog failed:', e); }
 
     return results.sort((a, b) => {
@@ -487,6 +488,15 @@ window.FB = {
       const bT = b.timestamp?.seconds || b.reviewedAt?.seconds || 0;
       return bT - aT;
     });
+  },
+
+  // Delete a single history entry. source is 'activityLog' or 'submission-history'.
+  async deleteHistoryEntry(source, facilityCode, id) {
+    if (source === 'activityLog') {
+      await deleteDoc(doc(db, 'activityLog', id));
+    } else {
+      await deleteDoc(doc(db, 'facilities', facilityCode.trim().toUpperCase(), 'submission-history', id));
+    }
   },
 
   // One-time migration: moves a facility's legacy chemicals array into its
