@@ -2563,12 +2563,7 @@ async function doReject(idx) {
     try {
       await window.FB.rejectChemical(p.facilityCode, p._id);
       logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
-      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
-      window.FB.logSubmissionHistory(p.facilityCode, {
-        product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
-        submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
-        reviewedBy: window.FB.adminProfile?.email || null, outcome: 'rejected', reason: reason || null
-      }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
+      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(e => console.error('[EasySDS] sendRejectionEmail failed:', e));
       window.FB.logActivityHistory('rejected', {
         product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
         submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
@@ -2692,12 +2687,7 @@ async function approveFromReview() {
     if (ok) {
       const approvedProduct = editedData.product || p.product;
       logActivity(`Approved "${approvedProduct}" for ${p.facilityCode}`, 'add');
-      window.FB.sendApprovalEmail(p.submittedByEmail, approvedProduct, p.facilityName).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
-      window.FB.logSubmissionHistory(p.facilityCode, {
-        product: approvedProduct, facilityCode: p.facilityCode, facilityName: p.facilityName,
-        submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
-        reviewedBy: window.FB.adminProfile?.email || null, outcome: 'approved', reason: null
-      }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
+      window.FB.sendApprovalEmail(p.submittedByEmail, approvedProduct, p.facilityName).catch(e => console.error('[EasySDS] sendApprovalEmail failed:', e));
       window.FB.logActivityHistory('approved', {
         product: approvedProduct, facilityCode: p.facilityCode, facilityName: p.facilityName,
         submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
@@ -2729,12 +2719,12 @@ function rejectFromReview() {
     try {
       await window.FB.rejectChemical(p.facilityCode, p._id);
       logActivity(`Rejected "${p.product}" from ${p.facilityCode}`, 'del');
-      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
-      window.FB.logSubmissionHistory(p.facilityCode, {
+      window.FB.sendRejectionEmail(p.submittedByEmail, p.product, p.facilityName, reason).catch(e => console.error('[EasySDS] sendRejectionEmail failed:', e));
+      window.FB.logActivityHistory('rejected', {
         product: p.product, facilityCode: p.facilityCode, facilityName: p.facilityName,
         submittedByEmail: p.submittedByEmail || null, submittedAt: p.submittedAt || null,
-        reviewedBy: window.FB.adminProfile?.email || null, outcome: 'rejected', reason: reason || null
-      }).catch(e => console.error('[EasySDS] logSubmissionHistory failed:', e));
+        reviewedBy: window.FB.adminProfile?.email || null, reason: reason || null
+      }).catch(e => console.error('[EasySDS] logActivityHistory failed:', e));
       const i = reviewIdx;
       closeReview();
       pendingApprovals.splice(i, 1);
