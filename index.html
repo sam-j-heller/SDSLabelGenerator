@@ -257,15 +257,16 @@ body[data-paper="a4"] .label-outer {
   border-bottom: 3px solid #000;
   padding: 0 0.2in;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0.2in;
 }
 .zone-product .plabel {
   font-size: 11pt; font-weight: 700; letter-spacing: 1px; white-space: nowrap;
+  display: flex; align-items: center;
 }
 .zone-product .pvalue {
-  font-size: 18pt; font-weight: 900; flex: 1; line-height: 1.1; letter-spacing: -0.5px;
-  overflow: hidden;
+  font-size: 36pt; font-weight: 900; flex: 1; line-height: 1.1; letter-spacing: -0.5px;
+  overflow: hidden; display: flex; flex-direction: column; justify-content: center;
 }
 
 /* ---------- Middle row: NFPA | GHS | Signal+HMIS ----------
@@ -321,7 +322,7 @@ body[data-paper="a4"] .label-outer {
 }
 .product-logo {
   height: 0.38in; max-width: 1.6in;
-  object-fit: contain; margin-left: auto; flex-shrink: 0;
+  object-fit: contain; margin-left: auto; flex-shrink: 0; align-self: center;
 }
 .pic-edge-label {
   position: absolute;
