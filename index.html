@@ -265,7 +265,7 @@ body[data-paper="a4"] .label-outer {
 }
 .zone-product .pvalue {
   font-size: 18pt; font-weight: 900; flex: 1; line-height: 1.1; letter-spacing: -0.5px;
-  white-space: nowrap; overflow: hidden;
+  overflow: hidden;
 }
 
 /* ---------- Middle row: NFPA | GHS | Signal+HMIS ----------
@@ -1799,7 +1799,7 @@ function update() {
   setHazard('s-lbl-hazard', $('f-hazard').value);
 
   // Auto-fit text in space-constrained boxes
-  fitTextLine($('lbl-product'),   11);
+  fitText($('lbl-product'),   11);
   fitTextLine($('s-lbl-product'), 6);
   fitText($('s-lbl-hazard'),  4);
   const hazTrunc   = fitText($('lbl-hazard'),   5);

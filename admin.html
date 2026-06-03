@@ -495,7 +495,7 @@ nav {
 .cc-stat-lbl { font-size: 11px; color: #888; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
 .cc-search { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid #ccc;
   border-radius: 4px; font-size: 13px; margin-bottom: 16px; font-family: inherit; }
-.cc-list { border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden; }
+.cc-list { border: 1px solid #e8e8e8; border-radius: 6px; overflow-x: hidden; overflow-y: auto; max-height: calc(100vh - 300px); }
 .cc-row { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #eee; gap: 12px; }
 .cc-row:last-child { border-bottom: 0; }
 .cc-shared { background: #fffbf0; }
@@ -570,6 +570,8 @@ nav {
 .hist-badge-bl-csv { display: inline-block; background: #e8f0fe; color: #1a4a9c; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
 .hist-meta { font-size: 11px; color: #888; margin-top: 4px; }
 .hist-reason { background: #fff3f3; border-left: 3px solid #cc0000; padding: 8px 12px; margin-top: 8px; border-radius: 0 3px 3px 0; font-size: 12px; color: #333; }
+#hist-list { max-height: calc(100vh - 220px); overflow-y: auto; }
+#worker-list-wrap { max-height: calc(100vh - 250px); overflow-y: auto; }
 
 /* ---------- Reject reason modal ---------- */
 #reject-modal {
@@ -578,6 +580,14 @@ nav {
   background: rgba(10,22,40,0.7); backdrop-filter: blur(3px);
 }
 #reject-modal.open { display: flex; }
+
+/* ---------- Blacklist remove confirm modal ---------- */
+#bl-remove-modal {
+  display: none; position: fixed; inset: 0; z-index: 9500;
+  align-items: center; justify-content: center;
+  background: rgba(10,22,40,0.7); backdrop-filter: blur(3px);
+}
+#bl-remove-modal.open { display: flex; }
 .reject-card {
   background: #fff; border-radius: 10px; width: 440px; max-width: 96vw;
   box-shadow: 0 20px 60px rgba(0,0,0,0.4); padding: 28px 28px 24px;
@@ -1830,19 +1840,21 @@ async function manualAdd() {
 async function deleteFromBlacklist(id) {
   const item = blacklist.find(c => c.id === id);
   const name = item ? item.name : id;
-  if (!confirm('Remove "' + name + '" from the blacklist?')) return;
-  try {
-    await window.FB.removeFromBlacklist(id);
-    blacklist = blacklist.filter(c => c.id !== id);
-    renderBlacklist();
-    logActivity('Removed: ' + name, 'del');
-    window.FB.logActivityHistory('blacklist-remove', {
-      chemical: name, actedBy: window.FB.adminProfile?.email || null
-    }).catch(e => console.error('[EasySDS] logActivityHistory failed:', e));
-  } catch (e) {
-    showBanner('bl-banner', 'Failed to save — check console.', 'error');
-    console.error(e);
-  }
+  openBLRemoveModal(name, async (reason) => {
+    try {
+      await window.FB.removeFromBlacklist(id);
+      blacklist = blacklist.filter(c => c.id !== id);
+      renderBlacklist();
+      logActivity('Removed: ' + name + (reason ? ' — ' + reason : ''), 'del');
+      window.FB.logActivityHistory('blacklist-remove', {
+        chemical: name, actedBy: window.FB.adminProfile?.email || null,
+        reason: reason || null
+      }).catch(e => console.error('[EasySDS] logActivityHistory failed:', e));
+    } catch (e) {
+      showBanner('bl-banner', 'Failed to save — check console.', 'error');
+      console.error(e);
+    }
+  });
 }
 
 // -------------------------------------------------------
@@ -2533,6 +2545,7 @@ function renderApprovals() {
 
 // ── Reject reason modal ─────────────────────────────────
 let _rejectCallback = null;
+let _blRemoveCallback = null;
 
 function openRejectModal(product, facilityCode, callback) {
   document.getElementById('reject-modal-sub').textContent = `"${product}" — ${facilityCode}`;
@@ -2556,6 +2569,30 @@ async function confirmReject() {
   btn.textContent = 'Rejecting…';
   if (_rejectCallback) await _rejectCallback(reason || null);
   closeRejectModal();
+}
+
+function openBLRemoveModal(chemName, callback) {
+  document.getElementById('bl-remove-modal-sub').textContent = '"' + chemName + '"';
+  document.getElementById('bl-remove-reason-input').value = '';
+  document.getElementById('bl-remove-confirm-btn').disabled = false;
+  document.getElementById('bl-remove-confirm-btn').textContent = 'Confirm Remove';
+  _blRemoveCallback = callback;
+  document.getElementById('bl-remove-modal').classList.add('open');
+  setTimeout(() => document.getElementById('bl-remove-reason-input').focus(), 50);
+}
+
+function closeBLRemoveModal() {
+  document.getElementById('bl-remove-modal').classList.remove('open');
+  _blRemoveCallback = null;
+}
+
+async function confirmBLRemoval() {
+  const reason = document.getElementById('bl-remove-reason-input').value.trim();
+  const btn = document.getElementById('bl-remove-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Removing…';
+  if (_blRemoveCallback) await _blRemoveCallback(reason || null);
+  closeBLRemoveModal();
 }
 
 async function doReject(idx) {
@@ -2903,6 +2940,20 @@ function renderHistory() {
   }).join('');
 }
 </script>
+
+<!-- ===== BLACKLIST REMOVE CONFIRM MODAL ===== -->
+<div id="bl-remove-modal" onclick="if(event.target===this)closeBLRemoveModal()">
+  <div class="reject-card">
+    <h3 style="color:#7a5200">Remove from Blacklist</h3>
+    <div class="reject-sub" id="bl-remove-modal-sub"></div>
+    <label for="bl-remove-reason-input">Reason for removal (optional — logged to activity history)</label>
+    <textarea id="bl-remove-reason-input" class="reject-reason-input" placeholder="e.g. Blanket restriction lifted; permitted with proper PPE controls…"></textarea>
+    <div class="reject-footer">
+      <button class="reject-cancel" onclick="closeBLRemoveModal()">Cancel</button>
+      <button class="reject-confirm" id="bl-remove-confirm-btn" onclick="confirmBLRemoval()" style="background:#7a5200">Confirm Remove</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== REJECT REASON MODAL ===== -->
 <div id="reject-modal" onclick="if(event.target===this)closeRejectModal()">
