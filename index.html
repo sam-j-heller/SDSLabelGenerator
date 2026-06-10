@@ -1122,7 +1122,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
         <h3>Supplier Info</h3>
         <label>Company Name</label><input type="text" id="s-company">
         <label>Address</label><textarea id="s-address" rows="2"></textarea>
-        <label>Emergency Phone</label><input type="text" id="s-phone">
+        <label>Emergency Phone</label><textarea id="s-phone" rows="2" style="resize:vertical"></textarea>
         <label>Prepared By</label><input type="text" id="s-prep">
         <label>Date</label><input type="text" id="s-date">
       </div>
@@ -1285,7 +1285,7 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
               <h4>Supplier Info</h4>
               <div class="srow"><b id="lbl-company"></b></div>
               <div class="srow" id="lbl-address" style="white-space: pre-wrap;"></div>
-              <div class="srow"><b>Emergency:</b> <span id="lbl-phone"></span></div>
+              <div class="srow"><b>Emergency:</b> <span id="lbl-phone" style="white-space:pre-wrap"></span></div>
               <div class="srow"><b>Prepared by:</b> <span id="lbl-prep"></span></div>
               <div class="srow"><b>Date:</b> <span id="lbl-date"></span></div>
             </div>
@@ -2346,6 +2346,10 @@ function populateLibrarySelect() { /* no-op: combo reads live from library on op
 async function saveToLibrary() {
   const data = getCurrentFormData();
   if (!data.product.trim()) { showSaveBanners('Enter a Product Identifier before saving.', 'warn'); return; }
+  const spinner = $('submit-spinner');
+  const showSpin = () => { if (spinner) spinner.style.display = 'flex'; };
+  const hideSpin = () => { if (spinner) spinner.style.display = 'none'; };
+  showSpin();
   let blocked = false;
   try {
     blocked = await window.FB.isBlacklisted(data.product);
@@ -2355,12 +2359,14 @@ async function saveToLibrary() {
       `Blacklist check failed for "${data.product}" — chemical may have bypassed restriction`, e.message);
   }
   if (blocked) {
+    hideSpin();
     showSaveBanners(`"${data.product}" is on the restricted substances list and cannot be added.`, 'error');
     return;
   }
   const lib = getLibrary();
   const idx = lib.findIndex(c => c.product.trim().toLowerCase() === data.product.trim().toLowerCase());
   if (idx >= 0) {
+    hideSpin();
     // Existing chemical — overwrite directly, no approval needed
     if (!confirm(`"${data.product}" is already saved. Overwrite it?`)) return;
     lib[idx] = data;
@@ -2379,16 +2385,21 @@ async function saveToLibrary() {
       (p.product || '').trim().toLowerCase() === data.product.trim().toLowerCase()
     );
     if (alreadyPending) {
+      hideSpin();
       showSaveBanners(`"${data.product}" is already waiting for approval — an engineer will review it soon.`, 'warn');
       return;
     }
     const similar = findSimilarChemicals(data.product, lib);
     if (similar.length > 0) {
+      hideSpin();
       showDuplicateWarning(data.product, similar, async () => {
+        showSpin();
         try {
           await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
+          hideSpin();
           showSubmitConfirm(data.product);
         } catch (e) {
+          hideSpin();
           console.error('[EasySDS] submitForApproval failed:', e);
           window.FB.logClientEvent(window.FB.facilityCode, 'error', 'submission',
             `Submission failed for "${data.product}"`, e.message);
@@ -2399,8 +2410,10 @@ async function saveToLibrary() {
     }
     try {
       await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
+      hideSpin();
       showSubmitConfirm(data.product);
     } catch (e) {
+      hideSpin();
       console.error('[EasySDS] submitForApproval failed:', e);
       window.FB.logClientEvent(window.FB.facilityCode, 'error', 'submission',
         `Submission failed for "${data.product}"`, e.message);
@@ -2701,6 +2714,13 @@ function closeSubmitConfirm() {
     </div>
   </div>
 </div>
+
+<!-- ── Submitting spinner overlay ── -->
+<div id="submit-spinner" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.72);z-index:9998;align-items:center;justify-content:center;flex-direction:column;gap:14px">
+  <div style="width:48px;height:48px;border:5px solid #dde3ef;border-top-color:#1F3864;border-radius:50%;animation:spin-ring 0.75s linear infinite"></div>
+  <div style="font-size:13px;font-weight:600;color:#1F3864;letter-spacing:0.3px">Submitting&hellip;</div>
+</div>
+<style>@keyframes spin-ring { to { transform: rotate(360deg); } }</style>
 
 <!-- ── Submission confirmation modal ── -->
 <div id="submit-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center">
