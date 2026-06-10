@@ -1704,7 +1704,18 @@ function balanceBottomStrip() {
     return ok;
   };
 
-  // Pass 1 — set column widths, shrink each cell to fit vertically.
+  const growFont = (startPt) => {
+    let pt = startPt;
+    for (let t = startPt + 0.25; t <= basePt + 0.001; t += 0.25) {
+      const p = Math.min(t, basePt);
+      if (cellFits(hazEl, p) && cellFits(faEl, p) && cellFits(suppEl, p)) { pt = p; }
+      else break;
+      if (p >= basePt) break;
+    }
+    return pt;
+  };
+
+  // Pass 1 — set initial column widths, shrink each cell to fit vertically.
   zone.style.gridTemplateColumns = `${targetPct}% 1fr fit-content(25%)`;
   fitText(hazEl,  5);
   fitText(faEl,   5);
@@ -1714,16 +1725,22 @@ function balanceBottomStrip() {
   let finalPt = Math.max(5, Math.min(readPt(hazEl), readPt(faEl), readPt(suppEl)));
 
   // Pass 3 — grow back up toward basePt while all three cells still fit.
-  // This recovers whitespace that appeared in cells with fewer/shorter lines.
-  for (let tryPt = finalPt + 0.25; tryPt <= basePt + 0.001; tryPt += 0.25) {
-    const pt = Math.min(tryPt, basePt);
-    if (cellFits(hazEl, pt) && cellFits(faEl, pt) && cellFits(suppEl, pt)) {
-      finalPt = pt;
-    } else {
-      break;
-    }
-    if (pt >= basePt) break;
+  finalPt = growFont(finalPt);
+
+  // Pass 4 — binary-search the minimum hazard column width where hazard still
+  // fits at finalPt, then give that reclaimed space to first-aid.
+  let bestHazPct = targetPct;
+  let lo = Math.max(20, targetPct - 20), hi = targetPct;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    zone.style.gridTemplateColumns = `${mid}% 1fr fit-content(25%)`;
+    if (cellFits(hazEl, finalPt)) { bestHazPct = mid; hi = mid; }
+    else { lo = mid + 1; }
   }
+  zone.style.gridTemplateColumns = `${bestHazPct}% 1fr fit-content(25%)`;
+
+  // Pass 5 — first-aid now has more room; try to grow font again.
+  finalPt = growFont(finalPt);
 
   hazEl.style.fontSize  = finalPt + 'pt';
   faEl.style.fontSize   = finalPt + 'pt';
