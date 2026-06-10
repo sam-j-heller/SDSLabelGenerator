@@ -691,11 +691,11 @@ body[data-mode="sticker"] .label-outer   { display: none; }
   box-shadow: 0 6px 24px rgba(0,0,0,0.35); overflow: hidden;
 }
 .s-product {
-  border-bottom: 2px solid #000; padding: 0 0.1in;
+  border-bottom: 2px solid #000; padding: 0.04in 0.1in;
   display: flex; align-items: center; gap: 0.1in; overflow: hidden;
 }
 .s-product .sp-label { font-size: 7pt; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
-.s-product .sp-value { font-size: 13pt; font-weight: 900; flex: 1; line-height: 1; white-space: nowrap; overflow: hidden; }
+.s-product .sp-value { font-size: 13pt; font-weight: 900; flex: 1; line-height: 1.15; overflow: hidden; overflow-wrap: break-word; word-break: break-word; }
 
 .s-middle {
   display: grid; grid-template-columns: 55% 45%;
@@ -1652,7 +1652,11 @@ function fitText(el, minPt) {
   return overflows;
 }
 // Render hazard text, set grid widths, then sync font sizes between the two cells.
-// Called after setFirstAid so first-aid content is already in the DOM.
+//
+// Width is driven by line COUNT, not line length — long lines are allowed to wrap
+// to a second display row, which is fine and gives first-aid more space.
+// A two-pass approach is used: pass 1 finds the font size that fits vertically,
+// pass 2 re-checks that the chosen column is still wide enough at that font.
 function balanceBottomStrip() {
   const zone  = document.querySelector('.zone-bottom');
   const hazEl = $('lbl-hazard');
@@ -1663,39 +1667,37 @@ function balanceBottomStrip() {
   const lines     = hazText.split('\n').filter(l => l.trim());
   const lineCount = lines.length;
 
-  // 2-column layout needed once there are enough lines to fill both columns.
-  // Single-column below that threshold — but the column must be wide enough
-  // that a full H-code line (up to ~55 chars) doesn't wrap.
-  //   ≤ 2 lines  → 1-col, 36%  (first-aid gets ~39%)
-  //   3–6 lines  → 1-col, 44%  (first-aid gets ~31%)
-  //   7+ lines   → 2-col, 50%  (first-aid gets ~25%, original default)
-  let hazPct, useTwoCol;
-  if (lineCount <= 2) {
-    hazPct = 36; useTwoCol = false;
-  } else if (lineCount <= 6) {
-    hazPct = 44; useTwoCol = false;
-  } else {
-    hazPct = 50; useTwoCol = true;
-  }
-
-  // Render hazard with the chosen column count
+  // Above 8 lines, switch to two-column layout at full 50%.
+  const useTwoCol = lineCount > 8;
   setHazard('lbl-hazard', hazText, useTwoCol);
 
-  // Supplier stays fixed at 25%; hazard and first-aid share the rest
-  zone.style.gridTemplateColumns = `${hazPct}% 1fr 25%`;
+  // Target column widths by line count.
+  // Long lines may wrap to 2 display rows — that's acceptable and saves space.
+  // Supplier is always locked at 25%; first-aid takes whatever is left (1fr).
+  const targetPct = useTwoCol ? 50
+    : lineCount <= 2 ? 28
+    : lineCount <= 4 ? 33
+    : lineCount <= 6 ? 40
+    : 46;
 
-  // Fit text now that column widths are set
-  fitText(hazEl, 5);
-  fitText(faEl,  5);
-
-  // Sync to the smaller fitted size so hazard and first-aid read as one block
   const readPt = el => {
     if (el.style.fontSize) return parseFloat(el.style.fontSize);
     return parseFloat(getComputedStyle(el).fontSize) * 0.75;
   };
+
+  // Pass 1 — set target width, fit both cells vertically, read back font sizes.
+  zone.style.gridTemplateColumns = `${targetPct}% 1fr 25%`;
+  fitText(hazEl, 5);
+  fitText(faEl,  5);
   const syncPt = Math.max(5, Math.min(readPt(hazEl), readPt(faEl)));
+
+  // Pass 2 — apply the synced font and re-fit so both cells are measured at the
+  // same size. At a smaller font the hazard may now fit in an even narrower column
+  // but we keep targetPct; what matters is the fonts match and nothing overflows.
   hazEl.style.fontSize = syncPt + 'pt';
   faEl.style.fontSize  = syncPt + 'pt';
+  fitText(hazEl, 5);
+  fitText(faEl,  5);
 }
 
 function fitTextLine(el, minPt) {
@@ -1847,7 +1849,7 @@ function update() {
 
   // Auto-fit text in space-constrained boxes
   fitText($('lbl-product'),   11);
-  fitTextLine($('s-lbl-product'), 6);
+  fitText($('s-lbl-product'), 7);
   fitText($('s-lbl-hazard'),  4);
 
   // Balance hazard/first-aid columns, render hazard, fit both, sync font sizes
