@@ -1688,7 +1688,9 @@ function balanceBottomStrip() {
   };
 
   // Pass 1 — set column widths, fit all three cells independently.
-  zone.style.gridTemplateColumns = `${targetPct}% 1fr 1fr`;
+  // Supplier uses fit-content so it sizes to its content without growing to fill
+  // available space; first-aid gets all the leftover room.
+  zone.style.gridTemplateColumns = `${targetPct}% 1fr fit-content(25%)`;
   fitText(hazEl,  5);
   fitText(faEl,   5);
   fitText(suppEl, 5);
