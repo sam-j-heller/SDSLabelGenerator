@@ -1651,6 +1651,38 @@ function fitText(el, minPt) {
 
   return overflows;
 }
+// Render hazard text, set grid widths, then sync font sizes between the two cells.
+// Must be called after setFirstAid but before fitText on both cells.
+function balanceBottomStrip() {
+  const zone  = document.querySelector('.zone-bottom');
+  const hazEl = $('lbl-hazard');
+  const faEl  = $('lbl-firstaid');
+  if (!zone || !hazEl || !faEl) return;
+
+  const hazText   = ($('f-hazard').value || '').trim();
+  const lineCount = hazText.split('\n').filter(l => l.trim()).length;
+  const useTwoCol = lineCount > 5;
+
+  // Render hazard with 1 or 2 columns depending on line count
+  setHazard('lbl-hazard', hazText, useTwoCol);
+
+  // Supplier stays fixed; hazard and first-aid share the remaining 75%
+  zone.style.gridTemplateColumns = useTwoCol ? '50% 1fr 25%' : '28% 1fr 25%';
+
+  // Fit text in the sized columns
+  fitText(hazEl, 5);
+  fitText(faEl,  5);
+
+  // Sync to the smaller of the two fitted sizes so they read as one visual block
+  const readPt = el => {
+    if (el.style.fontSize) return parseFloat(el.style.fontSize);
+    return parseFloat(getComputedStyle(el).fontSize) * 0.75;
+  };
+  const syncPt = Math.max(5, Math.min(readPt(hazEl), readPt(faEl)));
+  hazEl.style.fontSize = syncPt + 'pt';
+  faEl.style.fontSize  = syncPt + 'pt';
+}
+
 function fitTextLine(el, minPt) {
   if (!el) return;
   el.style.fontSize = '';
@@ -1709,8 +1741,7 @@ function update() {
     sw.className = 'sword danger';
   }
 
-  // Statements + first aid
-  setHazard('lbl-hazard',   $('f-hazard').value, true);
+  // First aid (hazard is rendered inside balanceBottomStrip below)
   setFirstAid('lbl-firstaid', $('f-firstaid').value);
 
   // GHS pictograms — toggle active class + inject SVG (or clear),
@@ -1803,8 +1834,13 @@ function update() {
   fitText($('lbl-product'),   11);
   fitTextLine($('s-lbl-product'), 6);
   fitText($('s-lbl-hazard'),  4);
-  const hazTrunc   = fitText($('lbl-hazard'),   5);
-  const firstTrunc = fitText($('lbl-firstaid'), 5);
+
+  // Balance hazard/first-aid columns, render hazard, fit both, sync font sizes
+  balanceBottomStrip();
+
+  // Truncation warnings (balanceBottomStrip already ran fitText on both)
+  const hazTrunc   = $('lbl-hazard').scrollHeight   > $('lbl-hazard').clientHeight;
+  const firstTrunc = $('lbl-firstaid').scrollHeight > $('lbl-firstaid').clientHeight;
   const warnH = $('warn-hazard');   if (warnH)  warnH.style.display  = hazTrunc   ? 'block' : 'none';
   const warnF = $('warn-firstaid'); if (warnF)  warnF.style.display  = firstTrunc ? 'block' : 'none';
 
