@@ -697,7 +697,7 @@ body[data-mode="sticker"] .label-outer   { display: none; }
   display: flex; align-items: stretch; gap: 0.1in; overflow: hidden;
 }
 .s-product .sp-label { font-size: 7pt; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; align-self: center; }
-.s-product .sp-value { font-size: 13pt; font-weight: 900; flex: 1; line-height: 1.15; overflow: hidden; overflow-wrap: break-word; word-break: break-word; display: grid; align-content: center; }
+.s-product .sp-value { font-size: 13pt; font-weight: 900; flex: 1; line-height: 1.1; overflow: hidden; overflow-wrap: break-word; word-break: break-word; display: grid; align-content: center; }
 
 .s-middle {
   display: grid; grid-template-columns: 55% 45%;
@@ -1889,7 +1889,7 @@ function update() {
 
   // Auto-fit text in space-constrained boxes
   fitText($('lbl-product'),   11);
-  fitText($('s-lbl-product'), 7);
+  fitText($('s-lbl-product'), 5);
   fitText($('s-lbl-hazard'),  4);
 
   // Balance hazard/first-aid columns, render hazard, fit both, sync font sizes
