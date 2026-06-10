@@ -888,7 +888,7 @@ nav {
       <div class="fac-left">
         <div class="card">
           <h2>Add Worker</h2>
-          <p style="font-size:11px;color:#666;margin-bottom:12px">Enter the worker's email and assign their facility. They will receive an email to set up their password.</p>
+          <p style="font-size:11px;color:#666;margin-bottom:12px">Enter the worker's email and assign their facility. They will receive a Teams message to set up their password.</p>
           <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">Email Address</label>
           <input type="email" id="worker-email-input" class="edit-input" placeholder="worker@rhenus.com" autocomplete="off" style="margin-bottom:10px">
           <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">Assign Facility</label>
@@ -896,7 +896,7 @@ nav {
             <option value="">— Select facility —</option>
           </select>
           <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">
-            Password <span style="font-weight:400;color:#999">(optional — leave blank to send invite email)</span>
+            Password <span style="font-weight:400;color:#999">(optional — leave blank to send a Teams invite)</span>
           </label>
           <input type="password" id="worker-pw-input" class="edit-input" placeholder="Set password directly" autocomplete="new-password" style="margin-bottom:12px">
           <button onclick="addWorker()" style="width:100%;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">Add Worker →</button>
@@ -1297,7 +1297,7 @@ function renderWorkers() {
         ${isAdmin
           ? `<button onclick="setRole(${i},'worker')" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #bbb;border-radius:3px;color:#555;cursor:pointer;font-weight:600;white-space:nowrap">Remove Admin</button>`
           : `<button onclick="setRole(${i},'admin')"  style="font-size:10px;padding:3px 8px;background:none;border:1px solid #1a3a5c;border-radius:3px;color:#1a3a5c;cursor:pointer;font-weight:600;white-space:nowrap">Make Admin</button>`}
-        <button onclick="resendWorkerInvite(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #bcd;border-radius:3px;color:#1a3a5c;cursor:pointer;font-weight:600;white-space:nowrap">Resend Email</button>
+        <button onclick="resendWorkerInvite(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #bcd;border-radius:3px;color:#1a3a5c;cursor:pointer;font-weight:600;white-space:nowrap">Resend Invite</button>
         ${w.status === 'inactive'
           ? `<button onclick="reactivateWorker(${i})" style="font-size:10px;padding:3px 8px;background:none;border:1px solid #a8dcbc;border-radius:3px;color:#1a5c33;cursor:pointer;font-weight:600">Reactivate</button>`
           : `<button onclick="deactivateWorker(${i})"  style="font-size:10px;padding:3px 8px;background:none;border:1px solid #f5b8b8;border-radius:3px;color:#8b1a1a;cursor:pointer;font-weight:600">Deactivate</button>`}
@@ -1324,7 +1324,7 @@ async function addWorker() {
     } else {
       await window.FB.createWorkerAccount(email, facCode);
       if (status) status.innerHTML = `<span style="color:#2e7d32">✓ Invite sent to ${esc(email)}</span>`;
-      logActivity('Added worker (invite email): ' + email + ' → ' + facCode, 'add');
+      logActivity('Added worker (Teams invite): ' + email + ' → ' + facCode, 'add');
     }
     document.getElementById('worker-email-input').value = '';
     document.getElementById('worker-fac-select').value  = '';
@@ -1443,72 +1443,44 @@ function dtBuildTemplate() {
   const product  = document.getElementById('dt-product')?.value  || 'Product Name';
   const reason   = document.getElementById('dt-reason')?.value.trim() || '';
   const appUrl   = window.location.href.replace(/admin\.html.*$/, 'index.html');
-  const foot     = `<hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0"><p style="font-size:11px;color:#aaa;margin:0">Rhenus Automotive · Engineering Department</p>`;
 
   if (type === 'test') return {
-    subject: 'Email System Test — Easy SDS',
-    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
-  <div style="background:#5a3a8c;padding:24px 28px;border-radius:6px 6px 0 0">
-    <h1 style="color:#fff;margin:0;font-size:20px">Email System Test</h1>
-  </div>
-  <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
-    <p>This is a test email from the <strong>Easy SDS</strong> admin panel.</p>
-    <p>If you received this, your email delivery pipeline (Firebase Trigger Email + Resend) is working correctly.</p>
-    <p style="font-size:11px;color:#aaa">Sent ${new Date().toLocaleString()}</p>
-    ${foot}
-  </div>
-</div>`
+    subject: 'Teams Message Test — Easy SDS',
+    html:
+`🔔 Teams Message Test
+
+This is a test message from the Easy SDS admin panel sent at ${new Date().toLocaleString()}.
+
+If you received this, your Power Automate → Teams pipeline is working correctly.`
   };
 
   if (type === 'invite') return {
     subject: "You've been invited to use Easy SDS",
-    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
-  <div style="background:#1a3a5c;padding:24px 28px;border-radius:6px 6px 0 0">
-    <h1 style="color:#fff;margin:0;font-size:20px">Easy SDS</h1>
-  </div>
-  <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
-    <p>Hi,</p>
-    <p>You've been added to <strong>Easy SDS</strong> for <strong>${facility}</strong>.</p>
-    <p>Click below and use <strong>"First time or forgot password"</strong> to set your password for <strong>${toEmail}</strong>.</p>
-    <p style="text-align:center;margin:40px 0">
-      <a href="${appUrl}" style="background:#1a3a5c;color:#fff;padding:14px 32px;text-decoration:none;border-radius:4px;font-weight:bold;font-size:14px">Open Easy SDS →</a>
-    </p>
-    <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
-    ${foot}
-  </div>
-</div>`
+    html:
+`🔔 You've been added to Easy SDS
+
+You've been added to the Rhenus SDS Label Generator for ${facility}.
+
+To get started, open the app here: ${appUrl}
+
+Use "First time or forgot password" with this email address (${toEmail}) to set up your password.
+
+Questions? Contact your manager.`
   };
 
   if (type === 'approval') return {
     subject: `"${product}" approved`,
-    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
-  <div style="background:#1a5c33;padding:24px 28px;border-radius:6px 6px 0 0">
-    <h1 style="color:#fff;margin:0;font-size:20px">✓ Chemical Approved</h1>
-  </div>
-  <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
-    <p>Your submission for <strong>${product}</strong> at <strong>${facility}</strong> has been <strong>approved</strong>.</p>
-    <p>It is now available in the chemical library for your facility.</p>
-    <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
-    ${foot}
-  </div>
-</div>`
+    html:
+`✅ Chemical Approved — "${product}"
+
+Your submission for ${product} at ${facility} has been approved. It is now available in the chemical library for your facility.`
   };
 
   return {
     subject: `"${product}" submission not approved`,
-    html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#222">
-  <div style="background:#8b1a1a;padding:24px 28px;border-radius:6px 6px 0 0">
-    <h1 style="color:#fff;margin:0;font-size:20px">Submission Not Approved</h1>
-  </div>
-  <div style="background:#f9f9f9;padding:28px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 6px 6px">
-    <p>Your submission for <strong>${product}</strong> at <strong>${facility}</strong> was <strong>not approved</strong>.</p>
-    ${reason
-      ? `<div style="background:#fff3f3;border-left:4px solid #cc0000;padding:12px 16px;margin:16px 0;border-radius:0 4px 4px 0"><div style="font-size:11px;font-weight:700;color:#cc0000;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Reason</div><div style="font-size:13px;color:#333">${reason.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div></div>`
-      : ''}
-    <p style="font-size:12px;color:#888">If you have questions or feel you've received this message in error, please contact your manager.</p>
-    ${foot}
-  </div>
-</div>`
+    html: reason
+      ? `❌ Submission Not Approved — "${product}"\n\nYour submission for ${product} at ${facility} was not approved.\n\nReason: ${reason}\n\nQuestions? Contact your manager.`
+      : `❌ Submission Not Approved — "${product}"\n\nYour submission for ${product} at ${facility} was not approved.\n\nQuestions? Contact your manager.`
   };
 }
 
@@ -1520,7 +1492,7 @@ function dtRefreshAll() {
 }
 
 function dtSyncPreview() {
-  document.getElementById('dt-frame').srcdoc = document.getElementById('dt-html').value;
+  document.getElementById('dt-frame').textContent = document.getElementById('dt-html').value;
 }
 
 async function dtSend() {
@@ -1531,20 +1503,20 @@ async function dtSend() {
   const btn     = document.getElementById('dt-send-btn');
   if (!to)      { status.innerHTML = '<span style="color:#c00">Enter a recipient.</span>';     return; }
   if (!subject) { status.innerHTML = '<span style="color:#c00">Subject is empty.</span>';      return; }
-  if (!html)    { status.innerHTML = '<span style="color:#c00">Email body is empty.</span>';   return; }
+  if (!html)    { status.innerHTML = '<span style="color:#c00">Message body is empty.</span>'; return; }
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Sending…';
   status.textContent = '';
   try {
     await window.FB.sendEmail(to, subject, html);
-    status.innerHTML = '<span style="color:#2e7d32">✓ Queued — check your inbox.</span>';
-    logActivity('Dev Tools email sent to: ' + to, 'add');
+    status.innerHTML = '<span style="color:#2e7d32">✓ Sent — check Teams.</span>';
+    logActivity('Dev Tools Teams message sent to: ' + to, 'add');
   } catch (e) {
     console.error(e);
     status.innerHTML = '<span style="color:#c00">Failed — check console.</span>';
   }
   btn.disabled = false;
-  btn.textContent = 'Send Email';
+  btn.textContent = 'Send Message';
 }
 
 async function dtLoadAccess() {
@@ -3107,11 +3079,11 @@ function renderHistory() {
     <div class="dt-body">
 
       <!-- Email Tester -->
-      <div class="dt-section">Email Tester</div>
+      <div class="dt-section">Teams Message Tester</div>
 
       <div class="dt-2col">
         <div>
-          <label class="dt-label">Email Type</label>
+          <label class="dt-label">Message Type</label>
           <select id="dt-type" class="dt-select" onchange="dtTypeChanged()">
             <option value="test">System Test</option>
             <option value="invite">Worker Invite</option>
@@ -3143,24 +3115,24 @@ function renderHistory() {
 
       <div>
         <label class="dt-label">Subject</label>
-        <input type="text" id="dt-subject" class="dt-input" placeholder="Email subject…">
+        <input type="text" id="dt-subject" class="dt-input" placeholder="Message subject…">
       </div>
 
       <div class="dt-2col">
         <div>
-          <label class="dt-label">HTML (editable)</label>
+          <label class="dt-label">Message Body (editable)</label>
           <textarea id="dt-html" class="dt-textarea" oninput="dtSyncPreview()" rows="12"></textarea>
         </div>
         <div>
           <label class="dt-label">Preview</label>
           <div class="dt-preview-wrap">
-            <iframe id="dt-frame" sandbox="allow-same-origin"></iframe>
+            <pre id="dt-frame" style="white-space:pre-wrap;word-break:break-word;margin:0;font-family:inherit;font-size:12px;padding:12px;height:100%;box-sizing:border-box;overflow:auto"></pre>
           </div>
         </div>
       </div>
 
       <div style="display:flex;align-items:center;gap:12px">
-        <button id="dt-send-btn" class="dt-send-btn" onclick="dtSend()">Send Email</button>
+        <button id="dt-send-btn" class="dt-send-btn" onclick="dtSend()">Send Message</button>
         <div id="dt-send-status" style="font-size:12px"></div>
       </div>
 
