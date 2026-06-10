@@ -564,6 +564,7 @@ nav {
 .hist-edit-reason:hover { color: #1a3a5c; }
 .hist-product { font-size: 14px; font-weight: 700; color: #1a3a5c; flex: 1; min-width: 140px; }
 .hist-badge-approved { display: inline-block; background: #d4edda; color: #1a5c33; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
+.hist-approved-info { display: inline-block; background: #d4edda; color: #1a5c33; border: 1px solid #a8d5b5; border-radius: 4px; padding: 4px 10px; font-size: 0.82em; font-weight: 600; margin-top: 5px; }
 .hist-badge-rejected { display: inline-block; background: #fde8e8; color: #8b1a1a; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
 .hist-badge-bl-add { display: inline-block; background: #fff3cd; color: #7a4900; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
 .hist-badge-bl-remove { display: inline-block; background: #f0f0f0; color: #555; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; }
@@ -2735,6 +2736,8 @@ async function approveFromReview() {
         reviewedBy: window.FB.adminProfile?.email || null
       }).catch(e => console.error('[EasySDS] logActivityHistory failed:', e));
       const i = reviewIdx;
+      if (approveBtn) approveBtn.textContent = '✓ Approve';
+      footer.forEach(b => b.disabled = false);
       closeReview();
       pendingApprovals.splice(i, 1);
       populateApprovalsFacilityFilter();
@@ -2918,10 +2921,15 @@ function renderHistory() {
     const safeId  = h._id.replace(/'/g, "\\'");
     const safeSrc = (h._source  || '').replace(/'/g, "\\'");
     const safeFac = (h.facilityCode || '').replace(/'/g, "\\'");
-    const canEditReason = isSuperAdmin && (action === 'rejected' || action === 'approved');
-    const reason = h.reason
-      ? `<div class="hist-reason"><strong>Reason:</strong> ${esc(h.reason)}${canEditReason ? ` <button class="hist-edit-reason" onclick="editHistoryReason('${safeId}', '${safeSrc}', '${safeFac}', this)" title="Edit reason">✎</button>` : ''}</div>`
-      : (canEditReason ? `<div class="hist-reason" style="color:#aaa"><em>No reason given</em> <button class="hist-edit-reason" onclick="editHistoryReason('${safeId}', '${safeSrc}', '${safeFac}', this)" title="Add reason">✎</button></div>` : '');
+    const canEditReason = isSuperAdmin && action === 'rejected';
+    let reason = '';
+    if (action === 'approved') {
+      reason = `<div class="hist-approved-info">✓ Approved ${esc(tsStr)}${h.reviewedBy ? ` by ${esc(h.reviewedBy)}` : ''}</div>`;
+    } else if (h.reason) {
+      reason = `<div class="hist-reason"><strong>Reason:</strong> ${esc(h.reason)}${canEditReason ? ` <button class="hist-edit-reason" onclick="editHistoryReason('${safeId}', '${safeSrc}', '${safeFac}', this)" title="Edit reason">✎</button>` : ''}</div>`;
+    } else if (canEditReason) {
+      reason = `<div class="hist-reason" style="color:#aaa"><em>No reason given</em> <button class="hist-edit-reason" onclick="editHistoryReason('${safeId}', '${safeSrc}', '${safeFac}', this)" title="Add reason">✎</button></div>`;
+    }
     const delBtn = isSuperAdmin
       ? `<button class="hist-del" title="Delete record" onclick="deleteHistoryItem('${safeId}', '${safeSrc}', '${safeFac}', this)">✕</button>`
       : '';
