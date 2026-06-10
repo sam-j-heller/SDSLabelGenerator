@@ -1652,7 +1652,7 @@ function fitText(el, minPt) {
   return overflows;
 }
 // Render hazard text, set grid widths, then sync font sizes between the two cells.
-// Must be called after setFirstAid but before fitText on both cells.
+// Called after setFirstAid so first-aid content is already in the DOM.
 function balanceBottomStrip() {
   const zone  = document.querySelector('.zone-bottom');
   const hazEl = $('lbl-hazard');
@@ -1660,20 +1660,35 @@ function balanceBottomStrip() {
   if (!zone || !hazEl || !faEl) return;
 
   const hazText   = ($('f-hazard').value || '').trim();
-  const lineCount = hazText.split('\n').filter(l => l.trim()).length;
-  const useTwoCol = lineCount > 5;
+  const lines     = hazText.split('\n').filter(l => l.trim());
+  const lineCount = lines.length;
 
-  // Render hazard with 1 or 2 columns depending on line count
+  // 2-column layout needed once there are enough lines to fill both columns.
+  // Single-column below that threshold — but the column must be wide enough
+  // that a full H-code line (up to ~55 chars) doesn't wrap.
+  //   ≤ 2 lines  → 1-col, 36%  (first-aid gets ~39%)
+  //   3–6 lines  → 1-col, 44%  (first-aid gets ~31%)
+  //   7+ lines   → 2-col, 50%  (first-aid gets ~25%, original default)
+  let hazPct, useTwoCol;
+  if (lineCount <= 2) {
+    hazPct = 36; useTwoCol = false;
+  } else if (lineCount <= 6) {
+    hazPct = 44; useTwoCol = false;
+  } else {
+    hazPct = 50; useTwoCol = true;
+  }
+
+  // Render hazard with the chosen column count
   setHazard('lbl-hazard', hazText, useTwoCol);
 
-  // Supplier stays fixed; hazard and first-aid share the remaining 75%
-  zone.style.gridTemplateColumns = useTwoCol ? '50% 1fr 25%' : '28% 1fr 25%';
+  // Supplier stays fixed at 25%; hazard and first-aid share the rest
+  zone.style.gridTemplateColumns = `${hazPct}% 1fr 25%`;
 
-  // Fit text in the sized columns
+  // Fit text now that column widths are set
   fitText(hazEl, 5);
   fitText(faEl,  5);
 
-  // Sync to the smaller of the two fitted sizes so they read as one visual block
+  // Sync to the smaller fitted size so hazard and first-aid read as one block
   const readPt = el => {
     if (el.style.fontSize) return parseFloat(el.style.fontSize);
     return parseFloat(getComputedStyle(el).fontSize) * 0.75;
@@ -2402,18 +2417,43 @@ async function saveToLibrary() {
   const lib = getLibrary();
   const idx = lib.findIndex(c => c.product.trim().toLowerCase() === data.product.trim().toLowerCase());
   if (idx >= 0) {
-    hideSpin();
-    // Existing chemical — overwrite directly, no approval needed
-    if (!confirm(`"${data.product}" is already saved. Overwrite it?`)) return;
-    lib[idx] = data;
-    saveLibrary(lib);
-    selectedLibIdx = idx;
-    $('lib-search').value = data.product;
-    const delBtn = $('lib-del-btn');
-    if (delBtn) delBtn.style.display = 'block';
-    filterCombo();
-    window.FB.push();
-    showSaveBanners(`"${data.product}" updated.`, 'success');
+    const isAdmin = window.FB.workerProfile?.role === 'admin';
+    if (isAdmin) {
+      hideSpin();
+      // Admins overwrite directly without approval
+      if (!confirm(`"${data.product}" is already saved. Overwrite it?`)) return;
+      lib[idx] = data;
+      saveLibrary(lib);
+      selectedLibIdx = idx;
+      $('lib-search').value = data.product;
+      const delBtn = $('lib-del-btn');
+      if (delBtn) delBtn.style.display = 'block';
+      filterCombo();
+      window.FB.push();
+      showSaveBanners(`"${data.product}" updated.`, 'success');
+    } else {
+      // Non-admins: edits go through the approval queue like new chemicals
+      const pending = await window.FB.getFacilityPending(window.FB.facilityCode);
+      const alreadyPending = pending.some(p =>
+        (p.product || '').trim().toLowerCase() === data.product.trim().toLowerCase()
+      );
+      if (alreadyPending) {
+        hideSpin();
+        showSaveBanners(`"${data.product}" already has changes waiting for approval.`, 'warn');
+        return;
+      }
+      try {
+        await window.FB.submitForApproval(window.FB.facilityCode, data, window.FB.workerProfile?.email || null);
+        hideSpin();
+        showSubmitConfirm(data.product);
+      } catch (e) {
+        hideSpin();
+        console.error('[EasySDS] submitForApproval failed:', e);
+        window.FB.logClientEvent(window.FB.facilityCode, 'error', 'submission',
+          `Edit submission failed for "${data.product}"`, e.message);
+        showSaveBanners('Submission failed — please try again or contact your administrator.', 'error');
+      }
+    }
   } else {
     // New chemical — submit for approval
     const pending = await window.FB.getFacilityPending(window.FB.facilityCode);
