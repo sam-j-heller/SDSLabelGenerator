@@ -590,7 +590,8 @@ body[data-paper="a4"] .label-outer {
 .hp-info .htxt.htxt-two-col { column-count: 2; column-gap: 0.18in; }
 .hp-info .htxt .htxt-line { break-inside: avoid; }
 .hp-info .pl { font-weight: 800; }
-.supplier-info .srow { font-size: 8.5pt; line-height: 1.3; }
+.supplier-info { font-size: 8.5pt; }
+.supplier-info .srow { font-size: inherit; line-height: 1.3; }
 .supplier-info .srow b { font-weight: 800; }
 
 /* ============================================================
@@ -665,7 +666,7 @@ body[data-paper="sra3"] .supplier-info h4   { font-size: 14pt; }
 body[data-paper="sra3"] .hp-info .htxt,
 body[data-paper="sra3"] .hp-info .ptxt,
 body[data-paper="sra3"] .fa-box .fatxt      { font-size: 12pt; }
-body[data-paper="sra3"] .supplier-info .srow { font-size: 12pt; }
+body[data-paper="sra3"] .supplier-info { font-size: 12pt; }
 body[data-paper="sra3"] .zone-product .plabel { font-size: 17pt; }
 
 /* ============================================================
@@ -1284,11 +1285,13 @@ body[data-mode="sheet"] .sheet-outer  { display: block; }
             </div>
             <div class="supplier-info">
               <h4>Supplier Info</h4>
-              <div class="srow"><b id="lbl-company"></b></div>
-              <div class="srow" id="lbl-address" style="white-space: pre-wrap;"></div>
-              <div class="srow"><b>Emergency:</b> <span id="lbl-phone" style="white-space:pre-wrap"></span></div>
-              <div class="srow"><b>Prepared by:</b> <span id="lbl-prep"></span></div>
-              <div class="srow"><b>Date:</b> <span id="lbl-date"></span></div>
+              <div id="lbl-supplier-text" style="flex:1;min-height:0;overflow:hidden">
+                <div class="srow"><b id="lbl-company"></b></div>
+                <div class="srow" id="lbl-address" style="white-space: pre-wrap;"></div>
+                <div class="srow"><b>Emergency:</b> <span id="lbl-phone" style="white-space:pre-wrap"></span></div>
+                <div class="srow"><b>Prepared by:</b> <span id="lbl-prep"></span></div>
+                <div class="srow"><b>Date:</b> <span id="lbl-date"></span></div>
+              </div>
             </div>
           </div>
 
@@ -1659,22 +1662,20 @@ function fitText(el, minPt) {
 // A two-pass approach is used: pass 1 finds the font size that fits vertically,
 // pass 2 re-checks that the chosen column is still wide enough at that font.
 function balanceBottomStrip() {
-  const zone  = document.querySelector('.zone-bottom');
-  const hazEl = $('lbl-hazard');
-  const faEl  = $('lbl-firstaid');
-  if (!zone || !hazEl || !faEl) return;
+  const zone   = document.querySelector('.zone-bottom');
+  const hazEl  = $('lbl-hazard');
+  const faEl   = $('lbl-firstaid');
+  const suppEl = $('lbl-supplier-text');
+  if (!zone || !hazEl || !faEl || !suppEl) return;
 
   const hazText   = ($('f-hazard').value || '').trim();
   const lines     = hazText.split('\n').filter(l => l.trim());
   const lineCount = lines.length;
 
-  // Above 8 lines, switch to two-column layout at full 50%.
   const useTwoCol = lineCount > 8;
   setHazard('lbl-hazard', hazText, useTwoCol);
 
-  // Target column widths by line count.
-  // Long lines may wrap to 2 display rows — that's acceptable and saves space.
-  // Supplier is always locked at 25%; first-aid takes whatever is left (1fr).
+  // Hazard width by line count; first-aid and supplier share the rest equally.
   const targetPct = useTwoCol ? 50
     : lineCount <= 2 ? 28
     : lineCount <= 4 ? 33
@@ -1686,19 +1687,20 @@ function balanceBottomStrip() {
     return parseFloat(getComputedStyle(el).fontSize) * 0.75;
   };
 
-  // Pass 1 — set target width, fit both cells vertically, read back font sizes.
-  zone.style.gridTemplateColumns = `${targetPct}% 1fr 25%`;
-  fitText(hazEl, 5);
-  fitText(faEl,  5);
-  const syncPt = Math.max(5, Math.min(readPt(hazEl), readPt(faEl)));
+  // Pass 1 — set column widths, fit all three cells independently.
+  zone.style.gridTemplateColumns = `${targetPct}% 1fr 1fr`;
+  fitText(hazEl,  5);
+  fitText(faEl,   5);
+  fitText(suppEl, 5);
 
-  // Pass 2 — apply the synced font and re-fit so both cells are measured at the
-  // same size. At a smaller font the hazard may now fit in an even narrower column
-  // but we keep targetPct; what matters is the fonts match and nothing overflows.
-  hazEl.style.fontSize = syncPt + 'pt';
-  faEl.style.fontSize  = syncPt + 'pt';
-  fitText(hazEl, 5);
-  fitText(faEl,  5);
+  // Pass 2 — sync to the smallest fitted size.
+  // NOTE: do NOT re-call fitText here — fitText resets style.fontSize before
+  // shrinking, which would erase the synced value. A smaller font always fits
+  // in a cell that already fitted at a larger size, so no re-fit is needed.
+  const syncPt = Math.max(5, Math.min(readPt(hazEl), readPt(faEl), readPt(suppEl)));
+  hazEl.style.fontSize  = syncPt + 'pt';
+  faEl.style.fontSize   = syncPt + 'pt';
+  suppEl.style.fontSize = syncPt + 'pt';
 }
 
 function fitTextLine(el, minPt) {
