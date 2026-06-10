@@ -1658,9 +1658,6 @@ function fitText(el, minPt) {
 // Render hazard text, set grid widths, then sync font sizes between the two cells.
 //
 // Width is driven by line COUNT, not line length — long lines are allowed to wrap
-// to a second display row, which is fine and gives first-aid more space.
-// A two-pass approach is used: pass 1 finds the font size that fits vertically,
-// pass 2 re-checks that the chosen column is still wide enough at that font.
 function balanceBottomStrip() {
   const zone   = document.querySelector('.zone-bottom');
   const hazEl  = $('lbl-hazard');
@@ -1675,34 +1672,62 @@ function balanceBottomStrip() {
   const useTwoCol = lineCount > 8;
   setHazard('lbl-hazard', hazText, useTwoCol);
 
-  // Hazard width by line count; first-aid and supplier share the rest equally.
   const targetPct = useTwoCol ? 50
     : lineCount <= 2 ? 28
     : lineCount <= 4 ? 33
     : lineCount <= 6 ? 40
     : 46;
 
+  // Read CSS base size before any inline overrides.
+  hazEl.style.fontSize = '';
+  const basePt = parseFloat(getComputedStyle(hazEl).fontSize) * 0.75;
+
   const readPt = el => {
     if (el.style.fontSize) return parseFloat(el.style.fontSize);
     return parseFloat(getComputedStyle(el).fontSize) * 0.75;
   };
 
-  // Pass 1 — set column widths, fit all three cells independently.
-  // Supplier uses fit-content so it sizes to its content without growing to fill
-  // available space; first-aid gets all the leftover room.
+  // Check whether el's content fits vertically at pt without committing the size.
+  // Uses the same absolute-position trick as fitText for accurate scrollHeight.
+  const cellFits = (el, pt) => {
+    const h = el.clientHeight, w = el.clientWidth;
+    if (!h || !w) return true;
+    const sp = el.style.position, sh = el.style.height,
+          sw = el.style.width,   so = el.style.overflow, sf = el.style.fontSize;
+    el.style.position = 'absolute'; el.style.height = 'auto';
+    el.style.width = w + 'px'; el.style.overflow = 'visible';
+    el.style.fontSize = pt + 'pt';
+    const ok = el.scrollHeight <= h;
+    el.style.position = sp || ''; el.style.height = sh || '';
+    el.style.width = sw || ''; el.style.overflow = so || '';
+    el.style.fontSize = sf;
+    return ok;
+  };
+
+  // Pass 1 — set column widths, shrink each cell to fit vertically.
   zone.style.gridTemplateColumns = `${targetPct}% 1fr fit-content(25%)`;
   fitText(hazEl,  5);
   fitText(faEl,   5);
   fitText(suppEl, 5);
 
-  // Pass 2 — sync to the smallest fitted size.
-  // NOTE: do NOT re-call fitText here — fitText resets style.fontSize before
-  // shrinking, which would erase the synced value. A smaller font always fits
-  // in a cell that already fitted at a larger size, so no re-fit is needed.
-  const syncPt = Math.max(5, Math.min(readPt(hazEl), readPt(faEl), readPt(suppEl)));
-  hazEl.style.fontSize  = syncPt + 'pt';
-  faEl.style.fontSize   = syncPt + 'pt';
-  suppEl.style.fontSize = syncPt + 'pt';
+  // Pass 2 — sync down to the smallest fitted size.
+  let finalPt = Math.max(5, Math.min(readPt(hazEl), readPt(faEl), readPt(suppEl)));
+
+  // Pass 3 — grow back up toward basePt while all three cells still fit.
+  // This recovers whitespace that appeared in cells with fewer/shorter lines.
+  for (let tryPt = finalPt + 0.25; tryPt <= basePt + 0.001; tryPt += 0.25) {
+    const pt = Math.min(tryPt, basePt);
+    if (cellFits(hazEl, pt) && cellFits(faEl, pt) && cellFits(suppEl, pt)) {
+      finalPt = pt;
+    } else {
+      break;
+    }
+    if (pt >= basePt) break;
+  }
+
+  hazEl.style.fontSize  = finalPt + 'pt';
+  faEl.style.fontSize   = finalPt + 'pt';
+  suppEl.style.fontSize = finalPt + 'pt';
 }
 
 function fitTextLine(el, minPt) {
