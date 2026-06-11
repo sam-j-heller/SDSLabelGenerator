@@ -726,7 +726,7 @@ window.FB = {
   // ── Teams notifications via Power Automate ───────────────────
   // POST to the Power Automate HTTP trigger; the flow DMs the recipient in Teams.
   // Replace the URL below with your actual flow's HTTP POST URL.
-  TEAMS_WEBHOOK: 'PASTE_POWER_AUTOMATE_HTTP_TRIGGER_URL_HERE',
+  TEAMS_WEBHOOK: 'https://default86447cc841de4a89b7772f7a3ffdc1.a3.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/b529ca7b52674ca8906e746b23febd13/triggers/manual/paths/invoke?api-version=1',
 
   async sendEmail(to, subject, body) {
     await fetch(window.FB.TEAMS_WEBHOOK, {
