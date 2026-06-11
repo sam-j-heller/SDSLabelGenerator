@@ -554,6 +554,7 @@ nav {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
   padding: 18px 24px; margin-bottom: 24px;
 }
+#dash-activity-list { max-height: 190px; overflow-y: auto; }
 .dash-activity-hdr {
   font-size: 11px; font-weight: 800; color: #aaa;
   text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 12px;
@@ -796,7 +797,7 @@ nav {
       </div>
       <div class="dash-stat-tile" onclick="navToTab('workers')">
         <div class="dash-stat-num" id="stat-workers">—</div>
-        <div class="dash-stat-lbl">Active Workers</div>
+        <div class="dash-stat-lbl">Workers</div>
       </div>
       <div class="dash-stat-tile">
         <div class="dash-stat-num" id="stat-this-month">—</div>
@@ -2878,7 +2879,7 @@ async function loadDashboard() {
 
     document.getElementById('stat-pending').textContent    = pending.length;
     document.getElementById('stat-facilities').textContent = facs.length;
-    document.getElementById('stat-workers').textContent    = workers.filter(w => !w.isAdmin).length;
+    document.getElementById('stat-workers').textContent    = workers.length;
 
     const now = new Date();
     const thisMonthCount = history.filter(h => {
