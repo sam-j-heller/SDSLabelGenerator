@@ -726,12 +726,12 @@ window.FB = {
   // ── Teams notifications via Firestore queue ───────────────────
   // Writes to the 'notifications' collection; Power Automate polls and sends DMs.
   async sendEmail(to, subject, body) {
-    await window.FB.db.collection('notifications').add({
+    await addDoc(collection(db, 'notifications'), {
       to,
       subject,
       body,
       status: 'pending',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: serverTimestamp()
     });
   },
 
