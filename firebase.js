@@ -723,16 +723,15 @@ window.FB = {
     return uid;
   },
 
-  // ── Teams notifications via Power Automate ───────────────────
-  // POST to the Power Automate HTTP trigger; the flow DMs the recipient in Teams.
-  // Replace the URL below with your actual flow's HTTP POST URL.
-  TEAMS_WEBHOOK: 'https://default86447cc841de4a89b7772f7a3ffdc1.a3.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/b529ca7b52674ca8906e746b23febd13/triggers/manual/paths/invoke?api-version=1',
-
+  // ── Teams notifications via Firestore queue ───────────────────
+  // Writes to the 'notifications' collection; Power Automate polls and sends DMs.
   async sendEmail(to, subject, body) {
-    await fetch(window.FB.TEAMS_WEBHOOK, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, subject, body })
+    await window.FB.db.collection('notifications').add({
+      to,
+      subject,
+      body,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   },
 
