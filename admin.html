@@ -535,6 +535,39 @@ nav {
 @media (max-width: 860px) { .dash-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 540px) { .dash-grid { grid-template-columns: 1fr; } }
 
+/* ---------- Dashboard stats strip ---------- */
+.dash-stats-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;
+}
+.dash-stat-tile {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 20px 24px; transition: box-shadow 0.15s;
+}
+.dash-stat-tile[onclick] { cursor: pointer; }
+.dash-stat-tile[onclick]:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.dash-stat-num { font-size: 34px; font-weight: 800; color: #1a3a5c; line-height: 1; margin-bottom: 6px; }
+.dash-stat-num.warn { color: #b35c00; }
+.dash-stat-lbl { font-size: 11px; color: #999; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; }
+
+/* ---------- Dashboard activity feed ---------- */
+.dash-activity {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 18px 24px; margin-bottom: 24px;
+}
+.dash-activity-hdr {
+  font-size: 11px; font-weight: 800; color: #aaa;
+  text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 12px;
+}
+.dash-act-row {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 0; border-bottom: 1px solid #f3f3f3; font-size: 13px;
+}
+.dash-act-row:last-child { border-bottom: none; }
+.dash-act-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; min-width: 58px; }
+.dash-act-name { font-weight: 600; color: #1a1a1a; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-act-meta { font-size: 11px; color: #aaa; white-space: nowrap; }
+.dash-act-empty { color: #bbb; font-size: 13px; font-style: italic; padding: 6px 0; }
+
 /* ---------- Approvals tab ---------- */
 .appr-empty { padding: 40px; text-align: center; color: #aaa; font-size: 13px; font-style: italic; }
 .appr-row {
@@ -750,6 +783,33 @@ nav {
   <div id="tab-dashboard" class="tab-panel active">
     <p class="dash-welcome">Admin Console</p>
     <p class="dash-sub">Select a section below to get started.</p>
+
+    <!-- Stats strip -->
+    <div class="dash-stats-strip">
+      <div class="dash-stat-tile" onclick="navToTab('approvals')">
+        <div class="dash-stat-num warn" id="stat-pending">—</div>
+        <div class="dash-stat-lbl">Pending Approvals</div>
+      </div>
+      <div class="dash-stat-tile" onclick="navToTab('facilities')">
+        <div class="dash-stat-num" id="stat-facilities">—</div>
+        <div class="dash-stat-lbl">Facilities</div>
+      </div>
+      <div class="dash-stat-tile" onclick="navToTab('workers')">
+        <div class="dash-stat-num" id="stat-workers">—</div>
+        <div class="dash-stat-lbl">Active Workers</div>
+      </div>
+      <div class="dash-stat-tile">
+        <div class="dash-stat-num" id="stat-this-month">—</div>
+        <div class="dash-stat-lbl">Approved This Month</div>
+      </div>
+    </div>
+
+    <!-- Recent activity feed -->
+    <div class="dash-activity">
+      <div class="dash-activity-hdr">Recent Activity</div>
+      <div id="dash-activity-list"><div class="dash-act-empty">Loading…</div></div>
+    </div>
+
     <div class="dash-grid">
 
       <div class="dash-card" onclick="navToTab('facilities')">
@@ -1181,6 +1241,7 @@ async function doAdminLogin() {
     loadFacilities();
     loadBlacklist();
     window.FB.getAllPending().then(list => { pendingApprovals = list; updateApprovalsBadge(); }).catch(e => console.error('[EasySDS] getAllPending on login failed:', e));
+    loadDashboard();
   } else {
     err.textContent = 'Incorrect email or password.';
     btn.disabled    = false;
@@ -2804,6 +2865,57 @@ function updateApprovalsBadge() {
 //  Submission History
 // -------------------------------------------------------
 let submissionHistory = [];
+
+async function loadDashboard() {
+  const listEl = document.getElementById('dash-activity-list');
+  try {
+    const [pending, workers, history, facs] = await Promise.all([
+      window.FB.getAllPending(),
+      window.FB.listWorkers(false),
+      window.FB.getAllSubmissionHistory(),
+      window.FB.listFacilities()
+    ]);
+
+    document.getElementById('stat-pending').textContent    = pending.length;
+    document.getElementById('stat-facilities').textContent = facs.length;
+    document.getElementById('stat-workers').textContent    = workers.filter(w => !w.isAdmin).length;
+
+    const now = new Date();
+    const thisMonthCount = history.filter(h => {
+      if ((h.action || h.outcome) !== 'approved') return false;
+      const ts = h.reviewedAt?.seconds || h.timestamp?.seconds;
+      if (!ts) return false;
+      const d = new Date(ts * 1000);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }).length;
+    document.getElementById('stat-this-month').textContent = thisMonthCount;
+
+    const recent = history.slice(0, 8);
+    if (!recent.length) {
+      listEl.innerHTML = '<div class="dash-act-empty">No activity yet.</div>';
+      return;
+    }
+    listEl.innerHTML = recent.map(h => {
+      const product  = h.product || h.name || h.msg || '(unknown)';
+      const fac      = h.facilityCode || '';
+      const outcome  = h.action || h.outcome || '';
+      const ts       = h.reviewedAt?.seconds || h.timestamp?.seconds;
+      const dateStr  = ts ? new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+      const who      = h.reviewedBy || h.submittedByEmail || '';
+      const color    = outcome === 'approved' ? '#2e7d32' : outcome === 'rejected' ? '#c62828' : '#888';
+      const label    = outcome === 'approved' ? 'Approved' : outcome === 'rejected' ? 'Rejected' : (outcome || 'Activity');
+      const meta     = [fac, who, dateStr].filter(Boolean).join(' · ');
+      return `<div class="dash-act-row">
+        <span class="dash-act-badge" style="color:${color}">${esc(label)}</span>
+        <span class="dash-act-name">${esc(product)}</span>
+        <span class="dash-act-meta">${esc(meta)}</span>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    console.error('[EasySDS] loadDashboard failed:', e);
+    if (listEl) listEl.innerHTML = '<div class="dash-act-empty">Could not load activity.</div>';
+  }
+}
 
 async function loadHistory() {
   const list = document.getElementById('hist-list');
