@@ -1811,8 +1811,8 @@ function setStickerHazard(hazText) {
   lines.sort((a, b) => getPriority(a) - getPriority(b));
   // Render all lines and let fitText shrink font to 5pt minimum
   el.innerHTML = lines.map(l => `<div class="htxt-line">${fmt(l)}</div>`).join('');
-  fitText(el, 5);
-  // If still overflowing at 5pt, drop lowest-priority lines until it fits
+  fitText(el, 4);
+  // If still overflowing at 4pt, drop lowest-priority lines until it fits
   if (el.scrollHeight > el.clientHeight + 1) {
     let shown = lines.slice();
     while (shown.length > 1) {
@@ -1952,7 +1952,7 @@ function update() {
     fitText(el, 5);
     el.style.height = '';
   })();
-  fitText($('s-lbl-hazard'), 5);
+  fitText($('s-lbl-hazard'), 4);
 
   // Balance hazard/first-aid columns, render hazard, fit both, sync font sizes
   balanceBottomStrip();
