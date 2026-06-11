@@ -771,9 +771,7 @@ window.FB = {
   async sendWorkerInviteEmail(email, facilityName) {
     const appUrl = window.location.href.replace(/admin\.html.*$/, 'index.html');
     const body =
-`🔔 You've been added to Easy SDS
-
-You've been added to the Rhenus SDS Label Generator for ${facilityName}.
+`You've been added to the Rhenus SDS Label Generator for ${facilityName}.
 
 To get started, open the app here: ${appUrl}
 
@@ -786,9 +784,7 @@ Questions? Contact your manager.`;
   async sendApprovalEmail(submittedByEmail, productName, facilityName) {
     if (!submittedByEmail) return;
     const body =
-`✅ Chemical Approved — "${productName}"
-
-Your submission for ${productName} at ${facilityName} has been approved. It is now available in the chemical library for your facility.`;
+`Your submission for ${productName} at ${facilityName} has been approved. It is now available in the chemical library for your facility.`;
     await window.FB.sendEmail(submittedByEmail, `"${productName}" approved`, body);
   },
 
@@ -796,9 +792,7 @@ Your submission for ${productName} at ${facilityName} has been approved. It is n
     if (!submittedByEmail) return;
     const reasonLine = reason ? `\nReason: ${reason}\n` : '';
     const body =
-`❌ Submission Not Approved — "${productName}"
-
-Your submission for ${productName} at ${facilityName} was not approved.
+`Your submission for ${productName} at ${facilityName} was not approved.
 ${reasonLine}
 Questions? Contact your manager.`;
     await window.FB.sendEmail(submittedByEmail, `"${productName}" submission not approved`, body);
@@ -806,9 +800,7 @@ Questions? Contact your manager.`;
 
   async sendSubmissionNotification(toEmail, productName, facilityName) {
     const body =
-`🔬 New Chemical Submission — "${productName}"
-
-A new chemical has been submitted for approval at ${facilityName}.
+`A new chemical has been submitted for approval at ${facilityName}.
 
 Product: ${productName}
 
@@ -821,9 +813,7 @@ Log in to the Easy SDS admin panel to review and approve or reject this submissi
     const recipients = [contacts.facilityManager, contacts.engineeringManager].filter(Boolean);
     if (!recipients.length) return;
     const body =
-`👤 New Worker Added — ${facilityName}
-
-${workerEmail} has been added to the Easy SDS app for ${facilityName}.`;
+`${workerEmail} has been added to the Easy SDS app for ${facilityName}.`;
     await Promise.all(
       recipients.map(email => window.FB.sendEmail(email, `New worker added at ${facilityName}`, body))
     );
