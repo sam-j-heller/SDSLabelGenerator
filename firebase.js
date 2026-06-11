@@ -278,6 +278,28 @@ window.FB = {
     );
   },
 
+  async getFacilityContacts(code) {
+    const upper = code.trim().toUpperCase();
+    try {
+      const snap = await getDoc(doc(db, 'facilities', upper));
+      if (!snap.exists()) return {};
+      const d = snap.data();
+      return {
+        safetyManager:     d.safetyManager     || '',
+        facilityManager:   d.facilityManager   || '',
+        engineeringManager: d.engineeringManager || ''
+      };
+    } catch (e) { return {}; }
+  },
+
+  async setFacilityContacts(code, { safetyManager = '', facilityManager = '', engineeringManager = '' }) {
+    await setDoc(
+      doc(db, 'facilities', code.trim().toUpperCase()),
+      { safetyManager, facilityManager, engineeringManager },
+      { merge: true }
+    );
+  },
+
   // Return the chemicals for a specific facility from its subcollection.
   // Falls back to the legacy chemicals array on the document if the subcollection
   // is empty (supports the migration window).
@@ -400,6 +422,17 @@ window.FB = {
       submittedAt: serverTimestamp(),
       status: 'pending'
     });
+    // Notify safety manager if configured
+    try {
+      const contacts = await window.FB.getFacilityContacts(upper);
+      if (contacts.safetyManager) {
+        await window.FB.sendSubmissionNotification(
+          contacts.safetyManager,
+          labelData.product || labelData.name || 'Unknown product',
+          window.FB.facilityName || upper
+        );
+      }
+    } catch (e) { console.error('[EasySDS] submission notification failed:', e); }
     return ref.id;
   },
 
@@ -769,6 +802,31 @@ Your submission for ${productName} at ${facilityName} was not approved.
 ${reasonLine}
 Questions? Contact your manager.`;
     await window.FB.sendEmail(submittedByEmail, `"${productName}" submission not approved`, body);
+  },
+
+  async sendSubmissionNotification(toEmail, productName, facilityName) {
+    const body =
+`🔬 New Chemical Submission — "${productName}"
+
+A new chemical has been submitted for approval at ${facilityName}.
+
+Product: ${productName}
+
+Log in to the Easy SDS admin panel to review and approve or reject this submission.`;
+    await window.FB.sendEmail(toEmail, `New chemical submission: "${productName}"`, body);
+  },
+
+  async sendWorkerAddedNotification(workerEmail, facilityCode, facilityName) {
+    const contacts = await window.FB.getFacilityContacts(facilityCode);
+    const recipients = [contacts.facilityManager, contacts.engineeringManager].filter(Boolean);
+    if (!recipients.length) return;
+    const body =
+`👤 New Worker Added — ${facilityName}
+
+${workerEmail} has been added to the Easy SDS app for ${facilityName}.`;
+    await Promise.all(
+      recipients.map(email => window.FB.sendEmail(email, `New worker added at ${facilityName}`, body))
+    );
   },
 
   // ── Client event logging ─────────────────────────────────────

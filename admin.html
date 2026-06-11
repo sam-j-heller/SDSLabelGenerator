@@ -1109,7 +1109,19 @@ nav {
         </div>
       </div>
 
-      <div class="edit-chem-header">
+      <div class="edit-field-label" style="margin-top:18px">Notification Contacts</div>
+      <p style="font-size:11px;color:#666;margin:4px 0 8px">Automatic Teams messages are sent to these people when events occur at this facility.</p>
+
+      <div class="edit-field-label" style="font-size:11px;color:#888;margin-top:6px">Safety Manager <span style="font-weight:400">(chemical submissions)</span></div>
+      <input type="email" id="edit-safety-manager" class="edit-input" placeholder="email@rhenus.com" autocomplete="off">
+
+      <div class="edit-field-label" style="font-size:11px;color:#888;margin-top:8px">Facility Manager <span style="font-weight:400">(new workers)</span></div>
+      <input type="email" id="edit-facility-manager" class="edit-input" placeholder="email@rhenus.com" autocomplete="off">
+
+      <div class="edit-field-label" style="font-size:11px;color:#888;margin-top:8px">Engineering Manager <span style="font-weight:400">(new workers)</span></div>
+      <input type="email" id="edit-engineering-manager" class="edit-input" placeholder="email@rhenus.com" autocomplete="off">
+
+      <div class="edit-chem-header" style="margin-top:18px">
         <div class="edit-field-label">Chemical Library</div>
         <span class="edit-chem-badge"><span id="edit-chem-count">0</span> chemicals</span>
       </div>
@@ -1321,10 +1333,14 @@ async function addWorker() {
       await window.FB.createWorkerAccountWithPassword(email, pw, facCode);
       if (status) status.innerHTML = `<span style="color:#2e7d32">✓ Account created for ${esc(email)} — share the password directly.</span>`;
       logActivity('Added worker (direct password): ' + email + ' → ' + facCode, 'add');
+      const facName = (facilities.find(f => f.code === facCode) || {}).name || facCode;
+      window.FB.sendWorkerAddedNotification(email, facCode, facName).catch(e => console.error(e));
     } else {
       await window.FB.createWorkerAccount(email, facCode);
       if (status) status.innerHTML = `<span style="color:#2e7d32">✓ Invite sent to ${esc(email)}</span>`;
       logActivity('Added worker (Teams invite): ' + email + ' → ' + facCode, 'add');
+      const facName = (facilities.find(f => f.code === facCode) || {}).name || facCode;
+      window.FB.sendWorkerAddedNotification(email, facCode, facName).catch(e => console.error(e));
     }
     document.getElementById('worker-email-input').value = '';
     document.getElementById('worker-fac-select').value  = '';
@@ -2021,12 +2037,16 @@ async function openEdit(code) {
   setEditLogoPreview(null);
   document.getElementById('edit-modal').classList.add('open');
 
-  const [chemicals, logo] = await Promise.all([
+  const [chemicals, logo, contacts] = await Promise.all([
     window.FB.getFacilityChemicals(code),
-    window.FB.getFacilityLogo(code)
+    window.FB.getFacilityLogo(code),
+    window.FB.getFacilityContacts(code)
   ]);
   editChemicals = chemicals;
   setEditLogoPreview(logo);
+  document.getElementById('edit-safety-manager').value     = contacts.safetyManager     || '';
+  document.getElementById('edit-facility-manager').value   = contacts.facilityManager   || '';
+  document.getElementById('edit-engineering-manager').value = contacts.engineeringManager || '';
   renderEditChemicals();
   document.getElementById('edit-save-btn').disabled = false;
 }
@@ -2101,6 +2121,11 @@ async function saveEdit() {
   const newName   = document.getElementById('edit-name').value.trim();
   const statusEl  = document.getElementById('edit-status');
   const saveBtn   = document.getElementById('edit-save-btn');
+  const contacts  = {
+    safetyManager:     (document.getElementById('edit-safety-manager').value     || '').trim(),
+    facilityManager:   (document.getElementById('edit-facility-manager').value   || '').trim(),
+    engineeringManager:(document.getElementById('edit-engineering-manager').value || '').trim()
+  };
 
   if (!newCode) { statusEl.innerHTML = '<span class="status-err">Code cannot be empty.</span>'; return; }
   if (!newName) { statusEl.innerHTML = '<span class="status-err">Name cannot be empty.</span>'; return; }
@@ -2124,6 +2149,7 @@ async function saveEdit() {
     if (codeChanged) {
       await window.FB.createFacility(newCode, newName);
       await window.FB.setFacilityChemicals(newCode, editChemicals);
+      await window.FB.setFacilityContacts(newCode, contacts);
       await window.FB.deleteFacility(editOriginalCode);
       facilities = facilities.filter(f => f.code !== editOriginalCode);
       facilities.push({ code: newCode, name: newName, chemCount: editChemicals.length });
@@ -2131,6 +2157,7 @@ async function saveEdit() {
     } else {
       await window.FB.updateFacilityName(newCode, newName);
       await window.FB.setFacilityChemicals(newCode, editChemicals);
+      await window.FB.setFacilityContacts(newCode, contacts);
       const fac = facilities.find(f => f.code === newCode);
       if (fac) { fac.name = newName; fac.chemCount = editChemicals.length; }
       logActivity('Updated facility: ' + newCode + ' — ' + newName + ' (' + editChemicals.length + ' chemicals)', 'add');
