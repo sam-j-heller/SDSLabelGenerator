@@ -1776,6 +1776,54 @@ const setHazard = (id, v, twoCol = false) => {
   el.classList.toggle('htxt-two-col', twoCol);
 };
 
+// GHS H-statement priority (1 = most critical, 3 = least critical)
+const H_STMT_PRIORITY = (() => {
+  const p = {};
+  // Priority 1 — fatal acute toxicity, carcinogen/mutagen/repro Cat 1, physical hazards, STOT Cat 1
+  [200,201,202,203,204,205,206,207,208,209,210,211,212,
+   220,221,222,223,224,225,226,228,229,230,231,232,
+   240,241,242,250,251,252,260,261,270,271,272,
+   280,281,282,283,284,290,
+   300,301,310,311,330,331,340,350,360,370,372
+  ].forEach(n => p[n] = 1);
+  // Priority 2 — harmful acute toxicity, serious health effects, aspiration, corrosion
+  [302,304,312,314,318,332,334,341,351,361,371,373,400,410
+  ].forEach(n => p[n] = 2);
+  // Priority 3 — irritation, sensitization, mild/environmental
+  [303,313,315,316,317,319,320,333,335,336,362,411,412,413,420
+  ].forEach(n => p[n] = 3);
+  return p;
+})();
+
+function setStickerHazard(hazText) {
+  const el = $('s-lbl-hazard');
+  if (!el) return;
+  if (!hazText) { el.innerHTML = ''; return; }
+  const fmt = line => {
+    const esc = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return esc.replace(/^([^–\-\n]*[–-])/, '<strong>$1</strong>');
+  };
+  const getPriority = line => {
+    const m = line.match(/H(\d{3})/i);
+    return m ? (H_STMT_PRIORITY[parseInt(m[1])] || 2) : 2;
+  };
+  const lines = hazText.split('\n').filter(l => l.trim());
+  lines.sort((a, b) => getPriority(a) - getPriority(b));
+  // Render all lines and let fitText shrink font to 5pt minimum
+  el.innerHTML = lines.map(l => `<div class="htxt-line">${fmt(l)}</div>`).join('');
+  fitText(el, 5);
+  // If still overflowing at 5pt, drop lowest-priority lines until it fits
+  if (el.scrollHeight > el.clientHeight + 1) {
+    let shown = lines.slice();
+    while (shown.length > 1) {
+      shown.pop();
+      el.innerHTML = shown.map(l => `<div class="htxt-line">${fmt(l)}</div>`).join('') +
+        '<div class="htxt-line" style="font-style:italic;color:#555;font-size:5pt">See SDS for complete hazard list</div>';
+      if (el.scrollHeight <= el.clientHeight + 1) break;
+    }
+  }
+}
+
 function update() {
   // Product
   const productName = $('f-product').value.trim();
@@ -1885,7 +1933,7 @@ function update() {
   $('f-addppe').placeholder = autoAddl || 'None';
 
   // Hazard + precautionary text (combined in compact space)
-  setHazard('s-lbl-hazard', $('f-hazard').value);
+  setStickerHazard($('f-hazard').value);
 
   // Auto-fit text in space-constrained boxes
   fitText($('lbl-product'),   11);
@@ -1904,7 +1952,7 @@ function update() {
     fitText(el, 5);
     el.style.height = '';
   })();
-  fitText($('s-lbl-hazard'),  4);
+  fitText($('s-lbl-hazard'), 5);
 
   // Balance hazard/first-aid columns, render hazard, fit both, sync font sizes
   balanceBottomStrip();
